@@ -238,8 +238,9 @@ with tabs[4]:
     st.header(t("delay_header"))
     if not df_delay.empty:
         st.subheader(t("delay_by_type_subheader"))
-        delay_by_type = df_delay.groupby('Error Type')['Duration (hrs)'].sum().reset_index()
-        fig_delay_pie = px.pie(delay_by_type, names='Error Type', values='Duration (hrs)',
+        # Group by QC No. since Error Type column not available
+        delay_by_qc = df_delay.groupby('QC No.')['Duration (hrs)'].sum().sort_values(ascending=False).reset_index()
+        fig_delay_pie = px.pie(delay_by_qc, names='QC No.', values='Duration (hrs)',
                                title=t("delay_by_type_title"))
         st.plotly_chart(fig_delay_pie, use_container_width=True)
         st.subheader(t("delay_details_subheader"))
