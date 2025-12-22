@@ -98,9 +98,9 @@ with tabs[0]:
     st.header(t("overview_header"))
     col1, col2, col3, col4, col5 = st.columns(5)
     total_vessels = len(df_vessel)
-    avg_portstay = df_vessel['Portstay (hrs)'].mean() if 'Portstay (hrs)' in df_vessel.columns else 0
-    avg_net_working = df_vessel['Net Working (hrs)'].mean() if 'Net Working (hrs)' in df_vessel.columns else 0
-    avg_net_moves = df_vessel['Moves/Net (hrs)'].mean() if 'Moves/Net (hrs)' in df_vessel.columns else 0
+    avg_portstay = df_vessel['Portstay (hrs)'].mean() if 'Portstay (hrs)' in df_vessel.columns else 0.0
+    avg_net_working = df_vessel['Net Working (hrs)'].mean() if 'Net Working (hrs)' in df_vessel.columns else 0.0
+    avg_net_moves = df_vessel['Vessel Moves/Net Hour'].mean() if 'Vessel Moves/Net Hour' in df_vessel.columns else 0.0
     total_teus = df_vessel['Grand Total TEUs'].sum() if 'Grand Total TEUs' in df_vessel.columns else 0
     
     col1.metric(t("metric_total_vessels"), f"{total_vessels:,}")
@@ -112,60 +112,77 @@ with tabs[0]:
 
     if not df_vessel.empty:
         st.subheader(t("operator_performance_subheader"))
-        avg_by_operator = df_vessel.groupby('Operator')['Moves/Net (hrs)'].mean().sort_values(ascending=False).reset_index()
-        fig = px.bar(avg_by_operator, x='Operator', y='Moves/Net (hrs)',
-                     title=t("operator_performance_title"),
-                     labels={'Operator': t("operator_axis_label"), 'Moves/Net (hrs)': t("moves_per_hour_axis_label")},
-                     text_auto='.1f')
-        st.plotly_chart(fig, use_container_width=True)
+        # Use available column for operator analysis
+        metric_col = 'Net Working (hrs)' if 'Net Working (hrs)' in df_vessel.columns else ('Portstay (hrs)' if 'Portstay (hrs)' in df_vessel.columns else None)
+        
+        if metric_col:
+            avg_by_operator = df_vessel.groupby('Operator')[metric_col].mean().sort_values(ascending=False).reset_index()
+            fig = px.bar(avg_by_operator, x='Operator', y=metric_col,
+                         title=t("operator_performance_title"),
+                         labels={'Operator': t("operator_axis_label"), metric_col: t("moves_per_hour_axis_label")},
+                         text_auto='.1f')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("⚠️ Performance metrics (Net Working hrs, Portstay hrs) not available in current dataset")
 
     if 'Report Date' in df_vessel.columns:
         st.markdown("---")
         st.header(t("time_analysis_header"))
         time_col1, time_col2 = st.columns(2)
-        with time_col1:
-            st.subheader(t("monthly_performance_subheader"))
-            monthly_performance = df_vessel.groupby('YearMonth')['Moves/Net (hrs)'].mean().reset_index()
-            fig_monthly = px.line(monthly_performance, x='YearMonth', y='Moves/Net (hrs)',
-                                  title=t("monthly_performance_title"), markers=True,
-                                  labels={'YearMonth': t("month_axis_label"), 'Moves/Net (hrs)': t("moves_per_hour_axis_label")},
-                                  text=monthly_performance['Moves/Net (hrs)'].apply(lambda x: f'{x:.1f}'))
-            fig_monthly.update_traces(textposition="top center")
-            st.plotly_chart(fig_monthly, use_container_width=True)
-        with time_col2:
-            st.subheader(t("quarterly_performance_subheader"))
-            quarterly_performance = df_vessel.groupby('Quarter')['Moves/Net (hrs)'].mean().reset_index()
-            fig_quarterly = px.bar(quarterly_performance, x='Quarter', y='Moves/Net (hrs)',
-                                   title=t("quarterly_performance_title"),
-                                   labels={'Quarter': t("quarter_axis_label"), 'Moves/Net (hrs)': t("moves_per_hour_axis_label")},
-                                   text_auto='.1f')
-            st.plotly_chart(fig_quarterly, use_container_width=True)
+        
+        # Check if metric columns exist for time analysis
+        metric_col = 'Net Working (hrs)' if 'Net Working (hrs)' in df_vessel.columns else ('Portstay (hrs)' if 'Portstay (hrs)' in df_vessel.columns else None)
+        
+        if metric_col and 'YearMonth' in df_vessel.columns and 'Quarter' in df_vessel.columns:
+            with time_col1:
+                st.subheader(t("monthly_performance_subheader"))
+                monthly_performance = df_vessel.groupby('YearMonth')[metric_col].mean().reset_index()
+                fig_monthly = px.line(monthly_performance, x='YearMonth', y=metric_col,
+                                      title=t("monthly_performance_title"), markers=True,
+                                      labels={'YearMonth': t("month_axis_label"), metric_col: t("moves_per_hour_axis_label")},
+                                      text=monthly_performance[metric_col].apply(lambda x: f'{x:.1f}'))
+                fig_monthly.update_traces(textposition="top center")
+                st.plotly_chart(fig_monthly, use_container_width=True)
+            with time_col2:
+                st.subheader(t("quarterly_performance_subheader"))
+                quarterly_performance = df_vessel.groupby('Quarter')[metric_col].mean().reset_index()
+                fig_quarterly = px.bar(quarterly_performance, x='Quarter', y=metric_col,
+                                       title=t("quarterly_performance_title"),
+                                       labels={'Quarter': t("quarter_axis_label"), metric_col: t("moves_per_hour_axis_label")},
+                                       text_auto='.1f')
+                st.plotly_chart(fig_quarterly, use_container_width=True)
+        else:
+            st.info("⚠️ Time-based analysis requires Report Date column and performance metrics not currently available")
 
 # --- Tab 1: Cảnh báo KPI ---
 with tabs[1]:
     st.header(t("kpi_warning_header", kpi=KPI_MOVES_PER_HOUR))
-    if 'Moves/Net (hrs)' in df_vessel.columns:
-        underperforming_vessels = df_vessel[df_vessel['Moves/Net (hrs)'] < KPI_MOVES_PER_HOUR].copy()
+    kpi_metric_col = 'Net Working (hrs)' if 'Net Working (hrs)' in df_vessel.columns else ('Portstay (hrs)' if 'Portstay (hrs)' in df_vessel.columns else None)
+    
+    if kpi_metric_col and kpi_metric_col in df_vessel.columns:
+        underperforming_vessels = df_vessel[df_vessel[kpi_metric_col] < KPI_MOVES_PER_HOUR].copy()
         if underperforming_vessels.empty:
             st.success(t("kpi_all_ok", kpi=KPI_MOVES_PER_HOUR))
         else:
             st.warning(t("kpi_underperforming_found", count=len(underperforming_vessels)))
-            columns_to_show = ['Vessel Name', 'Voyage', 'Operator', 'Moves/Net (hrs)', 'Gross Working (hrs)', 'Break Time (hrs)', 'Portstay (hrs)', 'Grand Total Conts']
+            columns_to_show = ['Vessel Name', 'Voyage', 'Operator', kpi_metric_col, 'Gross Working (hrs)', 'Break Time (hrs)', 'Portstay (hrs)', 'Grand Total Conts']
             display_cols = [col for col in columns_to_show if col in underperforming_vessels.columns]
-            underperforming_vessels_sorted = underperforming_vessels.sort_values(by='Moves/Net (hrs)', ascending=True)
+            underperforming_vessels_sorted = underperforming_vessels.sort_values(by=kpi_metric_col, ascending=True)
+            
+            # Build format dict dynamically for available columns
+            format_dict = {}
+            for col in display_cols:
+                if col in ['Net Working (hrs)', 'Portstay (hrs)', 'Gross Working (hrs)', 'Break Time (hrs)']:
+                    format_dict[col] = '{:.1f}'
+            
             st.dataframe(
-                underperforming_vessels_sorted[display_cols].style.format({
-                    'Moves/Net (hrs)': '{:.1f}',
-                    'Gross Working (hrs)': '{:.1f}',
-                    'Break Time (hrs)': '{:.1f}',
-                    'Portstay (hrs)': '{:.1f}'
-                }).highlight_min(
-                    subset=['Moves/Net (hrs)'], color='lightcoral'
+                underperforming_vessels_sorted[display_cols].style.format(format_dict).highlight_min(
+                    subset=[kpi_metric_col], color='lightcoral'
                 ),
                 use_container_width=True
             )
     else:
-        st.error(t("kpi_column_not_found"))
+        st.info("⚠️ KPI analysis requires performance metrics (Net Working hrs or Portstay hrs) not currently available")
 
 # --- Tab 2: Năng suất khai thác (QC) ---
 with tabs[2]:
