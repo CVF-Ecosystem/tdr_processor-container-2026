@@ -1,0 +1,39 @@
+# TDR Processor v3.0.0 - Core Dependencies
+# Python 3.11+
+
+# Data Processing & Analysis
+pandas==2.2.3
+numpy==2.2.3
+openpyxl==3.1.5
+xlrd==2.0.1
+XlsxWriter==3.2.3
+
+# Desktop GUI
+ttkbootstrap==1.13.8
+customtkinter==5.2.2
+
+# Web Dashboard (Streamlit)
+streamlit==1.45.1
+plotly==6.0.0
+
+# Email & Notifications
+python-dotenv==1.0.0
+
+# Scheduling & Monitoring
+schedule==1.2.2
+watchdog==6.0.0
+
+# Utilities
+python-dateutil==2.9.0.post0
+PyYAML==6.0.2
+requests==2.32.3
+
+# Testing (Development)
+pytest==8.3.5
+pytest-mock==3.14.0
+
+# Type Checking (Development)
+mypy==1.13.0
+
+# Build & Distribution (Development)
+pyinstaller==6.12.0

@@ -1,0 +1,45 @@
+{
+  "timestamp": "2025-12-22T22:23:00.765176",
+  "results": [
+    {
+      "operation": "apply_qc_calculations (n=100)",
+      "execution_time": 0.005020856857299805,
+      "memory_usage": null,
+      "cpu_percent": null,
+      "timestamp": "2025-12-22T22:23:00.101134"
+    },
+    {
+      "operation": "format_dataframe_numeric_columns (n=10000, cols=2)",
+      "execution_time": 0.0015134811401367188,
+      "memory_usage": null,
+      "cpu_percent": null,
+      "timestamp": "2025-12-22T22:23:00.102648"
+    },
+    {
+      "operation": "DataFrame.copy() (n=10000, cols=4)",
+      "execution_time": 0.001005411148071289,
+      "memory_usage": null,
+      "cpu_percent": null,
+      "timestamp": "2025-12-22T22:23:00.103653"
+    },
+    {
+      "operation": "DataFrame.groupby().agg() (n=10000, groups=10000)",
+      "execution_time": 0.006520271301269531,
+      "memory_usage": null,
+      "cpu_percent": null,
+      "timestamp": "2025-12-22T22:23:00.110173"
+    },
+    {
+      "operation": "DataFrame.to_excel() (n=5000, cols=10)",
+      "execution_time": 0.6486172676086426,
+      "memory_usage": null,
+      "cpu_percent": null,
+      "timestamp": "2025-12-22T22:23:00.759795"
+    }
+  ],
+  "summary": {
+    "total_operations": 5,
+    "total_time": 0.6626772880554199,
+    "average_time": 0.13253545761108398
+  }
+}
