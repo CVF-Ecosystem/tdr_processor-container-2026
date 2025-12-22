@@ -112,8 +112,8 @@ with tabs[0]:
 
     if not df_vessel.empty:
         st.subheader(t("operator_performance_subheader"))
-        # Use available column for operator analysis
-        metric_col = 'Net Working (hrs)' if 'Net Working (hrs)' in df_vessel.columns else ('Portstay (hrs)' if 'Portstay (hrs)' in df_vessel.columns else None)
+        # Use moves per hour for operator analysis (not hours!)
+        metric_col = 'Vessel Moves/Portstay Hour' if 'Vessel Moves/Portstay Hour' in df_vessel.columns else None
         
         if metric_col:
             avg_by_operator = df_vessel.groupby('Operator')[metric_col].mean().sort_values(ascending=False).reset_index()
@@ -123,7 +123,7 @@ with tabs[0]:
                          text_auto='.1f')
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("⚠️ Performance metrics (Net Working hrs, Portstay hrs) not available in current dataset")
+            st.info("⚠️ Vessel Moves/Portstay Hour not available in current dataset")
 
     if 'Report Date' in df_vessel.columns and 'Portstay (hrs)' in df_vessel.columns:
         st.markdown("---")
@@ -148,7 +148,8 @@ with tabs[0]:
 # --- Tab 1: Cảnh báo KPI ---
 with tabs[1]:
     st.header(t("kpi_warning_header", kpi=KPI_MOVES_PER_HOUR))
-    kpi_metric_col = 'Net Working (hrs)' if 'Net Working (hrs)' in df_vessel.columns else ('Portstay (hrs)' if 'Portstay (hrs)' in df_vessel.columns else None)
+    # KPI metric should be moves per hour, not hours!
+    kpi_metric_col = 'Vessel Moves/Portstay Hour' if 'Vessel Moves/Portstay Hour' in df_vessel.columns else None
     
     if kpi_metric_col and kpi_metric_col in df_vessel.columns:
         underperforming_vessels = df_vessel[df_vessel[kpi_metric_col] < KPI_MOVES_PER_HOUR].copy()
