@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 import pandas as pd
 import openpyxl  # For InvalidFileException and load_workbook
-from datetime import date, datetime, time  # For type hints
-import time as time_module
+from datetime import date, datetime  # For type hints (removed 'time' to avoid naming conflict)
+import time as time_module  # Use 'time_module' to avoid naming conflict with datetime.time
 import re # <<< THÊM IMPORT NÀY
 from typing import Dict, List, Optional, Set, Any, Tuple
 from utils.excel_handler import append_df_to_excel
@@ -273,8 +273,26 @@ class ReportProcessor:
         df_container_long_new = pd.concat(self.all_container_long_dfs, ignore_index=True) if self.all_container_long_dfs else pd.DataFrame()
 
         # --- Bước 2: Đổi tên và lọc cột cho từng DataFrame ---
-        final_df_vessel = df_vessel_new.rename(columns=config.VESSEL_COL_RENAMES_OUTPUT)[config.VESSEL_COLS_OUTPUT_ORDER]
-        final_df_qc = df_qc_new.rename(columns=config.QC_COL_RENAMES_OUTPUT)[config.QC_COLS_OUTPUT_ORDER]
+        # Safely select columns - only include columns that actually exist in the DataFrame
+        def safe_select_columns(df, col_renames, col_order):
+            """Safely rename and select columns from DataFrame"""
+            if df.empty:
+                return df
+            
+            # Apply column renames (if any exist)
+            if col_renames:
+                df = df.rename(columns=col_renames)
+            
+            # Filter to only include columns that exist in the DataFrame
+            existing_cols = [col for col in col_order if col in df.columns]
+            if not existing_cols:
+                logging.warning(f"No columns from order list found in DataFrame. Columns available: {df.columns.tolist()}")
+                return df
+            
+            return df[existing_cols]
+        
+        final_df_vessel = safe_select_columns(df_vessel_new, config.VESSEL_COL_RENAMES_OUTPUT, config.VESSEL_COLS_OUTPUT_ORDER)
+        final_df_qc = safe_select_columns(df_qc_new, config.QC_COL_RENAMES_OUTPUT, config.QC_COLS_OUTPUT_ORDER)
         
         # <<< THAY ĐỔI TÊN CỘT VÀ THỨ TỰ CỘT CHO QC OPERATOR >>>
         # Bỏ cột "Delay times (hrs)" cũ và thêm cột "Total Stop Time (hrs)" mới
@@ -285,10 +303,10 @@ class ReportProcessor:
         ]
         # Đổi tên cột "Delay times (hrs)" thành "Total Stop Time (hrs)"
         df_qc_operator_new = df_qc_operator_new.drop(columns=['Delay times (hrs)'], errors='ignore')
-        final_df_qc_operator = df_qc_operator_new.rename(columns=config.QC_OPERATOR_COL_RENAMES_OUTPUT)[QC_OPERATOR_COLS_OUTPUT_ORDER_NEW]
+        final_df_qc_operator = safe_select_columns(df_qc_operator_new, config.QC_OPERATOR_COL_RENAMES_OUTPUT, QC_OPERATOR_COLS_OUTPUT_ORDER_NEW)
         # <<< KẾT THÚC THAY ĐỔI >>>
 
-        final_df_delay = df_delay_new[config.DELAY_DETAILS_COLS_OUTPUT_ORDER]
+        final_df_delay = safe_select_columns(df_delay_new, {}, config.DELAY_DETAILS_COLS_OUTPUT_ORDER)
         final_df_container_long, final_df_container_wide = self._process_container_data(df_container_long_new)
 
         # --- Bước 3: Ghi file Excel ---
@@ -321,7 +339,7 @@ class ReportProcessor:
 
     def process_tdr_files(self, input_file_paths: list[Path], update_status_callback=None,
                           update_progress_callback=None, overwrite: bool = False) -> dict:
-        start_total_time = time.perf_counter()
+        start_total_time = time_module.perf_counter()
         self.all_vessel_dfs.clear()
         self.all_qc_dfs.clear()
         self.all_delay_dfs.clear()
@@ -377,7 +395,7 @@ class ReportProcessor:
         
         try:
             result_message = self._aggregate_and_save_data()
-            end_total_time = time.perf_counter()
+            end_total_time = time_module.perf_counter()
             time_taken = end_total_time - start_total_time
 
             logging.info(f"Tổng thời gian xử lý {self.processed_files_count} file mới: {time_taken:.2f} giây")
@@ -390,7 +408,7 @@ class ReportProcessor:
             }
 
         except Exception as e_agg:
-            end_total_time = time.perf_counter()
+            end_total_time = time_module.perf_counter()
             time_taken = end_total_time - start_total_time
             logging.error(f"Lỗi nghiêm trọng khi tổng hợp hoặc lưu dữ liệu: {e_agg}", exc_info=True)
             logging.info(f"Tổng thời gian xử lý (kể cả lỗi): {time_taken:.2f} giây")

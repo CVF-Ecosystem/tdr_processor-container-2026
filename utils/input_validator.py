@@ -89,8 +89,10 @@ def validate_file_path(file_path: str, base_directory: Path = None) -> Tuple[boo
     if not file_path or not isinstance(file_path, str):
         return False, "File path must be a non-empty string"
     
-    # Check for parent directory traversal
-    if ".." in file_path:
+    # Check for parent directory traversal (exact match for .. as path component)
+    # Split by path separators and check if any component is exactly ".."
+    path_parts = file_path.replace('\\', '/').split('/')
+    if '..' in path_parts:
         return False, "Path contains parent directory references (traversal attempt)"
     
     # Convert to Path object for validation

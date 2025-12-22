@@ -446,6 +446,29 @@ OP_TOTAL_LOAD = OperationType.TOTAL_LOAD.value
 OP_GRAND_TOTAL = OperationType.GRAND_TOTAL.value
 PORT_ALL = "All"
 
+# Output Column Mapping & Order (for DataFrame rename and column selection)
+VESSEL_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed
+VESSEL_COLS_OUTPUT_ORDER = [
+    'Filename', 'Vessel Name', 'Voyage', 'Operator', 'Berth', 'Report Date', 'ATB', 'ATD',
+    'Gangway Secured', 'Commenced Discharge', 'Commenced Loading', 'Completed Discharge',
+    'Completed Loading', 'All Operations Completed', 'Break time (hrs)', 'Discharge (hrs)',
+    'Loading (hrs)', 'Total working (hrs)'
+]
+
+QC_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed
+QC_COLS_OUTPUT_ORDER = [
+    'Filename', 'Vessel Name', 'Voyage', 'ATB', 'ATD', 'QC No.', 'Start Time', 'End Time',
+    'Gross working (hrs)', 'Delay times (hrs)', 'Net working (hrs)', 'Discharge Conts',
+    'Load Conts', 'Shifting Conts', 'Total Conts', 'Gross moves/h', 'Net moves/h'
+]
+
+QC_OPERATOR_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed
+
+DELAY_DETAILS_COLS_OUTPUT_ORDER = [
+    'Filename', 'Vessel Name', 'Voyage', 'QC No.', 'Delay Start Time', 'Delay End Time',
+    'Duration (hrs)', 'Delay Category', 'Delay Code', 'Delay Description'
+]
+
 # ============================================================================
 # PUBLIC API
 # ============================================================================
@@ -495,5 +518,7 @@ __all__ = [
     'CONTAINER_CATEGORY_COL_RANGES_DEF', 'CONTAINER_SUMMARY_ROW_TOTAL_CONTS_COL_LETTER',
     'CONTAINER_SUMMARY_ROW_TEUS_COL_LETTER', 'LABEL_GRAND_TOTAL_IN_CONTAINER_SUMMARY',
     'OP_DISCHARGE', 'OP_LOADING', 'OP_SHIFTING_DIS', 'OP_SHIFTING_LOAD',
-    'OP_TOTAL_DIS', 'OP_TOTAL_LOAD', 'OP_GRAND_TOTAL', 'PORT_ALL'
+    'OP_TOTAL_DIS', 'OP_TOTAL_LOAD', 'OP_GRAND_TOTAL', 'PORT_ALL',
+    'VESSEL_COL_RENAMES_OUTPUT', 'VESSEL_COLS_OUTPUT_ORDER', 'QC_COL_RENAMES_OUTPUT',
+    'QC_COLS_OUTPUT_ORDER', 'QC_OPERATOR_COL_RENAMES_OUTPUT', 'DELAY_DETAILS_COLS_OUTPUT_ORDER'
 ]

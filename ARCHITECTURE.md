@@ -38,13 +38,13 @@
 
 ### Project Statistics
 
-```
+
 Language:          Python 3.11+
 Lines of Code:     ~15,000
 Test Coverage:     62% (139 tests)
 Security Rating:   CRITICAL=0, HIGH=0, MEDIUM=0 (audited)
 Performance:       50-65% faster Excel I/O vs v2.1
-```
+
 
 ---
 
@@ -52,7 +52,7 @@ Performance:       50-65% faster Excel I/O vs v2.1
 
 ### 1. Layered Architecture
 
-```
+
 ┌─────────────────────────────────────────┐
 │         User Interface Layer             │
 │  (CLI: main.py, app.py)                 │
@@ -77,7 +77,7 @@ Performance:       50-65% faster Excel I/O vs v2.1
 │        External Services                 │
 │  (SMTP, File System, Excel Engine)      │
 └─────────────────────────────────────────┘
-```
+
 
 ### 2. Design Patterns Used
 
@@ -106,7 +106,7 @@ Performance:       50-65% faster Excel I/O vs v2.1
 
 ### Entry Points
 
-```
+
 main.py              Primary CLI entry point
 ├── Uses: config, report_processor, email_notifier
 ├── Loads environment variables
@@ -118,11 +118,11 @@ app.py               Desktop GUI entry point (Tkinter)
 
 dashboard.py         Tkinter GUI implementation
 └── Widgets for file selection and status
-```
+
 
 ### Core Processing Modules
 
-```
+
 report_processor.py  (262 LOC, 16% coverage)
 ├── ReportProcessor class - main processing orchestrator
 ├── Methods:
@@ -143,11 +143,11 @@ data_extractors.py   (452 LOC, 3% coverage)
 │   └── ExcelUtilExtractor - helper utilities
 ├── Regex patterns for unstructured data parsing
 └── Dependencies: pandas, openpyxl, utilities
-```
+
 
 ### Utility Modules (`utils/`)
 
-```
+
 config.py            (500 LOC, 100% coverage)
 ├── ApplicationConfig - app settings, logging
 ├── DateTimeFormatConfig - format strings
@@ -230,11 +230,11 @@ watcher.py           (52 LOC, 85% coverage)
 ├── Watchdog integration
 ├── Auto-processing on file changes
 └── Debouncing
-```
+
 
 ### Testing & Profiling
 
-```
+
 tests/                (139 tests, multi-suite)
 ├── test_config_security.py (26 tests)
 ├── test_coverage_expansion.py (21 tests) - NEW Phase 4.1
@@ -253,7 +253,7 @@ performance_profiler.py  (400+ LOC)
 ├── Excel writing: 97.88% of total time (baseline)
 ├── Report generation
 └── JSON/text report output
-```
+
 
 ---
 
@@ -261,7 +261,7 @@ performance_profiler.py  (400+ LOC)
 
 ### 1. High-Level Processing Pipeline
 
-```
+
 INPUT: Excel File (TDR Report)
   │
   ├─▶ Validation (file format, sheets)
@@ -299,11 +299,11 @@ INPUT: Excel File (TDR Report)
       └─ TLS-secured transmission
 
 OUTPUT: Excel file + optional email notification
-```
+
 
 ### 2. Data Extraction Flow
 
-```
+
 VesselExtractor
 ├── Search patterns: "Vessel:", "Voyage:", "Operator:", etc.
 ├── Row scanning (max 35 rows)
@@ -341,11 +341,10 @@ ContainerDetailsExtractor
 └── Output: DataFrame
     ├── Columns: Filename, Category, Size, Count, TEUs
     └── Discharge/Load breakdown
-```
+
 
 ### 3. Configuration Loading Flow
 
-```
 Application Startup
   │
   ├─▶ load_environment_config() [main.py]
@@ -367,7 +366,7 @@ Application Startup
           ├── search_params: SearchParametersConfig
           ├── smtp: SMTPConfig
           └── email: EmailConfig
-```
+
 
 ---
 
@@ -375,7 +374,6 @@ Application Startup
 
 ### 1. Main Processing Workflow
 
-```
 main.py
   │
   ├─▶ Load configuration (env vars)
@@ -415,11 +413,11 @@ main.py
   │   └─ Log result (no credentials logged)
   │
   └─▶ Report processing complete
-```
+
 
 ### 2. Excel I/O Interaction
 
-```
+
 append_df_to_excel()
   │
   ├─▶ Check if file exists
@@ -457,11 +455,9 @@ export_multiple_dataframes_to_excel()  [xlsxwriter optimized]
   │
 └─▶ Measure performance (get_excel_export_info())
     └─ Report: rows, columns, sheets, file size, duration
-```
 
 ### 3. Email Delivery Interaction
 
-```
 send_notification_email_with_config()
   │
   ├─▶ Load SMTPConfig from environment
@@ -492,7 +488,6 @@ send_notification_email_with_config()
   │   └─ Timeout → graceful failure
   │
 └─▶ Log success (no credentials exposed)
-```
 
 ---
 
@@ -500,7 +495,6 @@ send_notification_email_with_config()
 
 ### 1. Configuration Architecture
 
-```
 TDRConfig (Root)
 ├── app: ApplicationConfig
 │   ├── TITLE: str = "TDR Processor"
@@ -539,33 +533,33 @@ TDRConfig (Root)
 │   └── include_attachments: bool = True
 │
 └── (9 more config sections for search, vessel, QC, delays, containers...)
-```
+
 
 ### 2. Environment Variables
 
 **SMTP Configuration:**
-```bash
+bash
 TDR_SMTP_USER=your_email@gmail.com
 TDR_SMTP_PASSWORD=your_app_password
 TDR_SMTP_SERVER=smtp.gmail.com
 TDR_SMTP_PORT=587
-```
+
 
 **Email Configuration:**
-```bash
+bash
 TDR_EMAIL_ENABLED=true
 TDR_EMAIL_SENDER=reports@company.com
 TDR_EMAIL_RECIPIENTS=user1@company.com,user2@company.com
-```
+
 
 **Logging:**
-```bash
+bash
 TDR_LOG_LEVEL=DEBUG
-```
+
 
 ### 3. Configuration Access
 
-```python
+python
 # Singleton pattern
 from config import get_config
 
@@ -576,7 +570,7 @@ log_level = config.app.LOG_LEVEL
 datetime_format = config.datetime_formats.DATETIME_FORMAT_OUT
 smtp_server = config.smtp.server
 email_enabled = config.email.enabled
-```
+
 
 ---
 
@@ -584,7 +578,7 @@ email_enabled = config.email.enabled
 
 ### 1. Security Layers
 
-```
+
 ┌─────────────────────────────────────────────────┐
 │ INPUT VALIDATION LAYER                          │
 │ ├─ Email format validation (RFC 5321)          │
@@ -625,7 +619,7 @@ email_enabled = config.email.enabled
 │ ├─ No credential exposure                       │
 │ └─ Audit trail for operations                   │
 └─────────────────────────────────────────────────┘
-```
+
 
 ### 2. Security Checklist
 
@@ -644,7 +638,7 @@ email_enabled = config.email.enabled
 
 ### 1. Performance Baseline (v2.1 → v3.0)
 
-```
+
 Operation          | v2.1    | v3.0    | Improvement
 ─────────────────────────────────────────────────────
 Excel Writing      | 0.6486s | 0.2000s | 69% faster
@@ -652,37 +646,37 @@ Optimization       | xlsxwriter vs openpyxl (50-65% faster)
 Data Extraction    | 0.04s   | 0.04s   | Optimized
 DataFrame Ops      | 0.08s   | 0.08s   | Optimized
 Total (avg file)   | ~0.8s   | ~0.4s   | 2x faster
-```
+
 
 ### 2. Optimization Strategies
 
 **Excel I/O Optimization:**
-```python
+python
 # Before: openpyxl (slow)
 writer = pd.ExcelWriter("file.xlsx", engine='openpyxl')
 
 # After: xlsxwriter (fast)
 writer = pd.ExcelWriter("file.xlsx", engine='xlsxwriter')
 # Result: 50-65% faster
-```
+
 
 **DataFrame Preprocessing:**
-```python
+python
 optimize_dataframe_for_excel(df)
 ├─ Convert types early (datetime, numeric)
 ├─ Pre-format columns (width, dtype)
 ├─ Drop unnecessary columns
 └─ Cache calculations
-```
+
 
 **Profiling-Driven Optimization:**
-```python
+python
 performance_profiler.py
 ├─ cProfile integration
 ├─ Identify bottlenecks
 ├─ JSON report generation
 └─ Historical tracking
-```
+
 
 ### 3. Performance Metrics
 
@@ -701,7 +695,7 @@ performance_profiler.py
 
 ### ReportProcessor
 
-```python
+python
 from report_processor import ReportProcessor
 
 # Initialize
@@ -720,11 +714,11 @@ processor.process_all_reports()
 processor.extract_data_sources()    # Extract data from input
 processor.export_to_excel()         # Write output files
 processor.generate_report()         # Create final report
-```
+
 
 ### Data Extractors
 
-```python
+python
 from data_extractors import (
     VesselExtractor, QCExtractor, DelayExtractor, 
     ContainerDetailsExtractor
@@ -739,11 +733,11 @@ qc_extractor = QCExtractor(excel_file)
 qc_df = qc_extractor.extract()  # DataFrame
 
 # Similar for DelayExtractor, ContainerDetailsExtractor
-```
+
 
 ### Excel Operations
 
-```python
+python
 from utils.excel_handler import append_df_to_excel
 from utils.excel_optimizer import export_multiple_dataframes_to_excel
 
@@ -762,11 +756,11 @@ export_multiple_dataframes_to_excel(
     sheet_dict={"Sheet1": df1, "Sheet2": df2},
     formatting=True
 )
-```
+
 
 ### Email Operations
 
-```python
+python
 from utils.email_notifier import send_notification_email_with_config
 
 # Send with config (env vars)
@@ -775,11 +769,11 @@ success = send_notification_email_with_config(
     body="Your report has been generated",
     file_path=Path("report.xlsx")
 )
-```
+
 
 ### Input Validation
 
-```python
+python
 from utils.input_validator import (
     validate_email, validate_smtp_server,
     validate_smtp_port, validate_xlsx_file
@@ -796,7 +790,7 @@ is_valid, error = validate_smtp_port(587)
 
 # Validate Excel file
 is_valid, error = validate_xlsx_file(Path("file.xlsx"))
-```
+
 
 ---
 
@@ -805,38 +799,38 @@ is_valid, error = validate_xlsx_file(Path("file.xlsx"))
 ### 1. Deployment Options
 
 **Option A: Standalone Desktop**
-```
+
 Windows/Linux/Mac
 ├── Python 3.11+ installed
 ├── pip packages (requirements.txt)
 ├── .env file (credentials)
 └── inputs/ folder (TDR files)
     └── Auto-processing via watcher.py
-```
+
 
 **Option B: Server/Docker**
-```
+
 Docker Container
 ├── Python 3.11 base image
 ├── pip install -r requirements.txt
 ├── Environment variables (secure injection)
 ├── Volumes for input/output
 └── Scheduled via APScheduler
-```
+
 
 **Option C: Cloud Deployment**
-```
+
 AWS Lambda / Google Cloud Functions / Azure Functions
 ├── Serverless execution
 ├── Triggered by: S3 upload, Cloud Storage event
 ├── Environment variables (Secrets Manager)
 ├── Output to: S3 / Cloud Storage
 └── Email via: SendGrid / Cloud Mail
-```
+
 
 ### 2. Directory Structure for Deployment
 
-```
+
 tdr_processor/
 ├── tdr_processor.exe (built with PyInstaller)
 ├── requirements.txt
@@ -851,7 +845,7 @@ tdr_processor/
 ├── utils/               (utility modules)
 ├── tests/               (unit tests)
 └── docs/                (this architecture doc)
-```
+
 
 ### 3. System Requirements
 
@@ -869,7 +863,7 @@ tdr_processor/
 
 ### 4. Performance Tuning for Deployment
 
-```python
+python
 # High-volume processing
 # Tune xlsxwriter options
 workbook.add_format({
@@ -888,7 +882,7 @@ for file in files:
 # Memory optimization
 df.dtypes.memory_usage().sum() / 1024**2  # Check usage
 df = df.astype({'col': 'category'})  # Optimize large strings
-```
+
 
 ---
 
@@ -941,13 +935,13 @@ df = df.astype({'col': 'category'})  # Optimize large strings
 
 ### 5. Why Layered Architecture?
 
-```
+
 Separation of Concerns
 ├─ Presentation (UI) isolated from business logic
 ├─ Business logic isolated from data access
 ├─ Data access isolated from infrastructure
 └─ Easy to test each layer independently
-```
+
 
 **Benefits:**
 - ✅ Testability (mock each layer)

@@ -335,7 +335,7 @@ class TestConfigurationBackwardCompatibility:
         )
         
         assert APP_TITLE == "TDR Processor"
-        assert APP_VERSION == "3.0"
+        assert APP_VERSION == "3.0.0"
     
     def test_get_config_function_works(self):
         """Test get_config() function returns valid config."""

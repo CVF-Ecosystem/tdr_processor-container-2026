@@ -26,7 +26,7 @@ except ImportError:
 
 try:
     import config
-    from utils.logger_setup import setup_logging
+    from utils.logger_setup import setup_logging, log_error_details, log_session_end
     from report_processor import ReportProcessor
     from utils.file_utils import is_file_locked, setup_project_directories
     from utils.watcher import Watcher
@@ -512,6 +512,12 @@ class App(ttkb.Window):
             self.after(0, self.on_processing_complete, result)
 
         except Exception as e:
+            error_context = {
+                'exception_type': type(e).__name__,
+                'error_message': str(e),
+                'thread': 'processing_worker'
+            }
+            log_error_details('PROCESSING_ERROR', str(e), error_context)
             logging.error(f"Critical error in processing thread: {e}", exc_info=True)
             self.after(0, self.on_processing_complete, {"message": f"Critical error: {e}"})
 

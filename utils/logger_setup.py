@@ -11,6 +11,7 @@ Log Format:
 """
 import logging
 from pathlib import Path
+from datetime import datetime
 try:
     import config # Giả sử config.py ở thư mục gốc của project
 except ImportError:
@@ -41,6 +42,7 @@ def setup_logging():
     - Creates log file in UTF-8 encoding
     - Overwrites log file on each run (filemode='w')
     - Logs setup confirmation with configured log level and file path
+    - Adds session separator for each execution run
     
     Log Levels Supported:
         DEBUG, INFO, WARNING, ERROR, CRITICAL (case-insensitive)
@@ -73,4 +75,55 @@ def setup_logging():
         filemode='w',       # <<< THAY ĐỔI: 'w' để ghi đè (tạo mới) mỗi lần chạy
         encoding='utf-8'    # <<< THÊM MỚI: Chỉ định mã hóa UTF-8
     )
+    
+    # === ENHANCED SESSION LOGGING ===
+    # Add session separator to clearly identify each execution run
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    logging.info("=" * 100)
+    logging.info(f"🚀 NEW SESSION STARTED: {current_time}")
+    logging.info("=" * 100)
     logging.info(f"Logging được thiết lập. Mức log: {log_level_from_config_str}. File log: {log_file_path}")
+    logging.info(f"Python version: {__import__('sys').version}")
+    logging.info(f"Working directory: {Path.cwd()}")
+    logging.info("-" * 100)
+
+
+def log_error_details(error_type: str, error_message: str, context: dict = None):
+    """
+    Log detailed error information for debugging.
+    
+    Args:
+        error_type: Type of error (e.g., 'FILE_VALIDATION', 'CONFIG_ERROR', 'PROCESSING_ERROR')
+        error_message: Detailed error message
+        context: Dictionary with additional context (optional)
+    
+    Example:
+        >>> log_error_details('FILE_VALIDATION', 'Path contains invalid characters', 
+        ...                   {'file': 'test.xlsx', 'reason': 'parent directory reference'})
+    """
+    logging.error("=" * 100)
+    logging.error(f"❌ ERROR DETECTED: [{error_type}]")
+    logging.error(f"Message: {error_message}")
+    if context:
+        for key, value in context.items():
+            logging.error(f"  • {key}: {value}")
+    logging.error("=" * 100)
+
+
+def log_session_end(success: bool, summary: dict = None):
+    """
+    Log session end with summary.
+    
+    Args:
+        success: Whether session completed successfully
+        summary: Dictionary with summary statistics
+    """
+    status = "✅ SUCCESS" if success else "❌ FAILED"
+    logging.info("=" * 100)
+    logging.info(f"🏁 SESSION END: {status}")
+    if summary:
+        for key, value in summary.items():
+            logging.info(f"  • {key}: {value}")
+    end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    logging.info(f"Ended at: {end_time}")
+    logging.info("=" * 100)
