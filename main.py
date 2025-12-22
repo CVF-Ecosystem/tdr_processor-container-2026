@@ -296,7 +296,7 @@ class App(ttkb.Window):
             messagebox.showinfo("Mở Power BI",
                                 "Một file báo cáo Power BI mới đã được tạo.\n\n"
                                 "Khi Power BI mở ra, nó sẽ hỏi bạn đường dẫn đến các file CSV. "
-                                f"Vui lòng trỏ đến thư mục:\n\n{Path('data_csv').resolve()}",
+                                f"Vui lòng trỏ đến thư mục:\n\n{Path('outputs/data_csv').resolve()}",
                                 parent=self)
             os.startfile(new_report_path)
         except Exception as e:

@@ -372,8 +372,8 @@ def main():
     print(f"Timestamp: {datetime.now().isoformat()}")
     print(f"Working Directory: {os.getcwd()}")
     
-    # Setup
-    required_dirs = ["data_input", "data_excel", "data_csv", "backup", "outputs", "templates"]
+    # Setup - data_csv and data_excel are inside outputs folder
+    required_dirs = ["data_input", "backup", "outputs", "templates"]
     setup_project_directories(Path.cwd(), required_dirs)
     config.load_environment_config()
     profiler = PerformanceProfiler()

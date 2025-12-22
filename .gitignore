@@ -88,9 +88,5 @@ desktop.ini
 # Project specific
 data_input/*
 !data_input/.gitkeep
-data_csv/*
-!data_csv/.gitkeep
-data_excel/*
-!data_excel/.gitkeep
 outputs/*
 !outputs/.gitkeep

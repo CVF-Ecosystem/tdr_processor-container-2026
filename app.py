@@ -6,15 +6,15 @@ from pathlib import Path
 st.set_page_config(page_title="📊 TDR Dashboard", layout="wide")
 st.title("🚢 TDR Processor Dashboard")
 
-CSV_FOLDER = Path("data_csv")
-container_csv = CSV_FOLDER / "container_details.csv"
+CSV_FOLDER = Path("outputs/data_csv")
+container_csv = CSV_FOLDER / "container_details_long.csv"
 
 if container_csv.exists():
     df_container = pd.read_csv(container_csv)
     st.subheader("🧮 Chi tiết Container")
     st.dataframe(df_container)
 else:
-    st.warning("⚠️ Không tìm thấy file CSV trong thư mục data_csv.")
+    st.warning("⚠️ Không tìm thấy file CSV trong thư mục outputs/data_csv.")
 
 with st.sidebar:
     st.markdown("🔧 **Cập nhật dữ liệu:**")
