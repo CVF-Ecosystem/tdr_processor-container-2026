@@ -455,6 +455,10 @@ VESSEL_COLS_OUTPUT_ORDER = [
     'Loading (hrs)', 'Total working (hrs)'
 ]
 
+VESSEL_DATETIME_COLS_FORMAT = ['Report Date', 'ATB', 'ATD', 'Gangway Secured', 'Commenced Discharge', 
+                                'Commenced Loading', 'Completed Discharge', 'Completed Loading', 
+                                'All Operations Completed']
+
 QC_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed
 QC_COLS_OUTPUT_ORDER = [
     'Filename', 'Vessel Name', 'Voyage', 'ATB', 'ATD', 'QC No.', 'Start Time', 'End Time',
@@ -462,12 +466,16 @@ QC_COLS_OUTPUT_ORDER = [
     'Load Conts', 'Shifting Conts', 'Total Conts', 'Gross moves/h', 'Net moves/h'
 ]
 
+QC_TIME_COLS_FORMAT = ['Start Time', 'End Time']
+
 QC_OPERATOR_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed
 
 DELAY_DETAILS_COLS_OUTPUT_ORDER = [
     'Filename', 'Vessel Name', 'Voyage', 'QC No.', 'Delay Start Time', 'Delay End Time',
     'Duration (hrs)', 'Delay Category', 'Delay Code', 'Delay Description'
 ]
+
+DELAY_DATETIME_COLS_FORMAT = ['Delay Start Time', 'Delay End Time']
 
 # ============================================================================
 # PUBLIC API
@@ -519,6 +527,7 @@ __all__ = [
     'CONTAINER_SUMMARY_ROW_TEUS_COL_LETTER', 'LABEL_GRAND_TOTAL_IN_CONTAINER_SUMMARY',
     'OP_DISCHARGE', 'OP_LOADING', 'OP_SHIFTING_DIS', 'OP_SHIFTING_LOAD',
     'OP_TOTAL_DIS', 'OP_TOTAL_LOAD', 'OP_GRAND_TOTAL', 'PORT_ALL',
-    'VESSEL_COL_RENAMES_OUTPUT', 'VESSEL_COLS_OUTPUT_ORDER', 'QC_COL_RENAMES_OUTPUT',
-    'QC_COLS_OUTPUT_ORDER', 'QC_OPERATOR_COL_RENAMES_OUTPUT', 'DELAY_DETAILS_COLS_OUTPUT_ORDER'
+    'VESSEL_COL_RENAMES_OUTPUT', 'VESSEL_COLS_OUTPUT_ORDER', 'VESSEL_DATETIME_COLS_FORMAT',
+    'QC_COL_RENAMES_OUTPUT', 'QC_COLS_OUTPUT_ORDER', 'QC_TIME_COLS_FORMAT',
+    'QC_OPERATOR_COL_RENAMES_OUTPUT', 'DELAY_DETAILS_COLS_OUTPUT_ORDER', 'DELAY_DATETIME_COLS_FORMAT'
 ]
