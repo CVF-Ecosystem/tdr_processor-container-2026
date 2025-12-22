@@ -453,7 +453,8 @@ VESSEL_COLS_OUTPUT_ORDER = [
     'Gangway Secured', 'Commenced Discharge', 'Commenced Loading', 'Completed Discharge',
     'Completed Loading', 'All Operations Completed', 'Break time (hrs)', 'Discharge (hrs)',
     'Loading (hrs)', 'Total working (hrs)', 'Portstay (hrs)', 'Gross Working (hrs)', 
-    'Net Working (hrs)', 'Vessel Moves/Portstay Hour', 'Grand Total TEUs'
+    'Net Working (hrs)', 'Grand Total Conts', 'Grand Total TEUs',
+    'Vessel Moves/Portstay Hour', 'Vessel Moves/Gross Hour', 'Vessel Moves/Net Hour'
 ]
 
 VESSEL_DATETIME_COLS_FORMAT = ['Report Date', 'ATB', 'ATD', 'Gangway Secured', 'Commenced Discharge', 

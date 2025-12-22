@@ -125,25 +125,44 @@ with tabs[0]:
         else:
             st.info("⚠️ Vessel Moves/Portstay Hour not available in current dataset")
 
-    if 'Report Date' in df_vessel.columns and 'Portstay (hrs)' in df_vessel.columns:
+    if 'Report Date' in df_vessel.columns and 'Vessel Moves/Portstay Hour' in df_vessel.columns:
         st.markdown("---")
         st.header(t("time_analysis_header"))
         
-        # Calculate simple time-based analysis using available data
+        # Calculate time-based analysis using moves/hour metrics
         try:
             df_vessel['Report Date'] = pd.to_datetime(df_vessel['Report Date'], errors='coerce')
             df_vessel['Month'] = df_vessel['Report Date'].dt.to_period('M').astype(str)
+            df_vessel['Quarter'] = df_vessel['Report Date'].dt.to_period('Q').astype(str)
             
-            monthly_portstay = df_vessel.groupby('Month')['Portstay (hrs)'].mean().reset_index()
-            if not monthly_portstay.empty:
-                fig_monthly = px.line(monthly_portstay, x='Month', y='Portstay (hrs)',
-                                      title=t("monthly_performance_title"), markers=True,
-                                      labels={'Month': 'Month', 'Portstay (hrs)': t("moves_per_hour_axis_label")})
-                st.plotly_chart(fig_monthly, use_container_width=True)
-            else:
-                st.info("No monthly data available")
+            time_col1, time_col2 = st.columns(2)
+            
+            # Monthly chart with data labels
+            with time_col1:
+                st.subheader("📅 Năng suất theo Tháng")
+                monthly_performance = df_vessel.groupby('Month')['Vessel Moves/Portstay Hour'].mean().reset_index()
+                if not monthly_performance.empty:
+                    fig_monthly = px.line(monthly_performance, x='Month', y='Vessel Moves/Portstay Hour',
+                                          title="Năng suất trung bình theo tháng", markers=True,
+                                          labels={'Month': 'Tháng', 'Vessel Moves/Portstay Hour': 'Moves/h'},
+                                          text=monthly_performance['Vessel Moves/Portstay Hour'].apply(lambda x: f'{x:.1f}'))
+                    fig_monthly.update_traces(textposition="top center")
+                    st.plotly_chart(fig_monthly, use_container_width=True)
+            
+            # Quarterly chart for comparison
+            with time_col2:
+                st.subheader("📊 Năng suất theo Quý")
+                quarterly_performance = df_vessel.groupby('Quarter')['Vessel Moves/Portstay Hour'].mean().reset_index()
+                if not quarterly_performance.empty:
+                    fig_quarterly = px.bar(quarterly_performance, x='Quarter', y='Vessel Moves/Portstay Hour',
+                                           title="So sánh năng suất theo quý",
+                                           labels={'Quarter': 'Quý', 'Vessel Moves/Portstay Hour': 'Moves/h'},
+                                           text_auto='.1f', color='Vessel Moves/Portstay Hour',
+                                           color_continuous_scale='Blues')
+                    st.plotly_chart(fig_quarterly, use_container_width=True)
+                    
         except Exception as e:
-            st.info("⚠️ Time-based analysis requires Report Date column and performance metrics")
+            st.info(f"⚠️ Time-based analysis error: {e}")
 
 # --- Tab 1: Cảnh báo KPI ---
 with tabs[1]:
