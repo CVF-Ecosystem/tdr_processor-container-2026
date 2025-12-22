@@ -100,7 +100,7 @@ with tabs[0]:
     total_vessels = len(df_vessel)
     avg_portstay = df_vessel['Portstay (hrs)'].mean() if 'Portstay (hrs)' in df_vessel.columns else 0.0
     avg_net_working = df_vessel['Net Working (hrs)'].mean() if 'Net Working (hrs)' in df_vessel.columns else 0.0
-    avg_net_moves = df_vessel['Vessel Moves/Net Hour'].mean() if 'Vessel Moves/Net Hour' in df_vessel.columns else 0.0
+    avg_net_moves = df_vessel['Vessel Moves/Portstay Hour'].mean() if 'Vessel Moves/Portstay Hour' in df_vessel.columns else 0.0
     total_teus = df_vessel['Grand Total TEUs'].sum() if 'Grand Total TEUs' in df_vessel.columns else 0
     
     col1.metric(t("metric_total_vessels"), f"{total_vessels:,}")
@@ -125,34 +125,25 @@ with tabs[0]:
         else:
             st.info("⚠️ Performance metrics (Net Working hrs, Portstay hrs) not available in current dataset")
 
-    if 'Report Date' in df_vessel.columns:
+    if 'Report Date' in df_vessel.columns and 'Portstay (hrs)' in df_vessel.columns:
         st.markdown("---")
         st.header(t("time_analysis_header"))
-        time_col1, time_col2 = st.columns(2)
         
-        # Check if metric columns exist for time analysis
-        metric_col = 'Net Working (hrs)' if 'Net Working (hrs)' in df_vessel.columns else ('Portstay (hrs)' if 'Portstay (hrs)' in df_vessel.columns else None)
-        
-        if metric_col and 'YearMonth' in df_vessel.columns and 'Quarter' in df_vessel.columns:
-            with time_col1:
-                st.subheader(t("monthly_performance_subheader"))
-                monthly_performance = df_vessel.groupby('YearMonth')[metric_col].mean().reset_index()
-                fig_monthly = px.line(monthly_performance, x='YearMonth', y=metric_col,
+        # Calculate simple time-based analysis using available data
+        try:
+            df_vessel['Report Date'] = pd.to_datetime(df_vessel['Report Date'], errors='coerce')
+            df_vessel['Month'] = df_vessel['Report Date'].dt.to_period('M').astype(str)
+            
+            monthly_portstay = df_vessel.groupby('Month')['Portstay (hrs)'].mean().reset_index()
+            if not monthly_portstay.empty:
+                fig_monthly = px.line(monthly_portstay, x='Month', y='Portstay (hrs)',
                                       title=t("monthly_performance_title"), markers=True,
-                                      labels={'YearMonth': t("month_axis_label"), metric_col: t("moves_per_hour_axis_label")},
-                                      text=monthly_performance[metric_col].apply(lambda x: f'{x:.1f}'))
-                fig_monthly.update_traces(textposition="top center")
+                                      labels={'Month': 'Month', 'Portstay (hrs)': t("moves_per_hour_axis_label")})
                 st.plotly_chart(fig_monthly, use_container_width=True)
-            with time_col2:
-                st.subheader(t("quarterly_performance_subheader"))
-                quarterly_performance = df_vessel.groupby('Quarter')[metric_col].mean().reset_index()
-                fig_quarterly = px.bar(quarterly_performance, x='Quarter', y=metric_col,
-                                       title=t("quarterly_performance_title"),
-                                       labels={'Quarter': t("quarter_axis_label"), metric_col: t("moves_per_hour_axis_label")},
-                                       text_auto='.1f')
-                st.plotly_chart(fig_quarterly, use_container_width=True)
-        else:
-            st.info("⚠️ Time-based analysis requires Report Date column and performance metrics not currently available")
+            else:
+                st.info("No monthly data available")
+        except Exception as e:
+            st.info("⚠️ Time-based analysis requires Report Date column and performance metrics")
 
 # --- Tab 1: Cảnh báo KPI ---
 with tabs[1]:
