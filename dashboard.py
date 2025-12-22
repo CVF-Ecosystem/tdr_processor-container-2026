@@ -56,11 +56,11 @@ def load_data(file_path):
     return pd.DataFrame()
 
 # Tải dữ liệu
-DATA_DIR = Path("data_csv")
+DATA_DIR = Path("outputs/data_csv")
 df_vessel = load_data(DATA_DIR / "vessel_summary.csv")
 df_qc = load_data(DATA_DIR / "qc_productivity.csv")
 df_delay = load_data(DATA_DIR / "delay_details.csv")
-df_container = load_data(DATA_DIR / "container_details_wide.csv")
+df_container = load_data(DATA_DIR / "container_details_long.csv")
 df_qc_operator = load_data(DATA_DIR / "qc_operator_productivity.csv")
 
 # Xử lý dữ liệu thời gian
