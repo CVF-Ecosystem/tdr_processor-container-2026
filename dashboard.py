@@ -191,10 +191,10 @@ with tabs[2]:
         col1, col2 = st.columns(2)
         with col1:
             st.subheader(t("qc_avg_subheader"))
-            avg_by_qc = df_qc.groupby('QC No.')['Net moves/h'].mean().sort_values(ascending=False).reset_index()
-            fig_qc = px.bar(avg_by_qc, x='QC No.', y='Net moves/h',
+            avg_by_qc = df_qc.groupby('QC No.')['Net working (hrs)'].mean().sort_values(ascending=False).reset_index()
+            fig_qc = px.bar(avg_by_qc, x='QC No.', y='Net working (hrs)',
                             title=t("qc_avg_title"),
-                            labels={'QC No.': t("qc_axis_label"), 'Net moves/h': t("moves_per_hour_axis_label")},
+                            labels={'QC No.': t("qc_axis_label"), 'Net working (hrs)': t("moves_per_hour_axis_label")},
                             text_auto='.1f')
             st.plotly_chart(fig_qc, use_container_width=True)
         with col2:
@@ -209,18 +209,18 @@ with tabs[3]:
         col1, col2 = st.columns(2)
         with col1:
             st.subheader(t("qc_operator_avg_subheader"))
-            avg_by_qc_operator = df_qc_operator.groupby('QC No.')['Net moves/h'].mean().sort_values(ascending=False).reset_index()
-            fig_qc_operator = px.bar(avg_by_qc_operator, x='QC No.', y='Net moves/h',
+            avg_by_qc_operator = df_qc_operator.groupby('QC No.')['Net working (hrs)'].mean().sort_values(ascending=False).reset_index()
+            fig_qc_operator = px.bar(avg_by_qc_operator, x='QC No.', y='Net working (hrs)',
                             title=t("qc_operator_avg_title"),
-                            labels={'QC No.': t("qc_axis_label"), 'Net moves/h': t("qc_operator_axis_label")},
+                            labels={'QC No.': t("qc_axis_label"), 'Net working (hrs)': t("qc_operator_axis_label")},
                             text_auto='.1f',
                             color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig_qc_operator, use_container_width=True)
         with col2:
             st.subheader(t("qc_compare_subheader"))
             if not df_qc.empty:
-                df_compare1 = df_qc.groupby('QC No.')['Net moves/h'].mean().reset_index().rename(columns={'Net moves/h': t("qc_compare_legend_crane")})
-                df_compare2 = df_qc_operator.groupby('QC No.')['Net moves/h'].mean().reset_index().rename(columns={'Net moves/h': t("qc_compare_legend_operator")})
+                df_compare1 = df_qc.groupby('QC No.')['Net working (hrs)'].mean().reset_index().rename(columns={'Net working (hrs)': t("qc_compare_legend_crane")})
+                df_compare2 = df_qc_operator.groupby('QC No.')['Net working (hrs)'].mean().reset_index().rename(columns={'Net working (hrs)': t("qc_compare_legend_operator")})
                 df_merged = pd.merge(df_compare1, df_compare2, on='QC No.', how='outer')
                 
                 fig_compare = px.bar(df_merged, x='QC No.', y=[t("qc_compare_legend_crane"), t("qc_compare_legend_operator")], barmode='group',
