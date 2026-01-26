@@ -33,6 +33,10 @@ try:
     from utils.scheduler import TaskScheduler
     from utils.email_notifier import send_notification_email
     from utils.input_validator import validate_email, validate_excel_file, validate_file_path
+    from utils.credential_manager import (
+        save_smtp_credentials, get_smtp_credentials, delete_smtp_credentials,
+        has_stored_credentials, get_credential_storage_info, test_smtp_connection
+    )
 except ImportError as e:
     messagebox.showerror("Lỗi Khởi Tạo Nghiêm Trọng", f"Không thể import các module cần thiết:\n{e}\n\nVui lòng kiểm tra cấu trúc thư mục và cài đặt.")
     sys.exit()
@@ -43,7 +47,7 @@ config.load_environment_config()
 
 # --- Các hằng số ---
 SETTINGS_FILE = Path("app_settings.json")
-REQUIRED_DIRS = ["data_input", "data_excel", "data_csv", "backup", "outputs", "templates"]
+REQUIRED_DIRS = ["data_input", "backup", "outputs", "templates"]
 
 class TextHandler(logging.Handler):
     def __init__(self, text_queue):
@@ -88,8 +92,10 @@ class App(ttkb.Window):
         self.recipient_email_var = tk.StringVar(value="")
         self.smtp_server_var = tk.StringVar(value="smtp.gmail.com")
         self.smtp_port_var = tk.StringVar(value="587")
-        self.smtp_user_var = tk.StringVar(value="")
-        self.smtp_pass_var = tk.StringVar(value="")
+        # SMTP credentials are NOT stored in settings - use credential_manager
+        self.smtp_user_var = tk.StringVar(value="")  # Session only, not saved
+        self.smtp_pass_var = tk.StringVar(value="")  # Session only, not saved
+        self._credentials_configured = has_stored_credentials()
 
         if SETTINGS_FILE.exists():
             try:
@@ -105,12 +111,13 @@ class App(ttkb.Window):
                     self.recipient_email_var.set(settings.get("recipient_email", ""))
                     self.smtp_server_var.set(settings.get("smtp_server", "smtp.gmail.com"))
                     self.smtp_port_var.set(settings.get("smtp_port", "587"))
-                    self.smtp_user_var.set(settings.get("smtp_user", ""))
-                    self.smtp_pass_var.set(settings.get("smtp_pass", ""))
+                    # NOTE: smtp_user and smtp_pass are NOT loaded from file
+                    # They are retrieved from secure storage (keyring/env vars) when needed
             except Exception as e:
                 logging.error(f"Lỗi đọc file settings: {e}")
 
     def save_settings(self):
+        # NOTE: SMTP credentials are NOT saved here - use credential_manager for secure storage
         settings = {
             'last_output_dir': str(self.output_dir),
             'schedule_time': self.schedule_time_var.get(),
@@ -118,9 +125,8 @@ class App(ttkb.Window):
             'email_enabled': self.email_enabled_var.get(),
             'recipient_email': self.recipient_email_var.get(),
             'smtp_server': self.smtp_server_var.get(),
-            'smtp_port': self.smtp_port_var.get(),
-            'smtp_user': self.smtp_user_var.get(),
-            'smtp_pass': self.smtp_pass_var.get()
+            'smtp_port': self.smtp_port_var.get()
+            # smtp_user and smtp_pass are stored securely via credential_manager
         }
         try:
             with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
@@ -376,13 +382,82 @@ class App(ttkb.Window):
         ttkb.Entry(grid_frame, textvariable=self.smtp_server_var).grid(row=1, column=1, sticky="ew", pady=2)
         ttkb.Label(grid_frame, text="SMTP Port:").grid(row=2, column=0, sticky="w", pady=2)
         ttkb.Entry(grid_frame, textvariable=self.smtp_port_var).grid(row=2, column=1, sticky="ew", pady=2)
-        ttkb.Label(grid_frame, text="SMTP User (Email):").grid(row=3, column=0, sticky="w", pady=2)
-        ttkb.Entry(grid_frame, textvariable=self.smtp_user_var).grid(row=3, column=1, sticky="ew", pady=2)
-        ttkb.Label(grid_frame, text="SMTP Password:").grid(row=4, column=0, sticky="w", pady=2)
-        ttkb.Entry(grid_frame, textvariable=self.smtp_pass_var, show="*").grid(row=4, column=1, sticky="ew", pady=2)
+        
+        # SMTP Credentials section with secure storage
+        cred_frame = ttkb.LabelFrame(email_frame, text="🔐 SMTP Credentials (Secure Storage)", padding=5)
+        cred_frame.pack(fill="x", padx=5, pady=5)
+        cred_frame.columnconfigure(1, weight=1)
+        
+        # Show credential storage status
+        self.cred_status_var = tk.StringVar(value=f"Status: {get_credential_storage_info()}")
+        ttkb.Label(cred_frame, textvariable=self.cred_status_var, bootstyle="info").grid(row=0, column=0, columnspan=3, sticky="w", pady=2)
+        
+        ttkb.Label(cred_frame, text="SMTP User:").grid(row=1, column=0, sticky="w", pady=2)
+        ttkb.Entry(cred_frame, textvariable=self.smtp_user_var).grid(row=1, column=1, sticky="ew", pady=2)
+        ttkb.Label(cred_frame, text="SMTP Password:").grid(row=2, column=0, sticky="w", pady=2)
+        ttkb.Entry(cred_frame, textvariable=self.smtp_pass_var, show="*").grid(row=2, column=1, sticky="ew", pady=2)
+        
+        # Buttons for credential management
+        btn_frame = ttkb.Frame(cred_frame)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=5)
+        ttkb.Button(btn_frame, text="🔗 Test Connection", command=self._test_smtp_connection, bootstyle=INFO).pack(side="left", padx=2)
+        ttkb.Button(btn_frame, text="💾 Save Credentials", command=self._save_smtp_credentials, bootstyle=SUCCESS).pack(side="left", padx=2)
+        ttkb.Button(btn_frame, text="🗑️ Clear Credentials", command=self._clear_smtp_credentials, bootstyle=DANGER+OUTLINE).pack(side="left", padx=2)
+        
+        # Info label
+        ttkb.Label(cred_frame, text="⚠️ Credentials are stored securely (not in config files)", 
+                   bootstyle="warning", font=("", 8)).grid(row=4, column=0, columnspan=2, sticky="w")
 
         save_button = ttkb.Button(self.settings_window, text="Save and Apply Settings", command=self.apply_settings, bootstyle=SUCCESS)
         save_button.pack(pady=20)
+
+    def _test_smtp_connection(self):
+        """Test SMTP connection with current credentials."""
+        smtp_user = self.smtp_user_var.get().strip()
+        smtp_pass = self.smtp_pass_var.get()
+        smtp_server = self.smtp_server_var.get().strip()
+        
+        try:
+            smtp_port = int(self.smtp_port_var.get())
+        except ValueError:
+            messagebox.showerror("Error", "Invalid SMTP port", parent=self.settings_window)
+            return
+        
+        if not all([smtp_user, smtp_pass, smtp_server]):
+            messagebox.showwarning("Warning", "Please fill in SMTP User, Password and Server", parent=self.settings_window)
+            return
+        
+        success, message = test_smtp_connection(smtp_server, smtp_port, smtp_user, smtp_pass)
+        if success:
+            messagebox.showinfo("Success", message, parent=self.settings_window)
+        else:
+            messagebox.showerror("Connection Failed", message, parent=self.settings_window)
+
+    def _save_smtp_credentials(self):
+        """Save SMTP credentials to secure storage."""
+        smtp_user = self.smtp_user_var.get().strip()
+        smtp_pass = self.smtp_pass_var.get()
+        
+        if not smtp_user or not smtp_pass:
+            messagebox.showwarning("Warning", "Please enter both SMTP User and Password", parent=self.settings_window)
+            return
+        
+        if save_smtp_credentials(smtp_user, smtp_pass):
+            self._credentials_configured = True
+            self.cred_status_var.set(f"Status: {get_credential_storage_info()}")
+            messagebox.showinfo("Success", "Credentials saved securely!", parent=self.settings_window)
+        else:
+            messagebox.showerror("Error", "Failed to save credentials", parent=self.settings_window)
+
+    def _clear_smtp_credentials(self):
+        """Clear stored SMTP credentials."""
+        if messagebox.askyesno("Confirm", "Are you sure you want to clear stored credentials?", parent=self.settings_window):
+            delete_smtp_credentials()
+            self.smtp_user_var.set("")
+            self.smtp_pass_var.set("")
+            self._credentials_configured = False
+            self.cred_status_var.set("Status: Not Configured")
+            messagebox.showinfo("Success", "Credentials cleared", parent=self.settings_window)
 
     def apply_settings(self):
         try:
@@ -400,8 +475,11 @@ class App(ttkb.Window):
                     raise ValueError("SMTP Port must be a number between 1 and 65535.")
                 if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', recipient_email):
                     raise ValueError(f"Invalid recipient email format: '{recipient_email}'.")
-                if not all([self.smtp_server_var.get(), self.smtp_user_var.get(), self.smtp_pass_var.get()]):
-                    raise ValueError("SMTP Server, User, and Password are required when email is enabled.")
+                # Check for credentials in secure storage or session
+                creds = get_smtp_credentials()
+                has_session_creds = self.smtp_user_var.get() and self.smtp_pass_var.get()
+                if not creds and not has_session_creds:
+                    raise ValueError("SMTP credentials not configured. Please save credentials first.")
 
         except ValueError as e:
             messagebox.showerror("Validation Error", str(e), parent=self.settings_window)
@@ -539,15 +617,27 @@ class App(ttkb.Window):
             subject = f"[TDR Processor] Processing Complete - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
             try:
                 port = int(self.smtp_port_var.get())
-                send_notification_email(
-                    smtp_server=self.smtp_server_var.get(),
-                    smtp_port=port,
-                    smtp_user=self.smtp_user_var.get(),
-                    smtp_pass=self.smtp_pass_var.get(),
-                    recipient_email=self.recipient_email_var.get(),
-                    subject=subject,
-                    body=final_message
-                )
+                # Get credentials from secure storage first, fallback to session vars
+                creds = get_smtp_credentials()
+                if creds:
+                    smtp_user, smtp_pass = creds
+                else:
+                    # Fallback to session-only credentials
+                    smtp_user = self.smtp_user_var.get()
+                    smtp_pass = self.smtp_pass_var.get()
+                
+                if smtp_user and smtp_pass:
+                    send_notification_email(
+                        smtp_server=self.smtp_server_var.get(),
+                        smtp_port=port,
+                        smtp_user=smtp_user,
+                        smtp_pass=smtp_pass,
+                        recipient_email=self.recipient_email_var.get(),
+                        subject=subject,
+                        body=final_message
+                    )
+                else:
+                    logging.warning("[Email] SMTP credentials not configured. Email not sent.")
             except ValueError:
                 logging.error("[Email] Cổng SMTP không hợp lệ. Phải là một số.")
             except Exception as e:

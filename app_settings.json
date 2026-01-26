@@ -1,11 +1,9 @@
 {
-    "last_output_dir": "C:\\Users\\DELL\\Desktop\\tdr_processor v 2.1",
+    "last_output_dir": "D:\\UNG DUNG AI\\TOOL AI 2026\\tdr_processor v 3.0",
     "schedule_time": "08:00",
     "schedule_enabled": false,
     "email_enabled": false,
     "recipient_email": "",
     "smtp_server": "smtp.gmail.com",
-    "smtp_port": "587",
-    "smtp_user": "",
-    "smtp_pass": ""
+    "smtp_port": "587"
 }

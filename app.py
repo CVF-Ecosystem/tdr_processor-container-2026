@@ -1,4 +1,10 @@
 # app.py
+"""
+Streamlit Dashboard Entry Point for TDR Processor.
+
+This is a simple dashboard for viewing processed TDR data.
+For full dashboard features, use: streamlit run dashboard.py
+"""
 import streamlit as st
 import pandas as pd
 from pathlib import Path
@@ -19,13 +25,18 @@ else:
 with st.sidebar:
     st.markdown("🔧 **Cập nhật dữ liệu:**")
     if st.button("🔄 Chạy lại xử lý TDR"):
-        # Gọi lại hàm xử lý chính nếu cần
-        from main import auto_process_input_folder
-        auto_process_input_folder()
-        st.experimental_rerun()
+        # Import from core_processor (no GUI dependencies)
+        from core_processor import auto_process_input_folder
+        with st.spinner("Đang xử lý..."):
+            result = auto_process_input_folder()
+            if result.get("processed_count", 0) > 0:
+                st.success(f"✅ Đã xử lý {result['processed_count']} files")
+            else:
+                st.info(result.get("message", "Không có file mới"))
+        st.rerun()
 
     st.markdown("📥 **Xuất file:**")
-    if st.checkbox("Tải về file CSV"):
+    if container_csv.exists() and st.checkbox("Tải về file CSV"):
         st.download_button(
             label="⬇️ Tải xuống container_details.csv",
             data=open(container_csv, 'rb').read(),

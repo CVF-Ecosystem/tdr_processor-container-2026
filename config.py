@@ -473,11 +473,11 @@ QC_TIME_COLS_FORMAT = ['Start Time', 'End Time']
 QC_OPERATOR_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed
 
 DELAY_DETAILS_COLS_OUTPUT_ORDER = [
-    'Filename', 'Vessel Name', 'Voyage', 'QC No.', 'Delay Start Time', 'Delay End Time',
-    'Duration (hrs)', 'Delay Category', 'Delay Code', 'Delay Description'
+    'Filename', 'Vessel Name', 'Voyage', 'QC No.', 'Stop Category',
+    'From Time', 'To Time', 'Duration (hrs)', 'Error Code', 'Error Type', 'Remark'
 ]
 
-DELAY_DATETIME_COLS_FORMAT = ['Delay Start Time', 'Delay End Time']
+DELAY_DATETIME_COLS_FORMAT = ['From Time', 'To Time']
 
 # ============================================================================
 # PUBLIC API

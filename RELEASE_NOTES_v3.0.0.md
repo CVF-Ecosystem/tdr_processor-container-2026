@@ -1,6 +1,6 @@
 # TDR Processor v3.0.0 - Release Notes
 
-**Release Date:** December 22, 2025  
+**Release Date:** January 26, 2026  
 **Version:** 3.0.0  
 **Status:** Production Ready ✅
 
@@ -550,8 +550,8 @@ None reported in v3.0.0! All identified issues from v2.1 have been fixed.
 
 ## 📄 License & Attribution
 
-**License:** Internal Use Only  
-**Copyright:** 2025 TDR Processor Team  
+**License:** MIT License  
+**Copyright:** 2025-2026 Tien - Tan Thuan Port  
 **Contributors:** All phases developed through systematic improvements
 
 ---
@@ -598,9 +598,9 @@ Thank you to all contributors and maintainers who made v3.0.0 possible!
 
 **Release Information:**
 - **Version:** 3.0.0
-- **Released:** December 22, 2025
+- **Released:** January 26, 2026
 - **Status:** Production Ready ✅
-- **Next Version:** 3.1.0 (scheduled for Q2 2026)
+- **Next Version:** 3.1.0 (scheduled for Q3 2026)
 - **EOL:** 3.0.x will be supported until 3.2.0 release
 
 For detailed information, see [ARCHITECTURE.md](ARCHITECTURE.md) and [CONTRIBUTING.md](CONTRIBUTING.md).

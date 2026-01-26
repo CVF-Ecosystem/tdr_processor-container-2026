@@ -19,6 +19,9 @@ plotly==6.0.0
 # Email & Notifications
 python-dotenv==1.0.0
 
+# Secure Credential Storage
+keyring==25.6.0
+
 # Scheduling & Monitoring
 schedule==1.2.2
 watchdog==6.0.0
