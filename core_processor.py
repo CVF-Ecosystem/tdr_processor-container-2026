@@ -7,10 +7,18 @@ This module provides pure processing logic that can be safely imported by:
 - Dashboard (app.py, dashboard.py / Streamlit)
 - CLI scripts
 - Scheduled tasks
+- REST API (api.py)
 
 NO Tkinter, NO GUI side effects. Pure data processing only.
+
+v3.1 additions:
+- Parallel file processing with ThreadPoolExecutor
+- Integration with SQLite database layer
+- Plugin system support
 """
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Optional, Callable, Dict, Any, Tuple
 from datetime import datetime
@@ -22,6 +30,10 @@ import config
 from report_processor import ReportProcessor
 from utils.file_utils import setup_project_directories
 from utils.input_validator import validate_excel_file
+
+# Default max workers for parallel processing
+# Use CPU count but cap at 4 to avoid overwhelming Excel file I/O
+_DEFAULT_MAX_WORKERS = min(4, (os.cpu_count() or 1))
 
 
 def normalize_filename(filename: str) -> str:
@@ -392,8 +404,120 @@ def get_processing_summary(output_dir: Optional[Path] = None) -> Dict[str, Any]:
         if csv_files:
             latest = max(csv_files, key=lambda f: f.stat().st_mtime)
             summary["last_modified"] = datetime.fromtimestamp(latest.stat().st_mtime).isoformat()
-    
+
     if excel_dir.exists():
         summary["excel_files"] = [f.name for f in excel_dir.glob("*.xlsx")]
-    
+
     return summary
+
+
+def process_tdr_files_parallel(
+    files: List[Path],
+    output_dir: Optional[Path] = None,
+    overwrite: bool = False,
+    max_workers: int = _DEFAULT_MAX_WORKERS,
+    update_status_callback: Optional[Callable[[str], None]] = None,
+    update_progress_callback: Optional[Callable[[int, int], None]] = None,
+) -> Dict[str, Any]:
+    """
+    Process TDR files in parallel using ThreadPoolExecutor.
+
+    For large batches (10+ files), parallel processing can significantly
+    reduce total processing time by utilizing multiple CPU cores.
+
+    Note: Uses threads (not processes) because openpyxl is not picklable.
+    Thread-based parallelism still helps with I/O-bound Excel reading.
+
+    Args:
+        files: List of TDR Excel files to process
+        output_dir: Output directory (default: outputs/)
+        overwrite: Whether to overwrite existing output files
+        max_workers: Maximum number of parallel workers (default: min(4, cpu_count))
+        update_status_callback: Optional callback for status updates
+        update_progress_callback: Optional callback for progress updates
+
+    Returns:
+        Dict with processing results (same format as process_tdr_files)
+    """
+    if not files:
+        return {
+            "message": "No files to process",
+            "processed_count": 0,
+            "skipped_count": 0,
+            "errors": []
+        }
+
+    # For small batches, use sequential processing (less overhead)
+    if len(files) <= 3 or max_workers <= 1:
+        logging.info(f"[ParallelProcess] Small batch ({len(files)} files), using sequential processing")
+        return process_tdr_files(
+            files=files,
+            output_dir=output_dir,
+            overwrite=overwrite,
+            update_status_callback=update_status_callback,
+            update_progress_callback=update_progress_callback,
+        )
+
+    if output_dir is None:
+        output_dir = Path("outputs")
+
+    setup_project_directories(Path.cwd(), ["outputs", "outputs/data_csv", "outputs/data_excel"])
+
+    logging.info(f"[ParallelProcess] Starting parallel processing of {len(files)} files with {max_workers} workers")
+
+    total_files = len(files)
+    processed_count = 0
+    skipped_count = 0
+    errors = []
+    completed = 0
+
+    if update_progress_callback:
+        update_progress_callback(0, total_files)
+
+    # Split files into chunks for each worker
+    # Each worker gets its own ReportProcessor instance to avoid shared state
+    chunk_size = max(1, total_files // max_workers)
+    chunks = [files[i:i + chunk_size] for i in range(0, total_files, chunk_size)]
+
+    def process_chunk(chunk: List[Path]) -> Dict[str, Any]:
+        """Process a chunk of files with a dedicated ReportProcessor."""
+        processor = ReportProcessor(output_dir=output_dir)
+        return processor.process_tdr_files(
+            chunk,
+            overwrite=overwrite
+        )
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_chunk = {
+            executor.submit(process_chunk, chunk): chunk
+            for chunk in chunks
+        }
+
+        for future in as_completed(future_to_chunk):
+            chunk = future_to_chunk[future]
+            try:
+                result = future.result()
+                processed_count += result.get("processed_count", 0)
+                skipped_count += result.get("skipped_count", 0)
+                if result.get("errors"):
+                    errors.extend(result["errors"])
+            except Exception as e:
+                logging.error(f"[ParallelProcess] Chunk processing failed: {e}", exc_info=True)
+                skipped_count += len(chunk)
+                errors.append(str(e))
+
+            completed += len(chunk)
+            if update_progress_callback:
+                update_progress_callback(min(completed, total_files), total_files)
+            if update_status_callback:
+                update_status_callback(f"Processed {completed}/{total_files} files...")
+
+    message = f"Parallel processing complete: {processed_count} processed, {skipped_count} skipped"
+    logging.info(f"[ParallelProcess] {message}")
+
+    return {
+        "message": message,
+        "processed_count": processed_count,
+        "skipped_count": skipped_count,
+        "errors": errors,
+    }

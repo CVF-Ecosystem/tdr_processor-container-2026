@@ -32,7 +32,7 @@ try:
     from utils.watcher import Watcher
     from utils.scheduler import TaskScheduler
     from utils.email_notifier import send_notification_email
-    from utils.input_validator import validate_email, validate_excel_file, validate_file_path
+    from utils.input_validator import validate_email, validate_excel_file, validate_file_path, validate_smtp_port
     from utils.credential_manager import (
         save_smtp_credentials, get_smtp_credentials, delete_smtp_credentials,
         has_stored_credentials, get_credential_storage_info, test_smtp_connection
@@ -287,7 +287,7 @@ class App(ttkb.Window):
     def open_powerbi_report(self):
         template_path = Path("templates/tdr_dashboard_template.pbit")
         output_dir = Path("outputs")
-        
+
         if not template_path.exists():
             messagebox.showerror("Lỗi", f"Không tìm thấy file template Power BI tại:\n{template_path.resolve()}")
             return
@@ -304,15 +304,20 @@ class App(ttkb.Window):
                                 "Khi Power BI mở ra, nó sẽ hỏi bạn đường dẫn đến các file CSV. "
                                 f"Vui lòng trỏ đến thư mục:\n\n{Path('outputs/data_csv').resolve()}",
                                 parent=self)
-            os.startfile(new_report_path)
+            # Cross-platform file opening
+            if os.name == 'nt':
+                os.startfile(new_report_path)
+            elif sys.platform == 'darwin':
+                subprocess.Popen(['open', str(new_report_path)])
+            else:
+                subprocess.Popen(['xdg-open', str(new_report_path)])
         except Exception as e:
             logging.error(f"Lỗi khi xử lý file Power BI: {e}", exc_info=True)
             messagebox.showerror("Lỗi", f"Không thể tạo hoặc mở file báo cáo Power BI.\nLỗi: {e}")
 
     def _open_browser_after_delay(self):
-        """Hàm phụ để chờ và mở trình duyệt."""
-        time.sleep(3)
-        webbrowser.open("http://localhost:8501")
+        """Open browser after a short delay using threading.Timer (non-blocking)."""
+        threading.Timer(3.0, webbrowser.open, args=["http://localhost:8501"]).start()
 
     def open_web_dashboard(self):
         dashboard_script = "dashboard.py"
@@ -341,8 +346,8 @@ class App(ttkb.Window):
 
             subprocess.Popen(command, startupinfo=startupinfo)
             self.status_label.config(text="📈 Web Dashboard is running in the browser...")
-            
-            threading.Thread(target=self._open_browser_after_delay, daemon=True).start()
+            # Open browser after 3 seconds using non-blocking Timer
+            self._open_browser_after_delay()
 
         except FileNotFoundError:
             logging.error("Lỗi không tìm thấy lệnh 'streamlit'.")
@@ -471,10 +476,19 @@ class App(ttkb.Window):
                 time.strptime(schedule_time, '%H:%M')
 
             if email_enabled:
-                if not smtp_port_str.isdigit() or not (1 <= int(smtp_port_str) <= 65535):
-                    raise ValueError("SMTP Port must be a number between 1 and 65535.")
-                if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', recipient_email):
-                    raise ValueError(f"Invalid recipient email format: '{recipient_email}'.")
+                # Use unified validator from input_validator module
+                try:
+                    smtp_port_int = int(smtp_port_str)
+                except (ValueError, TypeError):
+                    raise ValueError("SMTP Port must be a number.")
+                port_valid, port_error = validate_smtp_port(smtp_port_int)
+                if not port_valid:
+                    raise ValueError(f"Invalid SMTP Port: {port_error}")
+
+                email_valid, email_error = validate_email(recipient_email)
+                if not email_valid:
+                    raise ValueError(f"Invalid recipient email: {email_error}")
+
                 # Check for credentials in secure storage or session
                 creds = get_smtp_credentials()
                 has_session_creds = self.smtp_user_var.get() and self.smtp_pass_var.get()

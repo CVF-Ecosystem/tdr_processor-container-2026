@@ -37,9 +37,11 @@ with st.sidebar:
 
     st.markdown("📥 **Xuất file:**")
     if container_csv.exists() and st.checkbox("Tải về file CSV"):
+        with open(container_csv, 'rb') as f:
+            csv_data = f.read()
         st.download_button(
             label="⬇️ Tải xuống container_details.csv",
-            data=open(container_csv, 'rb').read(),
+            data=csv_data,
             file_name=container_csv.name,
             mime="text/csv"
         )

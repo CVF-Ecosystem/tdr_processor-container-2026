@@ -426,63 +426,43 @@ def _parse_datetime_from_string_logic(dt_s: str, date_ref: date | None, is_date_
 
 def parse_excel_datetime(dt_val, date_val_for_time: date | None = None, is_just_date: bool = False, context: str = "") -> datetime | date | None:
     log_p = f"parse_dt ({context})" if context else "parse_dt"
-    if dt_val == 0.75: # Chỉ debug cho trường hợp này
-        print(f"\nDEBUG_FUNC: parse_excel_datetime called with dt_val={dt_val} (type: {type(dt_val)}), date_val_for_time={date_val_for_time}, is_just_date={is_just_date}")
 
     if pd.isna(dt_val) or dt_val is None: return None
     if isinstance(dt_val, datetime): return dt_val.date() if is_just_date else dt_val
-    if isinstance(dt_val, date) and not isinstance(dt_val, datetime): return dt_val 
-    
-    if isinstance(dt_val, time) and not is_just_date: 
+    if isinstance(dt_val, date) and not isinstance(dt_val, datetime): return dt_val
+
+    if isinstance(dt_val, time) and not is_just_date:
         if date_val_for_time and isinstance(date_val_for_time, date):
-            result = datetime.combine(date_val_for_time, dt_val)
-            # if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 1 (input is time), returning {result} (type {type(result)})")
-            return result
-        return None 
-    
-    if isinstance(dt_val, (int, float)): 
+            return datetime.combine(date_val_for_time, dt_val)
+        return None
+
+    if isinstance(dt_val, (int, float)):
         try:
             dt_obj_from_openpyxl = openpyxl_from_excel(dt_val)
-            
-            # KIỂM TRA NẾU openpyxl_from_excel TRẢ VỀ TIME OBJECT
+
             if isinstance(dt_obj_from_openpyxl, time):
-                if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 2.A (openpyxl returned time: {dt_obj_from_openpyxl})")
                 if not is_just_date and date_val_for_time and isinstance(date_val_for_time, date):
-                    result = datetime.combine(date_val_for_time, dt_obj_from_openpyxl)
-                    if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 2.A.1 (combined with ref_date), returning {result} (type {type(result)})")
-                    return result
-                elif is_just_date: # Muốn date từ time object là không hợp lý
-                    if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 2.A.2 (is_just_date for time obj), returning None")
+                    return datetime.combine(date_val_for_time, dt_obj_from_openpyxl)
+                elif is_just_date:
                     return None
-                else: # Không có ref_date để combine
-                    if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 2.A.3 (no ref_date for time obj), returning None (hoặc có thể là time_obj nếu nghiệp vụ cho phép)")
-                    return None # Hoặc trả về dt_obj_from_openpyxl nếu muốn chấp nhận time object đơn lẻ
-            
-            # Nếu dt_obj_from_openpyxl là datetime (ví dụ: từ số serial date lớn)
+                else:
+                    return None
+
             elif isinstance(dt_obj_from_openpyxl, datetime):
-                result = dt_obj_from_openpyxl.date() if is_just_date else dt_obj_from_openpyxl
-                if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 2.B (openpyxl returned datetime), returning {result} (type {type(result)})")
-                return result
-            else: # Trường hợp khác không mong muốn từ openpyxl_from_excel
-                if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 2.C (unexpected type from openpyxl: {type(dt_obj_from_openpyxl)}), returning None")
+                return dt_obj_from_openpyxl.date() if is_just_date else dt_obj_from_openpyxl
+            else:
+                logging.debug(f"{log_p}: Unexpected type from openpyxl_from_excel: {type(dt_obj_from_openpyxl)}")
                 return None
 
-        except (ValueError, TypeError): # Lỗi khi openpyxl_from_excel không parse được (ví dụ số quá lớn/nhỏ)
-            if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 2 (except after openpyxl_from_excel failed - điều này không nên xảy ra với 0.75)")
-            # Khối này có thể không cần thiết nữa nếu logic trên đã xử lý time fraction
-            # Tuy nhiên, để an toàn, giữ lại để bắt các lỗi khác của openpyxl_from_excel
-            # if 0 <= dt_val < 1: # Điều kiện này có thể đã được xử lý bởi isinstance(dt_obj_from_openpyxl, time)
-            #    ...
-            return None 
-            
+        except (ValueError, TypeError):
+            logging.debug(f"{log_p}: openpyxl_from_excel failed for value: {dt_val}")
+            return None
+
     if isinstance(dt_val, str):
         dt_s = dt_val.strip()
-        if not dt_s or dt_s.lower() in ["from", "to", "hours", "error", "remark", "-", "/"]: return None 
-        result = _parse_datetime_from_string_logic(dt_s, date_val_for_time, is_just_date, context)
-        # if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 3 (string), returning {result} (type {type(result)})")
-        return result
+        if not dt_s or dt_s.lower() in ["from", "to", "hours", "error", "remark", "-", "/"]: return None
+        return _parse_datetime_from_string_logic(dt_s, date_val_for_time, is_just_date, context)
 
-    # if dt_val == 0.75: print(f"DEBUG_FUNC: Branch 4 (default end), returning None")
     return None
 
 def parse_time_duration(time_val) -> float: # Parses duration into hours (float)

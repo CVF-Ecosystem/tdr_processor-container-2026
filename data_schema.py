@@ -4,7 +4,7 @@ Data Model Schema Definitions for TDR Processor.
 
 Provides standardized schema definitions for all output data:
 - Vessel Summary
-- QC Productivity  
+- QC Productivity
 - QC Operator Productivity
 - Delay Events
 - Container Details
@@ -15,15 +15,25 @@ Features:
 - Validation rules
 - Metric calculations (single source of truth)
 - Normalization rules
+- Pydantic models for runtime data validation
 
 Usage:
     from data_schema import SCHEMAS, validate_dataframe, normalize_qc_name
+    from data_schema import VesselSummaryModel, QCProductivityModel
 """
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 from enum import Enum
 import pandas as pd
 import logging
+
+try:
+    from pydantic import BaseModel, Field, field_validator, model_validator
+    PYDANTIC_AVAILABLE = True
+except ImportError:
+    PYDANTIC_AVAILABLE = False
+    logging.warning("pydantic not available. Runtime validation models disabled.")
 
 # Schema version - increment when changing column names or calculations
 SCHEMA_VERSION = "3.0.0"
@@ -39,10 +49,13 @@ class DataType(Enum):
 
 
 class ErrorType(Enum):
-    """Standardized error types for delay classification."""
-    TERMINAL_CONVENIENCE = "Terminal Convenience"          # d - do cảng
-    NON_TERMINAL_CONVENIENCE = "Non-Terminal Convenience"  # i - không do cảng (vessel, weather, etc)
-    MAINTENANCE = "Maintenance"                             # m - bảo trì
+    """Standardized error types for delay classification.
+    
+    Aligned with config.ErrorType values for consistency.
+    """
+    TERMINAL_CONVENIENCE = "Terminal Convenience"          # a-h codes - do cảng
+    NON_TERMINAL_CONVENIENCE = "Non-Terminal Convenience"  # i-n codes - không do cảng
+    FORCE_MAJEURE = "Other/Force Majeure"                  # weather, bất khả kháng
     UNKNOWN = "Unknown"
 
 
@@ -278,7 +291,7 @@ def classify_error_type(error_code: str) -> str:
     mapping = {
         'd': ErrorType.TERMINAL_CONVENIENCE.value,
         'i': ErrorType.NON_TERMINAL_CONVENIENCE.value,
-        'm': ErrorType.MAINTENANCE.value,
+        'm': ErrorType.FORCE_MAJEURE.value,
     }
     
     return mapping.get(code, ErrorType.UNKNOWN.value)
@@ -416,3 +429,129 @@ def get_schema_info() -> Dict[str, Any]:
             for name, schema in SCHEMAS.items()
         }
     }
+
+
+# ============================================================================
+# PYDANTIC VALIDATION MODELS (Runtime data validation)
+# ============================================================================
+
+if PYDANTIC_AVAILABLE:
+    class VesselSummaryModel(BaseModel):
+        """Pydantic model for vessel summary data validation."""
+        Filename: str = Field(..., min_length=1, description="Source TDR filename")
+        vessel_name: Optional[str] = Field(None, alias="Vessel Name")
+        voyage: Optional[str] = Field(None, alias="Voyage")
+        operator: Optional[str] = Field(None, alias="Operator")
+        berth: Optional[str] = Field(None, alias="Berth")
+        atb: Optional[datetime] = Field(None, alias="ATB")
+        atd: Optional[datetime] = Field(None, alias="ATD")
+        portstay_hrs: Optional[float] = Field(None, alias="Portstay (hrs)", ge=0)
+        gross_working_hrs: Optional[float] = Field(None, alias="Gross Working (hrs)", ge=0)
+        net_working_hrs: Optional[float] = Field(None, alias="Net Working (hrs)", ge=0)
+        grand_total_conts: Optional[int] = Field(None, alias="Grand Total Conts", ge=0)
+        grand_total_teus: Optional[float] = Field(None, alias="Grand Total TEUs", ge=0)
+        vessel_moves_per_net_hour: Optional[float] = Field(
+            None, alias="Vessel Moves/Net Hour", ge=0
+        )
+
+        model_config = {"populate_by_name": True}
+
+        @field_validator("portstay_hrs", "gross_working_hrs", "net_working_hrs", mode="before")
+        @classmethod
+        def validate_hours(cls, v):
+            if v is not None and v < 0:
+                raise ValueError("Hours cannot be negative")
+            return v
+
+        @model_validator(mode="after")
+        def validate_time_consistency(self):
+            if self.atb and self.atd and self.atd <= self.atb:
+                raise ValueError(f"ATD ({self.atd}) must be after ATB ({self.atb})")
+            return self
+
+
+    class QCProductivityModel(BaseModel):
+        """Pydantic model for QC productivity data validation."""
+        Filename: str = Field(..., min_length=1)
+        vessel_name: Optional[str] = Field(None, alias="Vessel Name")
+        voyage: Optional[str] = Field(None, alias="Voyage")
+        qc_no: str = Field(..., alias="QC No.", min_length=1)
+        gross_working_hrs: Optional[float] = Field(None, alias="Gross working (hrs)", ge=0)
+        delay_times_hrs: Optional[float] = Field(None, alias="Delay times (hrs)", ge=0)
+        net_working_hrs: Optional[float] = Field(None, alias="Net working (hrs)", ge=0)
+        discharge_conts: Optional[int] = Field(None, alias="Discharge Conts", ge=0)
+        load_conts: Optional[int] = Field(None, alias="Load Conts", ge=0)
+        shifting_conts: Optional[int] = Field(None, alias="Shifting Conts", ge=0)
+        total_conts: Optional[int] = Field(None, alias="Total Conts", ge=0)
+        gross_moves_h: Optional[float] = Field(None, alias="Gross moves/h", ge=0)
+        net_moves_h: Optional[float] = Field(None, alias="Net moves/h", ge=0)
+
+        model_config = {"populate_by_name": True}
+
+
+    class DelayEventModel(BaseModel):
+        """Pydantic model for delay event data validation."""
+        Filename: str = Field(..., min_length=1)
+        vessel_name: Optional[str] = Field(None, alias="Vessel Name")
+        voyage: Optional[str] = Field(None, alias="Voyage")
+        qc_no: Optional[str] = Field(None, alias="QC No.")
+        stop_category: Optional[str] = Field(None, alias="Stop Category")
+        from_time: Optional[datetime] = Field(None, alias="From Time")
+        to_time: Optional[datetime] = Field(None, alias="To Time")
+        duration_hrs: float = Field(..., alias="Duration (hrs)", ge=0)
+        error_code: Optional[str] = Field(None, alias="Error Code")
+        error_type: Optional[str] = Field(None, alias="Error Type")
+        remark: Optional[str] = Field(None, alias="Remark")
+
+        model_config = {"populate_by_name": True}
+
+        @model_validator(mode="after")
+        def validate_duration_consistency(self):
+            if self.from_time and self.to_time:
+                calc_duration = (self.to_time - self.from_time).total_seconds() / 3600
+                if abs(calc_duration - self.duration_hrs) > 0.1:
+                    # Log warning but don't fail - file value takes precedence
+                    logging.warning(
+                        f"Duration mismatch: file={self.duration_hrs:.2f}h, "
+                        f"calculated={calc_duration:.2f}h for {self.Filename}"
+                    )
+            return self
+
+
+    def validate_vessel_records(records: list) -> tuple[list, list]:
+        """
+        Validate a list of vessel summary records using Pydantic.
+
+        Args:
+            records: List of dicts representing vessel records
+
+        Returns:
+            Tuple of (valid_records, validation_errors)
+        """
+        valid = []
+        errors = []
+        for i, record in enumerate(records):
+            try:
+                validated = VesselSummaryModel(**record)
+                valid.append(validated.model_dump(by_alias=True))
+            except Exception as e:
+                errors.append({"index": i, "record": record.get("Filename", "?"), "error": str(e)})
+        return valid, errors
+
+else:
+    # Stub classes when pydantic is not available
+    class VesselSummaryModel:  # type: ignore
+        """Stub when pydantic is not available."""
+        pass
+
+    class QCProductivityModel:  # type: ignore
+        """Stub when pydantic is not available."""
+        pass
+
+    class DelayEventModel:  # type: ignore
+        """Stub when pydantic is not available."""
+        pass
+
+    def validate_vessel_records(records: list) -> tuple:
+        """Stub validation when pydantic is not available."""
+        return records, []

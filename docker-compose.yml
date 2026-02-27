@@ -1,0 +1,84 @@
+version: "3.9"
+
+# TDR Processor - Docker Compose Configuration
+# 
+# Services:
+#   dashboard  - Streamlit web dashboard (port 8501)
+#   api        - FastAPI REST API (port 8000)
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose up dashboard       # Start dashboard only
+#   docker-compose up api             # Start API only
+#   docker-compose logs -f dashboard  # View dashboard logs
+#   docker-compose down               # Stop all services
+
+services:
+  # ============================================================================
+  # Streamlit Dashboard
+  # ============================================================================
+  dashboard:
+    build:
+      context: .
+      target: dashboard
+    container_name: tdr_dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount data directories for persistence
+      - ./data_input:/app/data_input
+      - ./outputs:/app/outputs
+      - ./backup:/app/backup
+    environment:
+      - TDR_LOG_LEVEL=${TDR_LOG_LEVEL:-INFO}
+      - TDR_EMAIL_ENABLED=${TDR_EMAIL_ENABLED:-false}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tdr_network
+
+  # ============================================================================
+  # FastAPI REST API
+  # ============================================================================
+  api:
+    build:
+      context: .
+      target: api
+    container_name: tdr_api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Share same data directories as dashboard
+      - ./data_input:/app/data_input
+      - ./outputs:/app/outputs
+    environment:
+      - TDR_LOG_LEVEL=${TDR_LOG_LEVEL:-INFO}
+      - TDR_SMTP_SERVER=${TDR_SMTP_SERVER:-}
+      - TDR_SMTP_PORT=${TDR_SMTP_PORT:-587}
+      - TDR_SMTP_USER=${TDR_SMTP_USER:-}
+      - TDR_SMTP_PASSWORD=${TDR_SMTP_PASSWORD:-}
+      - TDR_EMAIL_ENABLED=${TDR_EMAIL_ENABLED:-false}
+      - TDR_EMAIL_SENDER=${TDR_EMAIL_SENDER:-}
+      - TDR_EMAIL_RECIPIENTS=${TDR_EMAIL_RECIPIENTS:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tdr_network
+
+networks:
+  tdr_network:
+    driver: bridge
+
+volumes:
+  tdr_data:
+    driver: local

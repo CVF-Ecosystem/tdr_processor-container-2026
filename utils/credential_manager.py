@@ -142,20 +142,22 @@ def has_stored_credentials() -> bool:
 def get_credential_storage_info() -> str:
     """
     Get information about how credentials are stored.
-    
+
     Returns:
-        Human-readable string describing storage method
+        Human-readable string describing storage method and backend.
+        Uses platform-appropriate terminology (keyring supports Windows
+        Credential Manager, macOS Keychain, and Linux Secret Service).
     """
     if os.getenv('TDR_SMTP_USER') and os.getenv('TDR_SMTP_PASS'):
         return "Environment Variables"
-    
+
     if KEYRING_AVAILABLE:
         try:
             if keyring.get_password(SERVICE_NAME, SMTP_USER_KEY):
-                return "Windows Credential Manager"
+                return "System Secure Storage (Keyring)"
         except Exception:
             pass
-    
+
     return "Not Configured"
 
 

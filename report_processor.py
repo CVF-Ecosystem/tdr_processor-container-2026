@@ -1,13 +1,12 @@
 import logging
+import threading
 from pathlib import Path
 import pandas as pd
 import openpyxl  # For InvalidFileException and load_workbook
 from datetime import date, datetime  # For type hints (removed 'time' to avoid naming conflict)
 import time as time_module  # Use 'time_module' to avoid naming conflict with datetime.time
-import re # <<< THÊM IMPORT NÀY
+import re
 from typing import Dict, List, Optional, Set, Any, Tuple
-from utils.excel_handler import append_df_to_excel
-from utils.file_utils import backup_file # <<< THÊM IMPORT NÀY
 
 try:
     import config
@@ -15,9 +14,8 @@ try:
     from utils.excel_handler import append_df_to_excel
     from utils.file_utils import backup_file
 except ImportError as e:
-    print(f"LỖI IMPORT trong report_processor.py: {e}")
-    # Fallback code...
-    pass
+    logging.error(f"Import error in report_processor.py: {e}")
+    raise
 def _normalize_qc_name(name: str) -> str:
     """Chuẩn hóa tên QC về định dạng 'XX00'. Ví dụ: 'GC1' -> 'GC01'."""
     if not isinstance(name, str):
@@ -38,20 +36,23 @@ class ReportProcessor:
             input_dir = Path(input_dir)
         if isinstance(output_dir, str):
             output_dir = Path(output_dir)
-        
+
         self.input_dir: Path = input_dir if input_dir else Path("data_input")
         self.output_dir: Path = output_dir if output_dir else Path("outputs")
         self.data_excel_dir: Path = self.output_dir / "data_excel"
         self.data_csv_dir: Path = self.output_dir / "data_csv"
-        
+
         self.skipped_files_log: List[str] = []
         self.all_vessel_dfs: List[pd.DataFrame] = []
         self.all_qc_dfs: List[pd.DataFrame] = []
-        self.all_qc_operator_dfs: List[pd.DataFrame] = [] # Thêm dòng này
+        self.all_qc_operator_dfs: List[pd.DataFrame] = []
         self.all_delay_dfs: List[pd.DataFrame] = []
         self.all_container_long_dfs: List[pd.DataFrame] = []
         self.processed_files_count: int = 0
         self.skipped_files_count: int = 0
+
+        # Thread safety: prevent concurrent processing runs from corrupting shared state
+        self._processing_lock: threading.Lock = threading.Lock()
 
         self.data_excel_dir.mkdir(parents=True, exist_ok=True)
         self.data_csv_dir.mkdir(parents=True, exist_ok=True)
@@ -113,7 +114,8 @@ class ReportProcessor:
                 qc_productivity_df["Net working (hrs)"] = qc_productivity_df.apply(
                     lambda row: round(max(0, row.get("Gross working (hrs)", 0.0) - row.get("Delay times (hrs)", 0.0)), 2), axis=1
                 )
-                qc_productivity_df["Net moves/h (QC)"] = qc_productivity_df.apply(
+                # Use "Net moves/h" to match QC_COLS_OUTPUT_ORDER in config
+                qc_productivity_df["Net moves/h"] = qc_productivity_df.apply(
                     lambda row: round(row["Total Conts"] / row["Net working (hrs)"], 1) if row["Net working (hrs)"] > 0 else 0.0, axis=1
                 )
                 self.all_qc_dfs.append(qc_productivity_df)
@@ -339,9 +341,28 @@ class ReportProcessor:
 
     def process_tdr_files(self, input_file_paths: list[Path], update_status_callback=None,
                           update_progress_callback=None, overwrite: bool = False) -> dict:
+        # Acquire lock to prevent concurrent processing runs from corrupting shared state
+        if not self._processing_lock.acquire(blocking=False):
+            logging.warning("ReportProcessor: Processing already in progress. Skipping concurrent request.")
+            return {
+                "message": "Processing already in progress. Please wait.",
+                "time_taken": 0.0,
+                "processed_count": 0,
+                "skipped_count": len(input_file_paths)
+            }
+        try:
+            return self._process_tdr_files_internal(
+                input_file_paths, update_status_callback, update_progress_callback, overwrite
+            )
+        finally:
+            self._processing_lock.release()
+
+    def _process_tdr_files_internal(self, input_file_paths: list[Path], update_status_callback=None,
+                                     update_progress_callback=None, overwrite: bool = False) -> dict:
         start_total_time = time_module.perf_counter()
         self.all_vessel_dfs.clear()
         self.all_qc_dfs.clear()
+        self.all_qc_operator_dfs.clear()  # Bug fix: was missing in refactored method
         self.all_delay_dfs.clear()
         self.all_container_long_dfs.clear()
         self.processed_files_count = 0

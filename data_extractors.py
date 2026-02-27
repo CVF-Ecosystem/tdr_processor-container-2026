@@ -67,9 +67,7 @@ class DataExtractor:
         self.reference_date_for_events = None # Sẽ được xác định trong extract_vessel_info
 
     def extract_vessel_info(self):
-        # --- NỘI DUNG CỦA HÀM extract_vessel_info TRƯỚC ĐÂY ---
-        # Thay thế ws bằng self.worksheet, filepath_obj bằng self.filepath_obj
-        # Các hàm tiện ích (find_label_row_col, parse_excel_datetime, etc.) đã được import ở đầu file này.
+        """Extract vessel summary information from the worksheet."""
         info = {"Filename": self.filename_str}
         logging.info(f"--- Extracting Vessel Info: {info['Filename']} ---")
         
@@ -198,35 +196,44 @@ class DataExtractor:
         logging.info(f"--- Vessel Info Extracted & Calculated for {info['Filename']} ---\n{info}\n")
         return info
 
+    @staticmethod
+    def _parse_moves_hour_value(val) -> float:
+        """Parse moves/hour value from various input types."""
+        if isinstance(val, (int, float)):
+            return float(val)
+        if isinstance(val, str):
+            try:
+                return float(val.replace(",", "."))
+            except ValueError:
+                return 0.0
+        return 0.0
+
+    def _get_cell_value(self, row: int, column_map: dict, key: str, parse_func=None, default_value=None):
+        """Get and optionally parse a cell value from the worksheet using column_map."""
+        if key not in column_map or column_map[key] is None:
+            return default_value
+        raw = self.worksheet.cell(row=row, column=column_map[key]).value
+        if raw is None or (isinstance(raw, str) and raw.strip() == ''):
+            return default_value
+        if parse_func:
+            parsed = parse_func(raw)
+            return parsed if parsed is not None else default_value
+        try:
+            return raw if not pd.isna(raw) else default_value
+        except (TypeError, ValueError):
+            return raw
+
     def extract_qc_productivity(self):
-        # --- NỘI DUNG CỦA HÀM extract_qc_productivity TRƯỚC ĐÂY ---
-        # Thay thế ws bằng self.worksheet, filename_str bằng self.filename_str
-        # vessel_name bằng self.vessel_name, voyage_no bằng self.voyage_no
-        # ... (Dán code của hàm extract_qc_productivity vào đây và điều chỉnh như trên)
-        # Đảm bảo các hàm tiện ích được gọi đúng
+        """Extract QC crane productivity data from the worksheet."""
         qc_data_list = []
         logging.info(f"--- Extracting QC Productivity: {self.filename_str}, Vessel: {self.vessel_name} ---")
 
-        r_qc_h, _ = find_label_row_col(self.worksheet, config.LABEL_CRANES_PRODUCTIVITY,
-                                    max_search_rows=config.MAX_SEARCH_ROWS_QC_HEADER)
-        # ... (Toàn bộ phần còn lại của hàm extract_qc_productivity, thay thế ws, filename_str, vessel_name, voyage_no)
-        # ... (Tôi sẽ không dán lại toàn bộ để tránh quá dài, bạn hãy tự điều chỉnh phần này)
-        # QUAN TRỌNG: Đảm bảo các tham số vessel_name, voyage_no được lấy từ self.vessel_name, self.voyage_no
-        # và filename_str từ self.filename_str
-        # Ví dụ:
-        # qc_data_list.append({
-        #     "Filename": self.filename_str, "Vessel Name": self.vessel_name, "Voyage": self.voyage_no, ...
-        # })
-        # ... (Phần code của extract_qc_productivity đã được cung cấp ở các phản hồi trước,
-        #      bạn chỉ cần thay thế các biến toàn cục/tham số bằng thuộc tính của self)
-        # --- GIẢ SỬ BẠN ĐÃ DÁN VÀ SỬA CODE extract_qc_productivity VÀO ĐÂY ---
-        # Đây là phần code mẫu đã được điều chỉnh từ phiên bản trước:
         if not self.vessel_name or not self.voyage_no:
             logging.error(f"QC Productivity: Vessel Name or Voyage No. not extracted prior to QC extraction for {self.filename_str}. Skipping.")
             return []
 
         r_qc_h, _ = find_label_row_col(self.worksheet, config.LABEL_CRANES_PRODUCTIVITY,
-                                   max_search_rows=config.MAX_SEARCH_ROWS_QC_HEADER)
+                                       max_search_rows=config.MAX_SEARCH_ROWS_QC_HEADER)
         if not r_qc_h:
             logging.warning(f"'{config.LABEL_CRANES_PRODUCTIVITY}' not found in {self.filename_str}. Skipping QC productivity.")
             return qc_data_list
@@ -235,8 +242,8 @@ class DataExtractor:
         hdr_r2 = r_qc_h + config.QC_HEADER_ROW_2_OFFSET
         header_values_row_1 = [str(self.worksheet.cell(hdr_r1, c).value or "").lower().strip() for c in range(1, self.worksheet.max_column + 1)]
         header_values_row_2 = [str(self.worksheet.cell(hdr_r2, c).value or "").lower().strip() for c in range(1, self.worksheet.max_column + 1)]
-        column_map = {} # Tiếp tục logic tìm column_map như cũ
-        # ... (logic tìm column_map) ...
+
+        column_map = {}
         for key, variants in config.QC_PRODUCTIVITY_HEADER_VARIANTS.items():
             found_in_h1 = False
             for name_v in variants:
@@ -245,128 +252,112 @@ class DataExtractor:
                     logging.info(f"QC_HDR_MAP: Found '{key}' (as '{name_v}') in header row 1, col {column_map[key]} for {self.filename_str}")
                     found_in_h1 = True
                     break
-                except ValueError: pass
-            if not found_in_h1 and key in ["discharged_containers", "loaded_containers", "shifting_containers"]: 
+                except ValueError:
+                    pass
+            if not found_in_h1 and key in ["dis_conts", "load_conts", "shifting_conts"]:
                 for name_v in variants:
                     try:
                         column_map[key] = header_values_row_2.index(name_v) + 1
                         logging.info(f"QC_HDR_MAP: Found '{key}' (as '{name_v}') in header row 2, col {column_map[key]} for {self.filename_str}")
                         break
-                    except ValueError: pass
-            if key not in column_map: logging.warning(f"QC_HDR_MAP: NOT Found '{key}' for {self.filename_str}")
+                    except ValueError:
+                        pass
+            if key not in column_map:
+                logging.warning(f"QC_HDR_MAP: NOT Found '{key}' for {self.filename_str}")
+
         if "qc_no" not in column_map:
             logging.error(f"'QC No.' column (key 'qc_no') not found in QC Productivity header for {self.filename_str}. Skipping QC data.")
             return qc_data_list
-        data_start_row = hdr_r1 + 1 
-        if any(h for h in header_values_row_2 if h): data_start_row = hdr_r2 + 1
-        else: data_start_row = hdr_r1 + config.QC_DATA_START_ROW_OFFSET_FROM_H1
+
+        if any(h for h in header_values_row_2 if h):
+            data_start_row = hdr_r2 + 1
+        else:
+            data_start_row = hdr_r1 + config.QC_DATA_START_ROW_OFFSET_FROM_H1
+
         curr_r = data_start_row
-        while curr_r <= self.worksheet.max_row: # Tiếp tục logic đọc dữ liệu QC như cũ
-            # ... (logic đọc dữ liệu QC, sử dụng self.worksheet, self.filename_str, self.vessel_name, self.voyage_no)
-            # ...
-            # Ví dụ khi append:
-            # qc_data_list.append({
-            #     "Filename": self.filename_str, "Vessel Name": self.vessel_name, "Voyage": self.voyage_no, ...
-            # })
-            # ...
-            # --- Dán phần logic đọc QC từ hàm cũ vào đây và điều chỉnh ---
+        while curr_r <= self.worksheet.max_row:
             qc_no_val = self.worksheet.cell(curr_r, column_map["qc_no"]).value
             s_val_cell = self.worksheet.cell(curr_r, column_map.get("start_time")) if "start_time" in column_map else None
             e_val_cell = self.worksheet.cell(curr_r, column_map.get("end_time")) if "end_time" in column_map else None
             start_value = s_val_cell.value if s_val_cell else None
             end_value = e_val_cell.value if e_val_cell else None
             qc_no_str = str(qc_no_val).strip().upper() if qc_no_val else ""
+
             if not qc_no_str or "total" in qc_no_str.lower() or (pd.isna(start_value) and pd.isna(end_value)):
-                logging.info(f"QC Productivity: Stopping read at row {curr_r} due to empty/total QC No. ('{qc_no_val}') or missing Start/End Time (Start='{start_value}', End='{end_value}').")
+                logging.info(f"QC Productivity: Stopping read at row {curr_r} due to empty/total QC No. or missing Start/End Time.")
                 break
+
             is_valid_qc_identifier = any(identifier in qc_no_str for identifier in config.QC_IDENTIFIERS_IN_DATA)
             if not is_valid_qc_identifier:
-                logging.debug(f"QC Productivity: Row {curr_r} QC No. '{qc_no_str}' does not match identifiers {config.QC_IDENTIFIERS_IN_DATA}. Skipping.")
+                logging.debug(f"QC Productivity: Row {curr_r} QC No. '{qc_no_str}' does not match identifiers. Skipping.")
                 curr_r += 1
                 continue
-            qc_no_to_store = str(qc_no_val).strip() 
-            # ... (phần get_qc_val và append vào qc_data_list như cũ, chỉ thay ws bằng self.worksheet)
-            # Hàm get_qc_val (nếu bạn muốn giữ nó là nested function)
-            def get_qc_val_nested(key, parse_func=None, default_value=None): # Đổi tên để tránh xung đột nếu có get_qc_val ở global
-                if key not in column_map or column_map[key] is None: return default_value
-                raw = self.worksheet.cell(row=curr_r, column=column_map[key]).value
-                if raw is None or (isinstance(raw, str) and raw.strip() == ''): return default_value
-                if parse_func:
-                    parsed = parse_func(raw)
-                    return parsed if parsed is not None else default_value
-                return raw if not pd.isna(raw) else default_value
-         # --- THAY THẾ HOÀN TOÀN LOGIC TÍNH GROSS WORKING ---
-            s_time = get_qc_val_nested("start_time", excel_to_time)
-            e_time = get_qc_val_nested("end_time", excel_to_time)
-        # Ưu tiên lấy Gross Working đã tính sẵn trong file TDR
-            gross_w_rep = get_qc_val_nested("gross_working_reported", parse_time_duration, 0.0)
-         # Tính toán lại Gross Working từ Start/End chỉ khi cần thiết   
+
+            qc_no_to_store = str(qc_no_val).strip()
+
+            # Use _get_cell_value helper (defined outside loop - no redefinition per iteration)
+            s_time = self._get_cell_value(curr_r, column_map, "start_time", excel_to_time)
+            e_time = self._get_cell_value(curr_r, column_map, "end_time", excel_to_time)
+
+            # Prefer reported gross working hours; fall back to calculated from start/end times
+            gross_w_rep = self._get_cell_value(curr_r, column_map, "gross_working_reported", parse_time_duration, 0.0)
             gross_w_calc = 0.0
-            if s_time and e_time:
-                # Giả định ngày bắt đầu là ngày tàu bắt đầu làm hàng (Commenced Discharge)
-                # Điều này cần v_info đã được trích xuất trước.
-                # Chúng ta sẽ lấy nó từ self.reference_date_for_events
-                start_date_ref = self.reference_date_for_events
+            if s_time and e_time and self.reference_date_for_events:
+                start_dt = datetime.combine(self.reference_date_for_events, s_time)
+                end_dt = datetime.combine(self.reference_date_for_events, e_time)
+                while end_dt < start_dt:
+                    end_dt += timedelta(days=1)
+                gross_w_calc = timedelta_to_hours(end_dt - start_dt)
 
-                if start_date_ref:
-                    start_dt = datetime.combine(start_date_ref, s_time)
-                    end_dt = datetime.combine(start_date_ref, e_time)
-
-                    # Xử lý trường hợp kéo dài nhiều ngày
-                    while end_dt < start_dt:
-                        end_dt += timedelta(days=1)
-                    
-                    gross_w_calc = timedelta_to_hours(end_dt - start_dt)
-            
-            # Sử dụng giá trị từ file nếu có, nếu không thì dùng giá trị tự tính
             gross_w = round(gross_w_rep if gross_w_rep > 0 else gross_w_calc, 2)
-            # --- KẾT THÚC THAY THẾ ---
-            delay_t_reported = get_qc_val_nested("delay_times_reported", parse_time_duration, 0.0)
-            net_w_reported = get_qc_val_nested("net_working_reported", parse_time_duration, 0.0)
-            dis_c = int(get_qc_val_nested("discharged_containers", None, 0) or 0)
-            load_c = int(get_qc_val_nested("loaded_containers", None, 0) or 0)
-            shift_c = int(get_qc_val_nested("shifting_containers", None, 0) or 0)
-            total_c_rep = int(get_qc_val_nested("total_conts_qc_reported", None, 0) or 0)
+
+            delay_t_reported = self._get_cell_value(curr_r, column_map, "delay_times_reported", parse_time_duration, 0.0)
+            net_w_reported = self._get_cell_value(curr_r, column_map, "net_working_reported", parse_time_duration, 0.0)
+            dis_c = int(self._get_cell_value(curr_r, column_map, "dis_conts", None, 0) or 0)
+            load_c = int(self._get_cell_value(curr_r, column_map, "load_conts", None, 0) or 0)
+            shift_c = int(self._get_cell_value(curr_r, column_map, "shifting_conts", None, 0) or 0)
+            total_c_rep = int(self._get_cell_value(curr_r, column_map, "total_conts_qc_reported", None, 0) or 0)
             total_c_calc = dis_c + load_c + shift_c
             total_c = total_c_calc if total_c_calc > 0 else total_c_rep
-            def parse_moves_hour_qc_value(val_str_moves): # Giữ nguyên hàm con này
-                if isinstance(val_str_moves, (int, float)): return float(val_str_moves)
-                if isinstance(val_str_moves, str):
-                    try: return float(val_str_moves.replace(",", "."))
-                    except ValueError: return 0.0
-                return 0.0
-            gross_moves_h_rep = get_qc_val_nested("gross_moves_h_reported", parse_moves_hour_qc_value, 0.0)
-            net_moves_h_rep = get_qc_val_nested("net_moves_h_reported", parse_moves_hour_qc_value, 0.0)
+
+            gross_moves_h_rep = self._get_cell_value(curr_r, column_map, "gross_moves_h_reported", self._parse_moves_hour_value, 0.0)
+            net_moves_h_rep = self._get_cell_value(curr_r, column_map, "net_moves_h_reported", self._parse_moves_hour_value, 0.0)
             gross_moves_calc = round(total_c / gross_w, 1) if gross_w > 0 and total_c > 0 else gross_moves_h_rep
+
             qc_data_list.append({
-                "Filename": self.filename_str, "Vessel Name": self.vessel_name, "Voyage": self.voyage_no, "QC No.": qc_no_to_store,
-                "Start Time": s_time, "End Time": e_time, "Gross working (hrs)": gross_w,
-                "Delay times (hrs)": delay_t_reported, "Net working (hrs)": net_w_reported,
-                "Discharge Conts": dis_c, "Load Conts": load_c, "Shifting Conts": shift_c,
-                "Total Conts": total_c, "Gross moves/h (QC)": gross_moves_calc, "Net moves/h (QC)": net_moves_h_rep,
+                "Filename": self.filename_str,
+                "Vessel Name": self.vessel_name,
+                "Voyage": self.voyage_no,
+                "QC No.": qc_no_to_store,
+                "Start Time": s_time,
+                "End Time": e_time,
+                "Gross working (hrs)": gross_w,
+                "Delay times (hrs)": delay_t_reported,
+                "Net working (hrs)": net_w_reported,
+                "Discharge Conts": dis_c,
+                "Load Conts": load_c,
+                "Shifting Conts": shift_c,
+                "Total Conts": total_c,
+                "Gross moves/h": gross_moves_calc,
+                "Net moves/h": net_moves_h_rep,  # Matches QC_COLS_OUTPUT_ORDER in config
             })
-            curr_r +=1
-            if curr_r > self.worksheet.max_row + 5: logging.error(f"QC Productivity: Exceeded max row search limit for {self.filename_str}. Breaking loop."); break
+            curr_r += 1
+            if curr_r > self.worksheet.max_row + 5:
+                logging.error(f"QC Productivity: Exceeded max row search limit for {self.filename_str}. Breaking loop.")
+                break
+
         logging.info(f"--- QC Productivity Extracted for {self.filename_str}. Count: {len(qc_data_list)} ---")
         return qc_data_list
 
 
-    def extract_delay_details(self, ref_date_for_delay_calc: date): # ref_date giờ được truyền vào
-        # --- NỘI DUNG CỦA HÀM extract_delay_details TRƯỚC ĐÂY ---
-        # Thay thế ws bằng self.worksheet, filename_str bằng self.filename_str
-        # vessel_name bằng self.vessel_name, voyage_no bằng self.voyage_no
-        # final_ref_date_for_delay_calc bằng ref_date_for_delay_calc (tham số)
-        # ... (Dán code của hàm extract_delay_details vào đây và điều chỉnh)
-        # --- GIẢ SỬ BẠN ĐÃ DÁN VÀ SỬA CODE extract_delay_details VÀO ĐÂY ---
-        # Đây là phần code mẫu đã được điều chỉnh:
+    def extract_delay_details(self, ref_date_for_delay_calc: date):
+        """Extract delay/stop event details from the delay times record table."""
         delay_list = []
         logging.info(f"--- Extracting Delay Details: {self.filename_str} ---")
         if not self.vessel_name or not self.voyage_no:
             logging.error(f"Delay Details: Vessel Name or Voyage No. not extracted prior to Delay extraction for {self.filename_str}. Skipping.")
             return []
-        # ... (Toàn bộ logic của extract_delay_details, sử dụng self.worksheet, self.filename_str, self.vessel_name, self.voyage_no và ref_date_for_delay_calc)
-        # ...
-        # --- Dán phần logic của extract_delay_details từ hàm cũ vào đây và điều chỉnh ---
+
         r_delay_start, _ = find_label_row_col(self.worksheet, config.LABEL_DELAY_TIMES_RECORD, max_search_rows=config.MAX_SEARCH_ROWS_DELAY_HEADER, partial_match=True)
         if not r_delay_start:
             r_delay_start_alt, _ = find_label_row_col(self.worksheet, config.LABEL_QC_NO_IN_DELAY_HEADER, search_cols=(col_letter_to_index('B'), col_letter_to_index('B')), max_search_rows=config.MAX_SEARCH_ROWS_DELAY_HEADER, partial_match=False)
@@ -378,8 +369,7 @@ class DataExtractor:
                 return delay_list
         qc_header_row = r_delay_start + config.DELAY_QC_HEADER_ROW_OFFSET
         qc_configs_from_file = []
-        for qc_block_cfg in config.DELAY_QC_COLUMN_BLOCKS: # Tiếp tục logic như cũ
-            # ... (logic tìm qc_configs_from_file)
+        for qc_block_cfg in config.DELAY_QC_COLUMN_BLOCKS:
             qc_name_col_idx = col_letter_to_index(qc_block_cfg["name_col_letter"])
             if not qc_name_col_idx: continue
             qc_name_val = self.worksheet.cell(qc_header_row, qc_name_col_idx).value
@@ -396,11 +386,8 @@ class DataExtractor:
             logging.warning(f"No valid QC names found in delay header (row {qc_header_row}) for {self.filename_str}. Skipping delay details.")
             return delay_list
         logging.info(f"Delay QC Configs from file: {[qc['name'] for qc in qc_configs_from_file]}")
-        last_processed_row_for_stops = qc_header_row + 1 
-        for stop_cat_key, stop_cat_config in config.DELAY_STOP_CATEGORIES.items(): # Tiếp tục logic như cũ
-            # ... (logic đọc từng stop category, sử dụng self.worksheet, self.filename_str, self.vessel_name, self.voyage_no, ref_date_for_delay_calc)
-            # ...
-            # --- Dán phần logic đọc delay từ hàm cũ vào đây và điều chỉnh ---
+        last_processed_row_for_stops = qc_header_row + 1
+        for stop_cat_key, stop_cat_config in config.DELAY_STOP_CATEGORIES.items():
             stop_label_text = stop_cat_config["label"]
             rows_to_check_for_stop = stop_cat_config["rows_to_check"]
             sub_header_texts_for_stop = stop_cat_config.get("sub_header_texts", [])
@@ -410,15 +397,13 @@ class DataExtractor:
                 continue
             logging.info(f"Delay Details: Processing '{stop_label_text}' found at row {r_stop_label}")
             data_start_for_this_stop = r_stop_label
-            first_qc_from_col_idx_loop = qc_configs_from_file[0]["from_idx"] if qc_configs_from_file else None # Đổi tên biến để tránh xung đột
-            if first_qc_from_col_idx_loop:
-                cell_val_at_from_col_for_label_row = str(self.worksheet.cell(r_stop_label, first_qc_from_col_idx_loop).value or "").lower().strip()
+            first_qc_from_col_idx = qc_configs_from_file[0]["from_idx"] if qc_configs_from_file else None
+            if first_qc_from_col_idx:
+                cell_val_at_from_col_for_label_row = str(self.worksheet.cell(r_stop_label, first_qc_from_col_idx).value or "").lower().strip()
                 if any(sub_hdr_txt in cell_val_at_from_col_for_label_row for sub_hdr_txt in sub_header_texts_for_stop):
-                    data_start_for_this_stop = r_stop_label + 1 
+                    data_start_for_this_stop = r_stop_label + 1
                     logging.info(f"Delay Details: Row {r_stop_label} for '{stop_label_text}' is a sub-header. Data starts at {data_start_for_this_stop}.")
-            for i in range(rows_to_check_for_stop): # Tiếp tục logic như cũ
-                # ... (logic đọc từng dòng delay, sử dụng self.worksheet, self.filename_str, self.vessel_name, self.voyage_no, ref_date_for_delay_calc)
-                # ...
+            for i in range(rows_to_check_for_stop):
                 current_data_row = data_start_for_this_stop + i
                 if current_data_row > self.worksheet.max_row: break 
                 label_in_col_b = str(self.worksheet.cell(current_data_row, col_letter_to_index('B')).value or "").lower().strip()
@@ -438,9 +423,7 @@ class DataExtractor:
                     logging.info(f"Delay Details: Row {current_data_row} for '{stop_label_text}' appears empty. Stopping this category.")
                     last_processed_row_for_stops = current_data_row 
                     break
-                for qc_c in qc_configs_from_file: # Tiếp tục logic như cũ
-                    # ... (logic đọc từng QC delay, sử dụng self.worksheet, self.filename_str, self.vessel_name, self.voyage_no, ref_date_for_delay_calc)
-                    # ...
+                for qc_c in qc_configs_from_file:
                     qc_name_d = qc_c["name"]
                     from_raw = self.worksheet.cell(current_data_row, qc_c["from_idx"]).value if qc_c["from_idx"] else None
                     to_raw = self.worksheet.cell(current_data_row, qc_c["to_idx"]).value if qc_c["to_idx"] else None
@@ -548,22 +531,14 @@ class DataExtractor:
         
         logging.info(f"--- QC Actual Delays Extracted: {qc_delays} ---")
         return qc_delays
-    # <<< HẾT HÀM MỚI >>>
     def extract_container_details(self):
-        # --- NỘI DUNG CỦA HÀM extract_container_details TRƯỚC ĐÂY ---
-        # Thay thế ws bằng self.worksheet, filename_str bằng self.filename_str
-        # vessel_name bằng self.vessel_name, voyage_no bằng self.voyage_no
-        # ... (Dán code của hàm extract_container_details vào đây và điều chỉnh)
-        # --- GIẢ SỬ BẠN ĐÃ DÁN VÀ SỬA CODE extract_container_details VÀO ĐÂY ---
-        # Đây là phần code mẫu đã được điều chỉnh:
+        """Extract container discharge/load summary details from the worksheet."""
         container_details_list = []
-        logging.info(f"--- Bắt đầu trích xuất Container Details cho file: {self.filename_str} ---")
+        logging.info(f"--- Extracting Container Details: {self.filename_str} ---")
         if not self.vessel_name or not self.voyage_no:
             logging.error(f"Container Details: Vessel Name or Voyage No. not extracted prior to Container extraction for {self.filename_str}. Skipping.")
             return []
-        # ... (Toàn bộ logic của extract_container_details, sử dụng self.worksheet, self.filename_str, self.vessel_name, self.voyage_no)
-        # ...
-        # --- Dán phần logic của extract_container_details từ hàm cũ vào đây và điều chỉnh ---
+
         r_summary_start, _ = find_label_row_col(self.worksheet, config.LABEL_DISCHARGE_LOAD_SUMMARY, max_search_rows=config.MAX_SEARCH_ROWS_CONTAINER_HEADER, partial_match=True)
         if not r_summary_start:
             logging.warning(f"Không tìm thấy bảng '{config.LABEL_DISCHARGE_LOAD_SUMMARY}' trong file {self.filename_str}. Bỏ qua Container Details.")
@@ -572,8 +547,7 @@ class DataExtractor:
         header_size_row = r_summary_start + config.CONTAINER_SUMMARY_SIZE_ROW_OFFSET
         data_start_row = r_summary_start + config.CONTAINER_SUMMARY_DATA_START_ROW_OFFSET
         col_configs_from_file = [] 
-        for start_col_letter, end_col_letter, default_cat_name_in_config in config.CONTAINER_CATEGORY_COL_RANGES_DEF: # Tiếp tục logic như cũ
-            # ... (logic tìm col_configs_from_file)
+        for start_col_letter, end_col_letter, default_cat_name_in_config in config.CONTAINER_CATEGORY_COL_RANGES_DEF:
             start_col_idx = col_letter_to_index(start_col_letter)
             end_col_idx = col_letter_to_index(end_col_letter)
             if not start_col_idx or not end_col_idx:
@@ -585,8 +559,7 @@ class DataExtractor:
                 actual_category_name = config.CONTAINER_DEFAULT_CATEGORY_NAMES_BY_START_COL.get(start_col_letter, "Unknown Category")
                 logging.warning(f"Container Details: Category name at {get_column_letter(start_col_idx)}{header_cat_row} is empty. Using '{actual_category_name}'.")
             size_offset_in_config = 0 
-            for c_idx in range(start_col_idx, end_col_idx + 1): # Tiếp tục logic như cũ
-                # ... (logic xác định final_size_to_use và append vào col_configs_from_file)
+            for c_idx in range(start_col_idx, end_col_idx + 1):
                 if size_offset_in_config < len(config.CONTAINER_SIZES_IN_ORDER):
                     expected_size_from_config = config.CONTAINER_SIZES_IN_ORDER[size_offset_in_config]
                     actual_size_in_header = str(self.worksheet.cell(row=header_size_row, column=c_idx).value or "").replace("'", "").strip()
@@ -613,18 +586,14 @@ class DataExtractor:
         col_total_conts_idx = col_letter_to_index(config.CONTAINER_SUMMARY_ROW_TOTAL_CONTS_COL_LETTER)
         col_teus_idx = col_letter_to_index(config.CONTAINER_SUMMARY_ROW_TEUS_COL_LETTER)
         current_main_operation = None 
-        for r_idx in range(data_start_row, data_start_row + config.MAX_ROWS_TO_READ_CONTAINER_DATA): # Tiếp tục logic như cũ
-            # ... (logic đọc từng dòng container, sử dụng self.worksheet, self.filename_str, self.vessel_name, self.voyage_no)
-            # ...
-            # --- Dán phần logic đọc container từ hàm cũ vào đây và điều chỉnh ---
+        for r_idx in range(data_start_row, data_start_row + config.MAX_ROWS_TO_READ_CONTAINER_DATA):
             if r_idx > self.worksheet.max_row: break
             label_col_b_val = str(self.worksheet.cell(row=r_idx, column=col_letter_to_index('B')).value or "").strip()
             label_lower = label_col_b_val.lower()
             operation_type_for_row = None
             port_for_row = config.PORT_ALL 
-            if label_col_b_val: # Tiếp tục logic như cũ
-                # ... (logic xác định operation_type_for_row và port_for_row)
-                if label_lower == config.OP_DISCHARGE.lower(): current_main_operation = config.OP_DISCHARGE; operation_type_for_row = config.OP_DISCHARGE; port_for_row = config.PORT_ALL 
+            if label_col_b_val:
+                if label_lower == config.OP_DISCHARGE.lower(): current_main_operation = config.OP_DISCHARGE; operation_type_for_row = config.OP_DISCHARGE; port_for_row = config.PORT_ALL
                 elif label_lower == config.OP_LOADING.lower(): current_main_operation = config.OP_LOADING; operation_type_for_row = config.OP_LOADING; port_for_row = config.PORT_ALL 
                 elif label_lower == config.OP_SHIFTING_DIS.lower(): current_main_operation = config.OP_SHIFTING_DIS; operation_type_for_row = config.OP_SHIFTING_DIS; port_for_row = config.PORT_ALL
                 elif label_lower == config.OP_SHIFTING_LOAD.lower(): current_main_operation = config.OP_SHIFTING_LOAD; operation_type_for_row = config.OP_SHIFTING_LOAD; port_for_row = config.PORT_ALL
@@ -638,8 +607,7 @@ class DataExtractor:
                     else:
                         logging.warning(f"CONTAINER_DETAILS: Bỏ qua dòng {r_idx}, nhãn không xác định rõ ràng: '{label_col_b_val}' nhưng có thể có dữ liệu.")
                         if not current_main_operation: continue
-            elif current_main_operation: # Tiếp tục logic như cũ
-                # ... (logic xử lý cột B trống)
+            elif current_main_operation:
                 operation_type_for_row = current_main_operation
                 is_data_present_in_row = any(self.worksheet.cell(row=r_idx, column=cfg["col_idx"]).value for cfg in col_configs_from_file)
                 if not is_data_present_in_row:
@@ -652,8 +620,8 @@ class DataExtractor:
                     logging.debug(f"CONTAINER_DETAILS: Dòng {r_idx} cột B trống nhưng có dữ liệu. Gán Port='{port_for_row}' dưới Operation='{current_main_operation}'.")
             else: logging.debug(f"CONTAINER_DETAILS: Dòng {r_idx} cột B trống và không có operation chính hiện tại. Dừng đọc."); break 
             if not operation_type_for_row: logging.debug(f"CONTAINER_DETAILS: Không xác định được OperationType cho dòng {r_idx}. Bỏ qua."); continue
-            row_total_conts_from_file = 0; row_teus_from_file = 0 # Tiếp tục logic như cũ
-            # ... (logic đọc row_total_conts_from_file, row_teus_from_file)
+            row_total_conts_from_file = 0
+            row_teus_from_file = 0
             if col_total_conts_idx:
                 val_conts = self.worksheet.cell(row=r_idx, column=col_total_conts_idx).value
                 try: row_total_conts_from_file = int(val_conts) if pd.notna(val_conts) else 0
@@ -662,8 +630,7 @@ class DataExtractor:
                 val_teus = self.worksheet.cell(row=r_idx, column=col_teus_idx).value
                 try: row_teus_from_file = int(val_teus) if pd.notna(val_teus) else 0
                 except ValueError: logging.warning(f"CONTAINER_DETAILS: Invalid RowTEUs value '{val_teus}' at cell {get_column_letter(col_teus_idx)}{r_idx}. Treating as 0.")
-            for col_cfg_item in col_configs_from_file: # Tiếp tục logic như cũ
-                # ... (logic đọc quantity và append vào container_details_list)
+            for col_cfg_item in col_configs_from_file:
                 quantity_val = self.worksheet.cell(row=r_idx, column=col_cfg_item["col_idx"]).value
                 quantity = 0
                 if pd.notna(quantity_val) and str(quantity_val).strip() != '':

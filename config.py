@@ -313,10 +313,12 @@ class TDRConfig:
 
 def load_environment_config() -> None:
     """Load and apply environment variable configuration.
-    
+
     This function should be called early in application initialization
     to override default configuration with environment variables.
-    
+    Also updates backward-compatibility module-level constants so that
+    code importing LOG_LEVEL etc. directly gets the env-var values.
+
     Supported environment variables:
     - TDR_SMTP_SERVER: SMTP server hostname
     - TDR_SMTP_PORT: SMTP server port
@@ -329,20 +331,21 @@ def load_environment_config() -> None:
     - TDR_EMAIL_ENABLED: Enable email notifications
     - TDR_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     """
-    global _config
-    
+    global _config, LOG_LEVEL
+
     # Load SMTP configuration from environment
     smtp_config = SMTPConfig.from_env()
     _config.smtp = smtp_config
-    
+
     # Load email configuration from environment
     email_config = EmailConfig.from_env()
     _config.email = email_config
-    
-    # Load log level from environment if specified
+
+    # Load log level from environment if specified and update backward-compat constant
     log_level = os.getenv('TDR_LOG_LEVEL')
     if log_level:
         _config.app.LOG_LEVEL = log_level
+        LOG_LEVEL = log_level  # Keep backward-compat constant in sync
 
 # ============================================================================
 # BACKWARD COMPATIBILITY LAYER
@@ -445,6 +448,23 @@ OP_TOTAL_DIS = OperationType.TOTAL_DIS.value
 OP_TOTAL_LOAD = OperationType.TOTAL_LOAD.value
 OP_GRAND_TOTAL = OperationType.GRAND_TOTAL.value
 PORT_ALL = "All"
+
+# Container Wide Format Configuration (used by report_processor.py for pivot)
+CONTAINER_WIDE_BASE_COLS = [
+    'Filename', 'Vessel Name', 'Voyage', 'OperationType', 'Port'
+]
+CONTAINER_WIDE_TOTAL_COLS_SUFFIX = ['Total Conts', 'Total TEUs']
+
+# Operation type sort order for container wide format
+OPERATION_TYPE_SORT_ORDER = {
+    OperationType.DISCHARGE.value: 1,
+    OperationType.LOADING.value: 2,
+    OperationType.SHIFTING_DIS.value: 3,
+    OperationType.SHIFTING_LOAD.value: 4,
+    OperationType.TOTAL_DIS.value: 5,
+    OperationType.TOTAL_LOAD.value: 6,
+    OperationType.GRAND_TOTAL.value: 7,
+}
 
 # Output Column Mapping & Order (for DataFrame rename and column selection)
 VESSEL_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed

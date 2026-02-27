@@ -322,7 +322,7 @@ with tabs[2]:
 
 # --- Tab 3: Năng suất vận hành (QC) ---
 with tabs[3]:
-    st.header("👨‍🔧 qc_operator")
+    st.header(f"👨‍🔧 {t('qc_operator_header')}")
     st.info(t("qc_operator_info"))
     if not df_qc_operator.empty:
         col1, col2 = st.columns(2)
