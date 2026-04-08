@@ -85,6 +85,11 @@ Thumbs.db
 *.lnk
 desktop.ini
 
+# Node.js (not used in this project)
+node_modules/
+package-lock.json
+package.json
+
 # Project specific
 data_input/*
 !data_input/.gitkeep
