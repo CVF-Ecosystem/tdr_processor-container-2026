@@ -228,7 +228,7 @@ class App(ttkb.Window):
         self.toggle_log_button = ttkb.Button(options_frame, text="🔽 Show Log", command=self.toggle_log_visibility, width=15, bootstyle=(INFO, OUTLINE))
         self.toggle_log_button.pack(side=tk.LEFT, padx=10)
         
-        self.log_frame = ttkb.LabelFrame(main_frame, text="📝 Activity Log", padding=(10, 5))
+        self.log_frame = ttkb.LabelFrame(main_frame, text="📝 Activity Log")
         self.log_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 5), padx=5)
         self.log_frame.columnconfigure(0, weight=1)
         self.log_frame.rowconfigure(0, weight=1)
@@ -315,9 +315,25 @@ class App(ttkb.Window):
             logging.error(f"Lỗi khi xử lý file Power BI: {e}", exc_info=True)
             messagebox.showerror("Lỗi", f"Không thể tạo hoặc mở file báo cáo Power BI.\nLỗi: {e}")
 
-    def _open_browser_after_delay(self):
+    def _kill_existing_streamlit(self, port: int = 8501):
+        """Kill any process occupying the given port (Windows)."""
+        try:
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True, text=True, timeout=5
+            )
+            for line in result.stdout.splitlines():
+                if f":{port} " in line and "LISTENING" in line:
+                    pid = line.strip().split()[-1]
+                    subprocess.run(["taskkill", "/F", "/PID", pid],
+                                   capture_output=True, timeout=5)
+                    logging.info(f"[Dashboard] Đã kill process cũ trên cổng {port} (PID {pid}).")
+        except Exception as e:
+            logging.warning(f"[Dashboard] Không thể kill process cũ: {e}")
+
+    def _open_browser_after_delay(self, port: int = 8501):
         """Open browser after a short delay using threading.Timer (non-blocking)."""
-        threading.Timer(3.0, webbrowser.open, args=["http://localhost:8501"]).start()
+        threading.Timer(3.0, webbrowser.open, args=[f"http://localhost:{port}"]).start()
 
     def open_web_dashboard(self):
         dashboard_script = "dashboard.py"
@@ -329,25 +345,38 @@ class App(ttkb.Window):
         try:
             if hasattr(sys, '_MEIPASS'):
                 streamlit_executable = "streamlit"
+                use_module = False
             else:
                 streamlit_executable = os.path.join(sys.prefix, 'Scripts', 'streamlit.exe')
                 if not os.path.exists(streamlit_executable):
                     streamlit_executable = os.path.join(sys.prefix, 'bin', 'streamlit')
+                use_module = not os.path.exists(streamlit_executable)
 
             startupinfo = None
             if os.name == 'nt':
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-            command = [
-                streamlit_executable, "run", dashboard_script,
-                "--server.headless", "true", "--server.enableCORS", "false"
-            ]
+            port = 8501
+            self._kill_existing_streamlit(port)
 
-            subprocess.Popen(command, startupinfo=startupinfo)
+            if use_module:
+                command = [
+                    sys.executable, "-m", "streamlit", "run", dashboard_script,
+                    "--server.headless", "true", "--server.enableCORS", "false",
+                    "--server.port", str(port)
+                ]
+            else:
+                command = [
+                    streamlit_executable, "run", dashboard_script,
+                    "--server.headless", "true", "--server.enableCORS", "false",
+                    "--server.port", str(port)
+                ]
+
+            subprocess.Popen(command, startupinfo=startupinfo, cwd=str(Path(__file__).parent))
             self.status_label.config(text="📈 Web Dashboard is running in the browser...")
             # Open browser after 3 seconds using non-blocking Timer
-            self._open_browser_after_delay()
+            self._open_browser_after_delay(port)
 
         except FileNotFoundError:
             logging.error("Lỗi không tìm thấy lệnh 'streamlit'.")
@@ -364,7 +393,7 @@ class App(ttkb.Window):
         self.settings_window = ttkb.Toplevel(master=self, title="Settings")
         self.settings_window.geometry("450x500")
 
-        schedule_frame = ttkb.LabelFrame(self.settings_window, text="⏰ Daily Schedule", padding=10)
+        schedule_frame = ttkb.LabelFrame(self.settings_window, text="⏰ Daily Schedule")
         schedule_frame.pack(pady=10, padx=10, fill="x")
         ttkb.Checkbutton(schedule_frame, text="Enable daily schedule", variable=self.schedule_enabled_var, bootstyle="success-round-toggle").pack(anchor="w")
         
@@ -373,7 +402,7 @@ class App(ttkb.Window):
         ttkb.Label(time_entry_frame, text="Run at (HH:MM):").pack(side="left", padx=5)
         ttkb.Entry(time_entry_frame, textvariable=self.schedule_time_var, width=10).pack(side="left")
 
-        email_frame = ttkb.LabelFrame(self.settings_window, text="📧 Email Notification", padding=10)
+        email_frame = ttkb.LabelFrame(self.settings_window, text="📧 Email Notification")
         email_frame.pack(pady=10, padx=10, fill="x")
         ttkb.Checkbutton(email_frame, text="Enable email notifications", variable=self.email_enabled_var, bootstyle="success-round-toggle").pack(anchor="w")
         
@@ -389,7 +418,7 @@ class App(ttkb.Window):
         ttkb.Entry(grid_frame, textvariable=self.smtp_port_var).grid(row=2, column=1, sticky="ew", pady=2)
         
         # SMTP Credentials section with secure storage
-        cred_frame = ttkb.LabelFrame(email_frame, text="🔐 SMTP Credentials (Secure Storage)", padding=5)
+        cred_frame = ttkb.LabelFrame(email_frame, text="🔐 SMTP Credentials (Secure Storage)")
         cred_frame.pack(fill="x", padx=5, pady=5)
         cred_frame.columnconfigure(1, weight=1)
         
