@@ -251,15 +251,21 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
         df["YearMonth"] = df["Report Date"].dt.to_period("M").astype(str)
         df["Quarter"] = df["Report Date"].dt.to_period("Q").astype(str)
 
-    sel_op = t("filter_all")
+    sel_op: list = []
     if "Operator" in df.columns:
-        ops = [t("filter_all")] + sorted(df["Operator"].dropna().unique().tolist())
-        sel_op = st.sidebar.selectbox(t("filter_operator"), ops, key="sb_operator")
+        ops = sorted(df["Operator"].dropna().unique().tolist())
+        sel_op = st.sidebar.multiselect(
+            t("filter_operator"), options=ops, default=[],
+            placeholder=t("filter_all"), key="sb_operator",
+        )
 
-    sel_berth = t("filter_all")
+    sel_berth: list = []
     if "Berth" in df.columns:
-        berths = [t("filter_all")] + sorted(df["Berth"].dropna().unique().tolist())
-        sel_berth = st.sidebar.selectbox(t("filter_berth"), berths, key="sb_berth")
+        berths = sorted(df["Berth"].dropna().unique().tolist())
+        sel_berth = st.sidebar.multiselect(
+            t("filter_berth"), options=berths, default=[],
+            placeholder=t("filter_all"), key="sb_berth",
+        )
 
     date_range = None
     if "Report Date" in df.columns and df["Report Date"].notna().any():
@@ -273,10 +279,10 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
             key="sb_date_range",
         )
 
-    if sel_op != t("filter_all"):
-        df = df[df["Operator"] == sel_op]
-    if sel_berth != t("filter_all"):
-        df = df[df["Berth"] == sel_berth]
+    if sel_op:
+        df = df[df["Operator"].isin(sel_op)]
+    if sel_berth:
+        df = df[df["Berth"].isin(sel_berth)]
     if date_range and len(date_range) == 2:
         s = pd.Timestamp(date_range[0])
         e = pd.Timestamp(date_range[1]) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
