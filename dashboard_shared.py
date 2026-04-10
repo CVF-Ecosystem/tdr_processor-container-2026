@@ -350,6 +350,10 @@ def render_export_sidebar(df_vessel_raw, df_qc, df_qc_operator, df_delay, df_con
         [t("export_all_tables"), t("export_summary_only")],
         key="sb_exp_tpl",
     )
+    if export_tpl == t("export_all_tables"):
+        st.sidebar.caption(t("export_all_tables_desc"))
+    else:
+        st.sidebar.caption(t("export_summary_only_desc"))
 
     if st.sidebar.button(t("export_btn"), key="btn_export"):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
