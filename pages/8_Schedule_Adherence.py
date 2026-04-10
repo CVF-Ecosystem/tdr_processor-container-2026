@@ -164,6 +164,7 @@ with tab_berth:
     if df_b.empty:
         st.info(t("no_data_etb_atb"))
     else:
+        df_b = df_b.groupby("Vessel Name", as_index=False)["_berth_delay"].mean().round(1)
         df_b = df_b.sort_values("_berth_delay", ascending=False)
         st.plotly_chart(
             _bar_diverging(df_b, "Vessel Name", "_berth_delay", t("sa_chart_berth")),
@@ -176,6 +177,7 @@ with tab_depart:
     if df_d.empty:
         st.info(t("no_data_etd_atd"))
     else:
+        df_d = df_d.groupby("Vessel Name", as_index=False)["_depart_delay"].mean().round(1)
         df_d = df_d.sort_values("_depart_delay", ascending=False)
         st.plotly_chart(
             _bar_diverging(df_d, "Vessel Name", "_depart_delay", t("sa_chart_depart")),
@@ -188,6 +190,9 @@ with tab_idle:
     if df_i.empty:
         st.info(t("no_data_atc"))
     else:
+        df_i = df_i.groupby("Vessel Name", as_index=False).agg(
+            _idle=("_idle", "mean"), _atc_vs_etd=("_atc_vs_etd", "mean")
+        ).round(1)
         df_i = df_i.sort_values("_idle", ascending=False)
         fig_idle = px.bar(
             df_i, x="Vessel Name", y="_idle",
