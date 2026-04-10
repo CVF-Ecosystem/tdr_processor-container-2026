@@ -42,8 +42,56 @@ except ImportError as e:
     sys.exit()
 
 # --- Load Environment Configuration (Phase 3.1D) ---
-# Load sensitive settings from environment variables before application initialization
 config.load_environment_config()
+
+# --- S4-3: System Tray (pystray + Pillow) ---
+try:
+    import pystray
+    from PIL import Image, ImageDraw, ImageFont
+    _PYSTRAY_AVAILABLE = True
+except ImportError:
+    _PYSTRAY_AVAILABLE = False
+
+# --- S4-10: Drag & Drop (tkinterdnd2) ---
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+    _TKDND_AVAILABLE = True
+except ImportError:
+    _TKDND_AVAILABLE = False
+
+# --- S4-11: Windows Toast Notifications (plyer) ---
+try:
+    from plyer import notification as _plyer_notification
+    _TOAST_AVAILABLE = True
+except ImportError:
+    _TOAST_AVAILABLE = False
+
+
+def _send_toast(title: str, message: str, timeout: int = 5) -> None:
+    """S4-11: Bắn Windows Toast notification; im lặng nếu plyer không có."""
+    if not _TOAST_AVAILABLE:
+        return
+    try:
+        _plyer_notification.notify(
+            title=title,
+            message=message,
+            app_name="TDR Processor",
+            timeout=timeout,
+        )
+    except Exception:
+        pass
+
+
+def _create_tray_icon_image() -> "Image.Image":
+    """Tạo icon 64×64 dạng container đơn giản bằng PIL."""
+    img = Image.new("RGB", (64, 64), color="#1e6ba8")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([8, 14, 56, 50], outline="#ffffff", width=3)
+    draw.line([8, 32, 56, 32], fill="#ffffff", width=2)
+    draw.line([26, 14, 26, 50], fill="#ffffff", width=2)
+    draw.line([40, 14, 40, 50], fill="#ffffff", width=2)
+    return img
+
 
 # --- Các hằng số ---
 SETTINGS_FILE = Path("app_settings.json")
@@ -61,6 +109,17 @@ class TextHandler(logging.Handler):
 class App(ttkb.Window):
     def __init__(self):
         super().__init__(themename="litera")
+        # S4-10: Load tkdnd Tcl extension thủ công vào interpreter hiện tại
+        self._dnd_active = False
+        if _TKDND_AVAILABLE:
+            try:
+                self.tk.call("package", "require", "tkdnd")
+                self.drop_target_register(DND_FILES)
+                self.dnd_bind('<<Drop>>', self._on_files_dropped)
+                self._dnd_active = True
+            except Exception as e:
+                logging.debug(f"[DnD] tkdnd Tcl extension không khả dụng: {e}")
+        self._tray_icon = None
         self.title(f"📦 {config.APP_TITLE} v{config.APP_VERSION}")
         self.geometry("800x600")
         self.protocol("WM_DELETE_WINDOW", self.on_closing) # Sửa lỗi: Gọi đến hàm on_closing đã được định nghĩa
@@ -83,6 +142,7 @@ class App(ttkb.Window):
         self.after(100, self.process_log_queue)
         self.after(2000, self.check_watcher_queue)
         self.init_scheduler()
+        self.after(500, self._start_system_tray)  # S4-3: System tray
 
     def load_settings(self):
         # Đặt giá trị mặc định trước
@@ -228,6 +288,21 @@ class App(ttkb.Window):
         self.toggle_log_button = ttkb.Button(options_frame, text="🔽 Show Log", command=self.toggle_log_visibility, width=15, bootstyle=(INFO, OUTLINE))
         self.toggle_log_button.pack(side=tk.LEFT, padx=10)
         
+        # S4-10: Drop zone — hiển thị hướng dẫn kéo thả (active khi tkdnd available)
+        drop_hint = "📂 Kéo & thả file .xlsx/.xls vào đây để xử lý" if self._dnd_active else ""
+        if drop_hint:
+            self.drop_zone_label = ttkb.Label(
+                main_frame, text=drop_hint,
+                font=("Segoe UI", 9, "italic"), foreground="#6c757d", anchor="center",
+            )
+            self.drop_zone_label.grid(row=2, column=0, sticky="ew", pady=(0, 4), padx=5)
+            if self._dnd_active:
+                try:
+                    self.drop_zone_label.drop_target_register(DND_FILES)
+                    self.drop_zone_label.dnd_bind('<<Drop>>', self._on_files_dropped)
+                except Exception as e:
+                    logging.debug(f"[DnD] Không thể đăng ký drop zone: {e}")
+
         self.log_frame = ttkb.LabelFrame(main_frame, text="📝 Activity Log")
         self.log_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 5), padx=5)
         self.log_frame.columnconfigure(0, weight=1)
@@ -688,9 +763,16 @@ class App(ttkb.Window):
         
         if "error" in base_message.lower() or "no data" in base_message.lower():
             self.status_label.config(text=f"⚠️ Completed with warnings", bootstyle=WARNING)
+            _send_toast("TDR Processor ⚠️", f"Hoàn thành với cảnh báo.\n{processed_count} file xử lý, {skipped_count} bỏ qua.")
             messagebox.showwarning("Processing Result", final_message)
         else:
             self.status_label.config(text="✅ Processing successful", bootstyle=SUCCESS)
+            # S4-11: Toast notification khi xử lý xong
+            _send_toast(
+                "TDR Processor ✅",
+                f"Hoàn thành! {processed_count} file, {skipped_count} bỏ qua."
+                + (f" ({time_taken:.1f}s)" if time_taken else ""),
+            )
             messagebox.showinfo("Complete", final_message)
             if messagebox.askyesno("Open Folder", "Would you like to open the output folder?"):
                 self.open_output_folder()
@@ -737,18 +819,69 @@ class App(ttkb.Window):
             self.progress_bar['value'] = 0
             self.progress_label.config(text="0%")
 
-    def on_closing(self):
-        """Hàm được gọi khi người dùng nhấn nút X để đóng cửa sổ."""
-        if self.processor_thread and self.processor_thread.is_alive():
-            if not messagebox.askyesno("Exit", "A process is running. Are you sure you want to exit?"):
-                return
-        
+    # ── S4-10: Drag & Drop handler ────────────────────────────────────────────
+    def _on_files_dropped(self, event):
+        """Xử lý file được kéo-thả vào cửa sổ."""
+        raw = event.data
+        # tkinterdnd2 trả về chuỗi; các đường dẫn có thể bọc trong {}
+        import re as _re
+        paths = _re.findall(r'\{([^}]+)\}|(\S+)', raw)
+        file_paths = [Path(p[0] or p[1]) for p in paths]
+        excel_files = [p for p in file_paths if p.suffix.lower() in ('.xlsx', '.xls') and p.exists()]
+        if excel_files:
+            logging.info(f"[DnD] Nhận {len(excel_files)} file(s) từ kéo-thả.")
+            self.start_processing(input_files=excel_files)
+        else:
+            messagebox.showwarning("Drag & Drop", "Chỉ chấp nhận file .xlsx / .xls hợp lệ.")
+
+    # ── S4-3: System Tray ─────────────────────────────────────────────────────
+    def _start_system_tray(self):
+        """Khởi chạy pystray icon trong background thread."""
+        if not _PYSTRAY_AVAILABLE:
+            return
+        img = _create_tray_icon_image()
+        menu = pystray.Menu(
+            pystray.MenuItem("Mở TDR Processor", self._tray_show, default=True),
+            pystray.MenuItem("Web Dashboard", lambda *_: self.after(0, self.open_web_dashboard)),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Thoát", self._tray_quit),
+        )
+        self._tray_icon = pystray.Icon("TDR Processor", img, "TDR Processor", menu)
+        threading.Thread(target=self._tray_icon.run, daemon=True).start()
+
+    def _tray_show(self, *_):
+        self.after(0, self.deiconify)
+        self.after(0, self.lift)
+
+    def _tray_quit(self, *_):
+        if self._tray_icon:
+            self._tray_icon.stop()
+        self.after(0, self._force_destroy)
+
+    def _force_destroy(self):
         self.save_settings()
         if self.watcher:
             self.watcher.stop()
         if self.scheduler:
             self.scheduler.stop()
-            
+        self.destroy()
+
+    def on_closing(self):
+        """Nhấn X → minimize xuống system tray (nếu có), hoặc thoát hẳn."""
+        if self.processor_thread and self.processor_thread.is_alive():
+            if not messagebox.askyesno("Exit", "A process is running. Are you sure you want to exit?"):
+                return
+
+        if _PYSTRAY_AVAILABLE and self._tray_icon:
+            # Ẩn cửa sổ, tiếp tục chạy trong tray
+            self.withdraw()
+            return
+
+        self.save_settings()
+        if self.watcher:
+            self.watcher.stop()
+        if self.scheduler:
+            self.scheduler.stop()
         self.destroy()
 
 if __name__ == "__main__":
