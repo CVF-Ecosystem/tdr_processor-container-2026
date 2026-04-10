@@ -66,16 +66,8 @@ def render_compare_chart(df_qc, df_qc_operator):
         st.info(t("no_data_qc_compare"))
 
 
-@st.fragment
-def render_operator_table(df_qc_operator):
-    st.subheader(t("qc_details_subheader"))
-    render_aggrid_table(df_qc_operator, height=420)
-
-
 col1, col2 = st.columns(2)
 with col1:
     render_operator_avg_chart(df_qc_operator)
 with col2:
     render_compare_chart(df_qc, df_qc_operator)
-
-render_operator_table(df_qc_operator)

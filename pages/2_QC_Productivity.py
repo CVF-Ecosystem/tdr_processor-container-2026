@@ -42,18 +42,4 @@ def render_qc_chart(df_qc):
         st.info("⚠️ Cannot calculate Net moves/h — missing required columns")
 
 
-@st.fragment
-def render_qc_table(df_qc):
-    st.subheader(t("qc_details_subheader"))
-    df_disp = df_qc.copy()
-    for tc in ['Start Time', 'End Time']:
-        if tc in df_disp.columns:
-            df_disp[tc] = df_disp[tc].apply(lambda x: x[:5] if isinstance(x, str) and len(x) >= 5 else x)
-    render_aggrid_table(df_disp, height=420)
-
-
-col1, col2 = st.columns(2)
-with col1:
-    render_qc_chart(df_qc)
-with col2:
-    render_qc_table(df_qc)
+render_qc_chart(df_qc)

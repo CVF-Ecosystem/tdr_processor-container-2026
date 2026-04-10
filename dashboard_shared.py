@@ -177,11 +177,13 @@ def load_table(table: str) -> pd.DataFrame:
         df = pd.read_sql(f"SELECT * FROM {table}", con)  # noqa: S608
         con.close()
         return df
-    except Exception as e:
-        st.warning(f"[SQLite] Không thể đọc bảng '{table}': {e}")
+    except Exception:
         csv_name = _CSV_FALLBACK.get(table)
         if csv_name:
-            return load_csv(str(DATA_DIR / csv_name))
+            df_csv = load_csv(str(DATA_DIR / csv_name))
+            if not df_csv.empty:
+                return df_csv
+        st.warning(f"[SQLite] Không tìm thấy dữ liệu '{table}'. Chạy xử lý TDR để tạo dữ liệu.")
         return pd.DataFrame()
 
 
