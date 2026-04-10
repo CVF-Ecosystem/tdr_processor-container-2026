@@ -112,9 +112,10 @@ with c4:
 st.caption(t("sa_threshold_caption", min=_THRESHOLD_MIN))
 st.markdown("---")
 
-# ── Inline filter ─────────────────────────────────────────────────────────────
+# ── Sidebar vessel filter (applies to all tabs) ────────────────────────────────
+st.sidebar.markdown("---")
 all_vessels = sorted(df["Vessel Name"].dropna().unique().tolist())
-selected_vessels = st.multiselect(
+selected_vessels = st.sidebar.multiselect(
     t("sa_col_vessel"),
     options=all_vessels,
     default=[],
