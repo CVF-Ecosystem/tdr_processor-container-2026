@@ -112,18 +112,6 @@ with c4:
 st.caption(t("sa_threshold_caption", min=_THRESHOLD_MIN))
 st.markdown("---")
 
-# ── Sidebar vessel filter (applies to all tabs) ────────────────────────────────
-st.sidebar.markdown("---")
-all_vessels = sorted(df["Vessel Name"].dropna().unique().tolist())
-selected_vessels = st.sidebar.multiselect(
-    t("sa_col_vessel"),
-    options=all_vessels,
-    default=[],
-    placeholder=t("filter_all"),
-)
-if selected_vessels:
-    df = df[df["Vessel Name"].isin(selected_vessels)]
-
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 tab_tbl, tab_berth, tab_depart, tab_idle = st.tabs([
     t("sa_tab_table"), t("sa_tab_berth"), t("sa_tab_depart"), t("sa_tab_idle")

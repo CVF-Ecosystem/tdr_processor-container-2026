@@ -267,6 +267,14 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
             placeholder=t("filter_all"), key="sb_berth",
         )
 
+    sel_vessel: list = []
+    if "Vessel Name" in df.columns:
+        vessels = sorted(df["Vessel Name"].dropna().unique().tolist())
+        sel_vessel = st.sidebar.multiselect(
+            t("filter_vessel"), options=vessels, default=[],
+            placeholder=t("filter_all"), key="sb_vessel",
+        )
+
     date_range = None
     if "Report Date" in df.columns and df["Report Date"].notna().any():
         min_d = df["Report Date"].min().date()
@@ -283,6 +291,8 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
         df = df[df["Operator"].isin(sel_op)]
     if sel_berth:
         df = df[df["Berth"].isin(sel_berth)]
+    if sel_vessel:
+        df = df[df["Vessel Name"].isin(sel_vessel)]
     if date_range and len(date_range) == 2:
         s = pd.Timestamp(date_range[0])
         e = pd.Timestamp(date_range[1]) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
@@ -292,7 +302,7 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
         st.sidebar.info(f"📊 {t('filtered_vessels')}: {len(df)}/{len(df_vessel_raw)}")
 
     if st.sidebar.button(t("filter_reset"), key="btn_reset"):
-        for key in ("sb_operator", "sb_berth", "sb_date_range"):
+        for key in ("sb_operator", "sb_berth", "sb_vessel", "sb_date_range"):
             st.session_state.pop(key, None)
         st.rerun()
 
