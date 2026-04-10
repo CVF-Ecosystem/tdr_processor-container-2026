@@ -10,8 +10,7 @@ from dashboard_shared import (
 init_lang()
 render_language_selector()
 
-with st.status("Đang tải dữ liệu...", expanded=False):
-    df_vessel_raw, df_qc, df_delay, df_container, df_qc_operator = load_all_data()
+df_vessel_raw, df_qc, df_delay, df_container, df_qc_operator = load_all_data()
 
 df_vessel = render_sidebar_filters(df_vessel_raw)
 render_export_sidebar(df_vessel_raw, df_qc, df_qc_operator, df_delay, df_container)
