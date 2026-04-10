@@ -251,22 +251,35 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
         df["YearMonth"] = df["Report Date"].dt.to_period("M").astype(str)
         df["Quarter"] = df["Report Date"].dt.to_period("Q").astype(str)
 
+    # ── Operator checkboxes ───────────────────────────────────────────────────
     sel_op: list = []
+    _cb_op_keys: list = []
     if "Operator" in df.columns:
         ops = sorted(df["Operator"].dropna().unique().tolist())
-        sel_op = st.sidebar.multiselect(
-            t("filter_operator"), options=ops, default=[],
-            placeholder=t("filter_all"), key="sb_operator",
-        )
+        with st.sidebar.expander(t("filter_operator"), expanded=True):
+            selected_ops = []
+            for op in ops:
+                k = f"cb_op_{op}"
+                _cb_op_keys.append(k)
+                if st.checkbox(op, value=True, key=k):
+                    selected_ops.append(op)
+        sel_op = [] if len(selected_ops) == len(ops) else selected_ops
 
+    # ── Berth checkboxes ──────────────────────────────────────────────────────
     sel_berth: list = []
+    _cb_berth_keys: list = []
     if "Berth" in df.columns:
         berths = sorted(df["Berth"].dropna().unique().tolist())
-        sel_berth = st.sidebar.multiselect(
-            t("filter_berth"), options=berths, default=[],
-            placeholder=t("filter_all"), key="sb_berth",
-        )
+        with st.sidebar.expander(t("filter_berth"), expanded=True):
+            selected_berths = []
+            for berth in berths:
+                k = f"cb_berth_{berth}"
+                _cb_berth_keys.append(k)
+                if st.checkbox(berth, value=True, key=k):
+                    selected_berths.append(berth)
+        sel_berth = [] if len(selected_berths) == len(berths) else selected_berths
 
+    # ── Vessel multiselect (many options → keep dropdown) ─────────────────────
     sel_vessel: list = []
     if "Vessel Name" in df.columns:
         vessels = sorted(df["Vessel Name"].dropna().unique().tolist())
@@ -275,6 +288,7 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
             placeholder=t("filter_all"), key="sb_vessel",
         )
 
+    # ── Date range ────────────────────────────────────────────────────────────
     date_range = None
     if "Report Date" in df.columns and df["Report Date"].notna().any():
         min_d = df["Report Date"].min().date()
@@ -302,7 +316,7 @@ def render_sidebar_filters(df_vessel_raw: pd.DataFrame) -> pd.DataFrame:
         st.sidebar.info(f"📊 {t('filtered_vessels')}: {len(df)}/{len(df_vessel_raw)}")
 
     if st.sidebar.button(t("filter_reset"), key="btn_reset"):
-        for key in ("sb_operator", "sb_berth", "sb_vessel", "sb_date_range"):
+        for key in ("sb_vessel", "sb_date_range") + tuple(_cb_op_keys) + tuple(_cb_berth_keys):
             st.session_state.pop(key, None)
         st.rerun()
 
