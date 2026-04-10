@@ -176,15 +176,18 @@ def load_table(table: str) -> pd.DataFrame:
         con = sqlite3.connect(DB_PATH)
         df = pd.read_sql(f"SELECT * FROM {table}", con)  # noqa: S608
         con.close()
-        return df
+        if not df.empty:
+            return df
     except Exception:
-        csv_name = _CSV_FALLBACK.get(table)
-        if csv_name:
-            df_csv = load_csv(str(DATA_DIR / csv_name))
-            if not df_csv.empty:
-                return df_csv
-        st.warning(f"[SQLite] Không tìm thấy dữ liệu '{table}'. Chạy xử lý TDR để tạo dữ liệu.")
-        return pd.DataFrame()
+        pass
+    # SQLite table missing or empty → fallback to CSV
+    csv_name = _CSV_FALLBACK.get(table)
+    if csv_name:
+        df_csv = load_csv(str(DATA_DIR / csv_name))
+        if not df_csv.empty:
+            return df_csv
+    st.warning(f"⚠️ Không tìm thấy dữ liệu '{table}'. Chạy xử lý TDR để tạo dữ liệu.")
+    return pd.DataFrame()
 
 
 _VESSEL_NUMERIC_COLS = [
