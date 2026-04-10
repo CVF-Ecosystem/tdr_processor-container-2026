@@ -469,7 +469,7 @@ OPERATION_TYPE_SORT_ORDER = {
 # Output Column Mapping & Order (for DataFrame rename and column selection)
 VESSEL_COL_RENAMES_OUTPUT = {}  # Empty mapping - no renaming needed
 VESSEL_COLS_OUTPUT_ORDER = [
-    'Filename', 'Vessel Name', 'Voyage', 'Operator', 'Berth', 'Report Date', 'ATB', 'ATD',
+    'Filename', 'Vessel Name', 'Voyage', 'Operator', 'Berth', 'Report Date', 'ETB', 'ATB', 'ETD', 'ATD',
     'Gangway Secured', 'Commenced Discharge', 'Commenced Loading', 'Completed Discharge',
     'Completed Loading', 'All Operations Completed', 'Break time (hrs)', 'Discharge (hrs)',
     'Loading (hrs)', 'Total working (hrs)', 'Portstay (hrs)', 'Gross Working (hrs)', 
@@ -477,7 +477,7 @@ VESSEL_COLS_OUTPUT_ORDER = [
     'Vessel Moves/Portstay Hour', 'Vessel Moves/Gross Hour', 'Vessel Moves/Net Hour'
 ]
 
-VESSEL_DATETIME_COLS_FORMAT = ['Report Date', 'ATB', 'ATD', 'Gangway Secured', 'Commenced Discharge', 
+VESSEL_DATETIME_COLS_FORMAT = ['Report Date', 'ETB', 'ATB', 'ETD', 'ATD', 'Gangway Secured', 'Commenced Discharge', 
                                 'Commenced Loading', 'Completed Discharge', 'Completed Loading', 
                                 'All Operations Completed']
 
@@ -500,6 +500,38 @@ DELAY_DETAILS_COLS_OUTPUT_ORDER = [
 DELAY_DATETIME_COLS_FORMAT = ['From Time', 'To Time']
 
 # ============================================================================
+# PYDANTIC-SETTINGS — Runtime-tunable settings (env vars / .env file)
+# ============================================================================
+# Requires: pydantic-settings>=2.0
+# All vars use prefix TDR_ (e.g. TDR_KPI_MOVES_PER_HOUR=50)
+
+try:
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+
+    class Settings(BaseSettings):
+        kpi_moves_per_hour: int = 45
+        max_message_size_mb: int = 500
+        log_level: str = "INFO"
+        data_dir: str = "outputs/data_csv"
+        db_path: str = "outputs/tdr_master.db"
+
+        model_config = SettingsConfigDict(env_file=".env", env_prefix="TDR_", extra="ignore")
+
+    settings = Settings()
+
+except ImportError:
+    # Graceful fallback khi pydantic-settings chưa được cài
+    import types as _types
+
+    settings = _types.SimpleNamespace(
+        kpi_moves_per_hour=45,
+        max_message_size_mb=500,
+        log_level="INFO",
+        data_dir="outputs/data_csv",
+        db_path="outputs/tdr_master.db",
+    )
+
+# ============================================================================
 # PUBLIC API
 # ============================================================================
 
@@ -515,8 +547,8 @@ __all__ = [
     'ContainerDetailsConfig', 'DelayErrorConfig', 'SMTPConfig', 'EmailConfig',
     # Enums
     'OperationType', 'ContainerSize', 'ContainerCategory', 'ErrorType',
-    # Functions
-    'get_config', 'load_environment_config',
+    # Functions & settings
+    'get_config', 'load_environment_config', 'settings',
     # Backward compatibility constants (all old constants)
     'APP_TITLE', 'APP_VERSION', 'LOG_FILENAME', 'LOG_LEVEL', 'LOG_FORMAT',
     'LOG_DATE_FORMAT', 'DATETIME_FORMAT_OUT', 'DATE_FORMAT_OUT', 'TIME_FORMAT_OUT',

@@ -137,5 +137,6 @@ pg = st.navigation([
     st.Page("pages/5_Container_Details.py",   title="Container",           icon="📦"),
     st.Page("pages/6_Data_Quality.py",        title="Chất lượng dữ liệu",  icon="✅"),
     st.Page("pages/7_Timeline.py",            title="Timeline",            icon="📅"),
+    st.Page("pages/8_Schedule_Adherence.py",  title="Kế hoạch vs Thực tế", icon="🕐"),
 ])
 pg.run()
