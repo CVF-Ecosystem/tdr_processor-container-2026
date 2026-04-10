@@ -18,7 +18,7 @@ render_export_sidebar(df_vessel_raw, df_qc, df_qc_operator, df_delay, df_contain
 st.header(t("qc_header"))
 
 if df_qc.empty:
-    st.warning("Không có dữ liệu QC Productivity.")
+    st.warning(t("no_data_qc"))
     st.stop()
 
 if 'Net moves/h' not in df_qc.columns and 'Total Conts' in df_qc.columns and 'Net working (hrs)' in df_qc.columns:

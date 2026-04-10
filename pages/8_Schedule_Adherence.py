@@ -68,7 +68,7 @@ if df_vessel.empty:
 missing_cols = [c for c in ["ETB", "ETD"] if c not in df_vessel.columns]
 if missing_cols:
     st.warning(t("sa_no_etb"))
-    st.info("Cột hiện có: " + ", ".join(df_vessel.columns.tolist()))
+    st.info(t("sa_current_cols") + ": " + ", ".join(df_vessel.columns.tolist()))
     st.stop()
 
 # Parse datetime
@@ -109,7 +109,7 @@ with c4:
     color = "#D97706" if not pd.isna(avg_idle) and avg_idle > 60 else "#2563EB"
     kpi_card(t("sa_metric_idle"), f"{avg_idle:.0f}" if not pd.isna(avg_idle) else "N/A", color=color)
 
-st.caption(f"*Ngưỡng 'Đúng giờ': ±{_THRESHOLD_MIN} phút*")
+st.caption(t("sa_threshold_caption", min=_THRESHOLD_MIN))
 st.markdown("---")
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -138,8 +138,8 @@ _display_cols = [c for c in _LABEL_MAP if c in df.columns or c.startswith("_")]
 df_display = df[_display_cols].rename(columns=_LABEL_MAP).copy()
 
 # Thêm cột trạng thái
-df_display["Trạng thái cập"] = df["_berth_delay"].apply(_status)
-df_display["Trạng thái rời"] = df["_depart_delay"].apply(_status)
+df_display[t("sa_status_berth")] = df["_berth_delay"].apply(_status)
+df_display[t("sa_status_depart")] = df["_depart_delay"].apply(_status)
 
 # Định dạng datetime → str cho hiển thị
 for col_orig, col_label in _LABEL_MAP.items():
@@ -162,31 +162,31 @@ with tab_tbl:
 with tab_berth:
     df_b = df[["Vessel Name", "_berth_delay"]].dropna()
     if df_b.empty:
-        st.info("Không có dữ liệu ETB/ATB.")
+        st.info(t("no_data_etb_atb"))
     else:
         df_b = df_b.sort_values("_berth_delay", ascending=False)
         st.plotly_chart(
             _bar_diverging(df_b, "Vessel Name", "_berth_delay", t("sa_chart_berth")),
             use_container_width=True,
         )
-        st.caption("🔴 Trễ  |  🟡 Đúng giờ  |  🟢 Sớm")
+        st.caption(t("sa_legend_diverging"))
 
 with tab_depart:
     df_d = df[["Vessel Name", "_depart_delay"]].dropna()
     if df_d.empty:
-        st.info("Không có dữ liệu ETD/ATD.")
+        st.info(t("no_data_etd_atd"))
     else:
         df_d = df_d.sort_values("_depart_delay", ascending=False)
         st.plotly_chart(
             _bar_diverging(df_d, "Vessel Name", "_depart_delay", t("sa_chart_depart")),
             use_container_width=True,
         )
-        st.caption("🔴 Trễ  |  🟡 Đúng giờ  |  🟢 Sớm")
+        st.caption(t("sa_legend_diverging"))
 
 with tab_idle:
     df_i = df[["Vessel Name", "_idle", "_atc_vs_etd"]].dropna(subset=["_idle"])
     if df_i.empty:
-        st.info("Không có dữ liệu ATC (Completed Loading).")
+        st.info(t("no_data_atc"))
     else:
         df_i = df_i.sort_values("_idle", ascending=False)
         fig_idle = px.bar(
@@ -201,7 +201,7 @@ with tab_idle:
         apply_chart_theme(fig_idle)
         st.plotly_chart(fig_idle, use_container_width=True)
 
-        st.subheader("ATC vs ETD (phút âm = xong hàng trước ETD)")
+        st.subheader(t("sa_atc_vs_etd_subheader"))
         df_atc = df_i.dropna(subset=["_atc_vs_etd"])
         if not df_atc.empty:
             df_atc = df_atc.sort_values("_atc_vs_etd")
@@ -209,4 +209,4 @@ with tab_idle:
                 _bar_diverging(df_atc, "Vessel Name", "_atc_vs_etd", t("sa_col_atc_vs_etd")),
                 use_container_width=True,
             )
-            st.caption("🟢 Âm = xong làm hàng TRƯỚC ETD (tốt)  |  🔴 Dương = xong hàng SAU ETD (trễ)")
+            st.caption(t("sa_atc_legend"))

@@ -17,7 +17,7 @@ render_export_sidebar(df_vessel_raw, df_qc, df_qc_operator, df_delay, df_contain
 st.header(t("container_header"))
 
 if df_container.empty:
-    st.warning("Không có dữ liệu Container.")
+    st.warning(t("no_data_container"))
     st.stop()
 
 total_rows = len(df_container)

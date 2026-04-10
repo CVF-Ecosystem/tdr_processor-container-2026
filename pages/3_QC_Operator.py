@@ -20,7 +20,7 @@ st.header(f"👨‍🔧 {t('qc_operator_header')}")
 st.info(t("qc_operator_info"))
 
 if df_qc_operator.empty:
-    st.warning("Không tìm thấy dữ liệu 'qc_operator_productivity.csv'.")
+    st.warning(t("no_data_qc_operator"))
     st.stop()
 
 if 'Net moves/h' not in df_qc_operator.columns and 'Total Conts' in df_qc_operator.columns and 'Net working (hrs)' in df_qc_operator.columns:
@@ -63,7 +63,7 @@ def render_compare_chart(df_qc, df_qc_operator):
         apply_chart_theme(fig_cmp)
         st.plotly_chart(fig_cmp, use_container_width=True)
     else:
-        st.info("Không có dữ liệu 'Năng suất khai thác' để so sánh.")
+        st.info(t("no_data_qc_compare"))
 
 
 @st.fragment

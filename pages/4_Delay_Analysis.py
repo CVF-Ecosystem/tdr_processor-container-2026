@@ -18,7 +18,7 @@ render_export_sidebar(df_vessel_raw, df_qc, df_qc_operator, df_delay, df_contain
 st.header(t("delay_header"))
 
 if df_delay.empty:
-    st.warning("Không có dữ liệu Delay.")
+    st.warning(t("no_data_delay"))
     st.stop()
 
 
@@ -44,7 +44,7 @@ def render_delay_table(df_delay):
     st.subheader(t("delay_details_subheader"))
     render_aggrid_table(df_delay, height=450, page_size=50)
     if len(df_delay) > 1000:
-        st.caption(f"⚠️ {len(df_delay):,} rows — dùng filter trên header để thu hẹp. Export để xem toàn bộ.")
+        st.caption(t("large_table_hint", count=f"{len(df_delay):,}"))
 
 
 render_delay_chart(df_delay)

@@ -42,7 +42,7 @@ def render_kpi_table(df_vessel):
         display_cols = [c for c in cols_show if c in under.columns]
         df_show = under.sort_values(by=kpi_col, ascending=True)[display_cols]
         render_aggrid_table(df_show, height=420)
-        st.caption("ℹ️ Sắp xếp theo Net moves/h tăng dần — giá trị thấp nhất ở trên cùng.")
+        st.caption(t("kpi_sort_hint"))
 
 
 render_kpi_table(df_vessel)
