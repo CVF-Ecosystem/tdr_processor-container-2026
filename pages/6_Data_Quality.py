@@ -6,11 +6,13 @@ from dashboard_shared import (
     render_sidebar_filters, render_export_sidebar, t,
 )
 
-st.set_page_config(page_title="Data Quality — TDR", layout="wide", page_icon="✅")
 init_lang()
 render_language_selector()
 
-df_vessel_raw, df_qc, df_delay, df_container, df_qc_operator = load_all_data()
+with st.status("Đang phân tích chất lượng dữ liệu...", expanded=True) as status:
+    df_vessel_raw, df_qc, df_delay, df_container, df_qc_operator = load_all_data()
+    status.update(label="Dữ liệu đã tải xong", state="complete", expanded=False)
+
 df_vessel = render_sidebar_filters(df_vessel_raw)
 render_export_sidebar(df_vessel_raw, df_qc, df_qc_operator, df_delay, df_container)
 
@@ -43,46 +45,53 @@ st.markdown("---")
 st.subheader(t("dq_column_analysis"))
 
 table_selector = st.selectbox("📊 Table", [name for name, _ in tables_to_analyze])
-selected_df = next((df for name, df in tables_to_analyze if name == table_selector), None)
 
-if selected_df is not None and not selected_df.empty:
-    total_rows = len(selected_df)
-    column_stats = []
-    for col in selected_df.columns:
-        nc = int(selected_df[col].isnull().sum())
-        pct = round((nc / total_rows * 100) if total_rows > 0 else 0, 1)
-        column_stats.append({
-            "Column": col,
-            t("dq_non_null"): total_rows - nc,
-            t("dq_null_count"): nc,
-            t("dq_missing_percent"): pct,
-        })
 
-    col_stats_df = pd.DataFrame(column_stats)
+@st.fragment
+def render_column_analysis(table_selector, tables_to_analyze):
+    selected_df = next((df for name, df in tables_to_analyze if name == table_selector), None)
 
-    def highlight_missing(val):
-        if isinstance(val, (int, float)):
-            if val > 20:
-                return 'background-color: #ffcccc'
-            elif val > 10:
-                return 'background-color: #fff3cd'
-        return ''
+    if selected_df is not None and not selected_df.empty:
+        total_rows = len(selected_df)
+        column_stats = []
+        for col in selected_df.columns:
+            nc = int(selected_df[col].isnull().sum())
+            pct = round((nc / total_rows * 100) if total_rows > 0 else 0, 1)
+            column_stats.append({
+                "Column": col,
+                t("dq_non_null"): total_rows - nc,
+                t("dq_null_count"): nc,
+                t("dq_missing_percent"): pct,
+            })
 
-    st.dataframe(
-        col_stats_df.style.map(highlight_missing, subset=[t("dq_missing_percent")]),
-        use_container_width=True,
-    )
+        col_stats_df = pd.DataFrame(column_stats)
 
-    issues = [
-        f"⚠️ {row['Column']}: {row[t('dq_missing_percent')]}% {t('dq_missing_values')}"
-        for _, row in col_stats_df.iterrows()
-        if row[t("dq_missing_percent")] > 20
-    ]
-    if issues:
-        st.subheader(t("dq_recommendations"))
-        for issue in issues:
-            st.write(issue)
+        def highlight_missing(val):
+            if isinstance(val, (int, float)):
+                if val > 20:
+                    return 'background-color: #ffcccc'
+                elif val > 10:
+                    return 'background-color: #fff3cd'
+            return ''
+
+        st.dataframe(
+            col_stats_df.style.map(highlight_missing, subset=[t("dq_missing_percent")]),
+            use_container_width=True,
+        )
+
+        issues = [
+            f"⚠️ {row['Column']}: {row[t('dq_missing_percent')]}% {t('dq_missing_values')}"
+            for _, row in col_stats_df.iterrows()
+            if row[t("dq_missing_percent")] > 20
+        ]
+        if issues:
+            st.subheader(t("dq_recommendations"))
+            for issue in issues:
+                st.write(issue)
+        else:
+            st.info(t("dq_no_issues"))
     else:
-        st.info(t("dq_no_issues"))
-else:
-    st.info("No data available for analysis")
+        st.info("No data available for analysis")
+
+
+render_column_analysis(table_selector, tables_to_analyze)
