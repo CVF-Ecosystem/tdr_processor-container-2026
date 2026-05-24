@@ -13,21 +13,11 @@ try:
     from data_extractors import DataExtractor
     from utils.excel_handler import append_df_to_excel
     from utils.file_utils import backup_file
+    from data_schema import normalize_qc_name as _normalize_qc_name
+    from data_transformers import VesselTransformer
 except ImportError as e:
     logging.error(f"Import error in report_processor.py: {e}")
     raise
-def _normalize_qc_name(name: str) -> str:
-    """Chuẩn hóa tên QC về định dạng 'XX00'. Ví dụ: 'GC1' -> 'GC01'."""
-    if not isinstance(name, str):
-        return ""
-    name = name.strip().upper()
-    # Tách phần chữ và phần số
-    letters = ''.join(re.findall(r'[A-Z]', name))
-    numbers = ''.join(re.findall(r'\d', name))
-    if letters and numbers:
-        # Format lại số có 2 chữ số, ví dụ: 1 -> 01
-        return f"{letters}{int(numbers):02d}"
-    return name # Trả về tên gốc nếu không phân tích được
 
 class ReportProcessor:
     def __init__(self, input_dir: Optional[Path] = None, output_dir: Optional[Path] = None) -> None:
@@ -90,18 +80,8 @@ class ReportProcessor:
             delay_list_detailed: List[Dict[str, Any]] = extractor.extract_delay_details(extractor.reference_date_for_events)
             container_list_long: List[Dict[str, Any]] = extractor.extract_container_details()
 
-            # --- BƯỚC 2: TÍNH TOÁN CHO VESSEL SUMMARY (GIỮ NGUYÊN) ---
-            vessel_info["Break Time (hrs)"] = round(vessel_info.get("Break Dis (hrs)", 0.0) + vessel_info.get("Break Load (hrs)", 0.0), 2)
-            vessel_info["Net Working (hrs)"] = round(max(0, vessel_info.get("Gross Working (hrs)", 0.0) - vessel_info.get("Break Time (hrs)", 0.0)), 2)
-            
-            grand_total_containers: int = vessel_info.get("Grand Total Conts", 0)
-            net_working_hours_vessel: float = vessel_info.get("Net Working (hrs)", 0)
-            gross_working_hours_vessel: float = vessel_info.get("Gross Working (hrs)", 0)
-            portstay_hours_vessel: float = vessel_info.get("Portstay (hrs)", 0)
-
-            vessel_info["Vessel Moves/Net Hour"] = round(grand_total_containers / net_working_hours_vessel, 1) if net_working_hours_vessel > 0 and grand_total_containers > 0 else 0.0
-            vessel_info["Vessel Moves/Gross Hour"] = round(grand_total_containers / gross_working_hours_vessel, 1) if gross_working_hours_vessel > 0 and grand_total_containers > 0 else 0.0
-            vessel_info["Vessel Moves/Portstay Hour"] = round(grand_total_containers / portstay_hours_vessel, 1) if portstay_hours_vessel > 0 and grand_total_containers > 0 else 0.0
+            # --- BƯỚC 2: TÍNH TOÁN CHO VESSEL SUMMARY ---
+            vessel_info = VesselTransformer.calculate_kpis(vessel_info)
             
             self.all_vessel_dfs.append(pd.DataFrame([vessel_info]))
 

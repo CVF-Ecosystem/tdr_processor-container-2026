@@ -215,14 +215,8 @@ class QCTransformer:
         Returns:
             Normalized QC name
         """
-        if not isinstance(name, str):
-            return ""
-        name = name.strip().upper()
-        letters = ''.join(re.findall(r'[A-Z]', name))
-        numbers = ''.join(re.findall(r'\d', name))
-        if letters and numbers:
-            return f"{letters}{int(numbers):02d}"
-        return name
+        from data_schema import normalize_qc_name as schema_normalize_qc_name
+        return schema_normalize_qc_name(name)
 
     @staticmethod
     def calculate_qc_metrics(qc_record: Dict[str, Any]) -> Dict[str, Any]:

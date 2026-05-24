@@ -1,8 +1,8 @@
-# 📘 Hướng Dẫn Sử Dụng TDR Processor v3.0.0
+# 📘 Hướng Dẫn Sử Dụng TDR Processor v1.0
 
-**Phiên bản:** 3.0.0  
+**Phiên bản:** v1.0  
 **Ngôn ngữ:** Tiếng Việt  
-**Cập nhật:** 26/01/2026  
+**Cập nhật:** 24/05/2026  
 **Người dùng cuối:** Chưa có kiến thức lập trình
 
 ---
@@ -17,7 +17,7 @@
 ### ✅ Kiến trúc module hóa  
 - **Core Processor riêng biệt**: Logic xử lý tách khỏi GUI, có thể import từ CLI/scripts
 - **Data Schema chuẩn hóa**: Định nghĩa schema cho 5 bảng dữ liệu output
-- **Entrypoints rõ ràng**: GUI (main.py), Dashboard (app.py), Core (core_processor.py)
+- **Entrypoints rõ ràng**: GUI (main.py), Dashboard (dashboard_api.py), Core (core_processor.py)
 
 ### ✅ Dashboard nâng cao (8 tabs)
 - **📈 Tổng quan & Timeline**: KPI cards với delta so sánh mục tiêu
@@ -78,8 +78,8 @@ Output:
 ### 2️⃣ Dashboard Web (8 Tabs)
 **Làm gì:** Xem biểu đồ, thống kê, phân tích dữ liệu  
 **Cách dùng:**
-1. Nhấn nút **"📈 Open Web Dashboard"**
-2. Trình duyệt mở ra tự động (http://localhost:8501)
+1. Khởi động Flask API server (`python dashboard_api.py`)
+2. Trình duyệt mở ra tự động (http://localhost:8503)
 3. Xem các tab phân tích
 
 **8 Tabs trong Dashboard:**
@@ -153,10 +153,10 @@ tdr_processor/
 │   ├── credential_manager.py  ← Quản lý credentials bảo mật (MỚI)
 │   └── ...
 ├── main.py                 ← GUI chính (Tkinter)
-├── dashboard.py            ← Web Dashboard (Streamlit)
-├── app.py                  ← Streamlit entrypoint
-├── core_processor.py       ← Logic xử lý thuần (MỚI - có thể dùng từ CLI)
-├── data_schema.py          ← Schema định nghĩa (MỚI)
+├── dashboard_api.py        ← Web Dashboard API (Flask)
+├── dashboard.html          ← Web Dashboard UI (React Client)
+├── core_processor.py       ← Logic xử lý thuần (có thể dùng từ CLI)
+├── data_schema.py          ← Schema định nghĩa
 ├── HUONG_DAN_SU_DUNG.md   ← File này
 └── requirements.txt        ← Danh sách thư viện
 ```
@@ -242,8 +242,8 @@ outputs/data_excel/
 - Xem biểu đồ
 
 **Tùy chọn 2: Web Dashboard**
-- Nhấn nút "📈 Open Web Dashboard"
-- Xem biểu đồ trực tiếp (Streamlit)
+- Khởi động máy chủ Flask API (`python dashboard_api.py`)
+- Xem biểu đồ trực tiếp trên nền tảng React hiện đại (http://localhost:8503)
 - Không cần Power BI
 
 **Tùy chọn 3: Excel**
@@ -346,7 +346,7 @@ outputs/
 
 ### Q4: Dashboard web không mở được?
 
-**Nguyên nhân:** Port 8501 bị chiếm
+**Nguyên nhân:** Port 8503 bị chiếm
 
 **Giải pháp:**
 ```
@@ -673,10 +673,10 @@ if not result['valid']:
 
 ---
 
-**Phiên bản:** v3.0.0  
-**Cập nhật:** 26/01/2026  
+**Phiên bản:** v1.0  
+**Cập nhật:** 24/05/2026  
 **Ngôn ngữ:** Tiếng Việt  
-**Trạng thái:** Production Ready ✅
-**Tests:** 139/139 passed
+**Trạng thái:** Conditionally Production Ready ✅
+**Tests:** 226/226 passed
 
 Để tìm hiểu thêm, xem [ARCHITECTURE.md](ARCHITECTURE.md).

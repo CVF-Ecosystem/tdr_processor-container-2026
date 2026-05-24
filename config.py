@@ -48,7 +48,7 @@ class ErrorType(Enum):
 class ApplicationConfig:
     """Application-level settings"""
     TITLE: str = "TDR Processor"
-    VERSION: str = "3.0.0"  # v3.0.0 - Production Release
+    VERSION: str = "1.0"  # v1.0 - Production Release
     LOG_FILENAME: str = "tdr_processor.log"
     LOG_LEVEL: str = "DEBUG"
     LOG_FORMAT: str = "%(asctime)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s"

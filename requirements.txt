@@ -11,9 +11,12 @@ XlsxWriter==3.2.3
 # Desktop GUI
 ttkbootstrap==1.13.8
 
-# Web Dashboard (Streamlit)
+# Web Dashboard (Streamlit — legacy, kept for reference)
 streamlit==1.45.1
 plotly==6.0.0
+
+# Web Dashboard (Flask — new dashboard_api.py)
+flask==3.1.1
 
 # REST API (NEW - v3.1)
 fastapi==0.115.0

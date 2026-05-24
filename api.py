@@ -88,13 +88,33 @@ def _get_db():
         return None
 
 
+_csv_cache = {}
+
 def _load_csv_data(csv_name: str):
-    """Load data from CSV file as fallback when DB is not available."""
+    """Load data from CSV file as fallback when DB is not available, with mtime-based caching."""
     import pandas as pd
     csv_path = Path("outputs/data_csv") / csv_name
-    if csv_path.exists():
-        return pd.read_csv(csv_path)
-    return None
+    if not csv_path.exists():
+        return None
+        
+    try:
+        mtime = csv_path.stat().st_mtime
+    except OSError:
+        mtime = 0.0
+        
+    cache_entry = _csv_cache.get(csv_name)
+    if cache_entry and cache_entry["mtime"] == mtime:
+        return cache_entry["df"].copy()
+        
+    try:
+        df = pd.read_csv(csv_path)
+        _csv_cache[csv_name] = {"mtime": mtime, "df": df}
+        return df.copy()
+    except Exception as e:
+        logging.error(f"[API] Error loading CSV {csv_name}: {e}")
+        if cache_entry:
+            return cache_entry["df"].copy()
+        return None
 
 
 # ============================================================================
@@ -489,7 +509,7 @@ async def get_operator_performance():
             [float("inf"), float("-inf")], 0
         ).fillna(0)
 
-    agg_cols = {"net_moves_h": ["mean", "count"]} if "net_moves_h" in df.columns else {}
+    agg_cols: Dict[str, Any] = {"net_moves_h": ["mean", "count"]} if "net_moves_h" in df.columns else {}
     if "Portstay (hrs)" in df.columns:
         agg_cols["Portstay (hrs)"] = "mean"
 
