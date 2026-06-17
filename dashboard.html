@@ -2257,23 +2257,43 @@
       }, [apiData, fDateFrom, fDateTo, fOp, fVessel]);
 
       const marketStats = useMemo(() => {
-        if (!marketData.length) return { cargo: {}, status: {}, size: {}, trends: [] };
+        if (!marketData.length) return { cargo: {}, status: {}, size: {}, trends: [], byOp: [], byVessel: [] };
         const cargo = {}; const status = { Full: 0, Empty: 0 }; const size = { "20'": 0, "40'": 0, "45'": 0 };
-        const trendsRaw = {};
+        const trendsRaw = {}; const ops = {}; const vsls = {};
 
         marketData.forEach(m => {
           const opType = m.OperationType || "Unknown";
-          cargo[opType] = (cargo[opType] || 0) + m["Total Conts"];
-          status.Full += (m.Full || 0); status.Empty += (m.Empty || 0);
-          size["20'"] += (m.s20 || 0); size["40'"] += (m.s40 || 0); size["45'"] += (m.s45 || 0);
+          const op = m.Operator || "Unknown";
+          const v = m["Vessel Name"] || "Unknown";
+          const total = m["Total Conts"] || 0;
+          const full = m.Full || 0; const empty = m.Empty || 0;
+          const s20 = m.s20 || 0; const s40 = m.s40 || 0; const s45 = m.s45 || 0;
+
+          cargo[opType] = (cargo[opType] || 0) + total;
+          status.Full += full; status.Empty += empty;
+          size["20'"] += s20; size["40'"] += s40; size["45'"] += s45;
+
+          // Operator summary
+          if (!ops[op]) ops[op] = { op, total: 0, dis: 0, load: 0, full: 0, empty: 0, s20: 0, s40: 0, s45: 0 };
+          ops[op].total += total; ops[op].full += full; ops[op].empty += empty;
+          ops[op].s20 += s20; ops[op].s40 += s40; ops[op].s45 += s45;
+          if (opType === "Discharge") ops[op].dis += total; else if (opType === "Load") ops[op].load += total;
+
+          // Vessel summary
+          if (!vsls[v]) vsls[v] = { v, total: 0, dis: 0, load: 0, full: 0, empty: 0, s20: 0, s40: 0, s45: 0 };
+          vsls[v].total += total; vsls[v].full += full; vsls[v].empty += empty;
+          vsls[v].s20 += s20; vsls[v].s40 += s40; vsls[v].s45 += s45;
+          if (opType === "Discharge") vsls[v].dis += total; else if (opType === "Load") vsls[v].load += total;
 
           const dt = m["Report Date"];
-          if (dt) trendsRaw[dt] = (trendsRaw[dt] || 0) + m["Total Conts"];
+          if (dt) trendsRaw[dt] = (trendsRaw[dt] || 0) + total;
         });
 
         const trends = Object.entries(trendsRaw).sort(([a], [b]) => a.localeCompare(b)).map(([date, volume]) => ({ date, volume })).slice(-12);
+        const byOp = Object.values(ops).sort((a, b) => b.total - a.total);
+        const byVessel = Object.values(vsls).sort((a, b) => b.total - a.total);
 
-        return { cargo, status, size, trends };
+        return { cargo, status, size, trends, byOp, byVessel };
       }, [marketData]);
 
       const operators = apiData?.operators ?? [];
@@ -2781,21 +2801,71 @@
 
                   {/* ═══ MARKET ANALYSIS (Cargo Mix) ═══ */}
                   {nav === "market" && (<>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 20 }}>
+                    <div className="kg k3" style={{ marginBottom: 20 }}>
+                      <KpiCard lbl="Total Market Moves" val={Object.values(marketStats.cargo).reduce((a, b) => a + b, 0).toLocaleString()} ic={C.blue} icon="📦" dl="Total volume" dlt="pos" spark={sp.t} />
+                      <KpiCard lbl="Import Ratio (Discharge)" val={`${Math.round((marketStats.cargo.Discharge || 0) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.cyan} icon="📉" dl="Market share" dlt="pos" spark={sp.t} />
+                      <KpiCard lbl="Export Ratio (Load)" val={`${Math.round((marketStats.cargo.Load || 0) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.green} icon="📈" dl="Market share" dlt="pos" spark={sp.t} />
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 20, marginBottom: 20 }}>
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix [Imp/Exp]</div></div>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix [Discharge/Load]</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div>
                       </div>
                       <div className="card">
                         <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Market Volume Trends (Market Fluctuation)</div><div className="tabs"><div className="tab ac">Weekly</div><div className="tab">Monthly</div></div></div>
-                        <div className="cb" style={{ height: 320 }}><MarketTrendChart data={marketStats.trends} theme={theme} /></div>
+                        <div className="cb" style={{ height: 260 }}><MarketTrendChart data={marketStats.trends} theme={theme} /></div>
+                      </div>
+                    </div>
+
+                    <div className="card">
+                      <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Operational Performance by Carrier (Summary)</div><span style={{ fontSize: 9.5, color: "var(--t3)" }}>{marketStats.byOp.length} carriers active</span></div>
+                      <div className="tw">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Shipping Line / Operator</th>
+                              <th style={{ textAlign: "right" }}>Total Moves</th>
+                              <th style={{ textAlign: "right" }}>Discharge</th>
+                              <th style={{ textAlign: "right" }}>Load</th>
+                              <th style={{ textAlign: "right" }}>Full</th>
+                              <th style={{ textAlign: "right" }}>Empty</th>
+                              <th style={{ textAlign: "right" }}>Imp/Exp %</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {marketStats.byOp.map((o, i) => (
+                              <tr key={i}>
+                                <td style={{ fontWeight: 600 }}>{o.op}</td>
+                                <td style={{ textAlign: "right" }}>{o.total.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: C.blue }}>{o.dis.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: C.green }}>{o.load.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", fontWeight: 500 }}>{o.full.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: "var(--t3)" }}>{o.empty.toLocaleString()}</td>
+                                <td style={{ textAlign: "right" }}>
+                                  <div style={{ fontSize: 10, display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                    <span style={{ color: C.blue }}>{Math.round(o.dis / o.total * 100)}%</span>
+                                    <span style={{ color: "var(--br)" }}>/</span>
+                                    <span style={{ color: C.green }}>{Math.round(o.load / o.total * 100)}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </>)}
 
                   {/* ═══ CONTAINER ANALYSIS (Status & Size) ═══ */}
                   {nav === "containers" && (<>
-                    <div className="g2">
+                    <div className="kg k3" style={{ marginBottom: 20 }}>
+                      <KpiCard lbl="Full Container Ratio" val={`${Math.round(marketStats.status.Full / (marketStats.status.Full + marketStats.status.Empty || 1) * 100)}%`} ic={C.purple} icon="⚡" dl="Laden units" dlt="pos" spark={sp.t} />
+                      <KpiCard lbl="20' (Small) Ratio" val={`${Math.round(marketStats.size["20'"] / (Object.values(marketStats.size).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.cyan} icon="📏" dl="Standard short" dlt="neu" spark={sp.t} />
+                      <KpiCard lbl="40/45' (Large) Ratio" val={`${Math.round((marketStats.size["40'"] + marketStats.size["45'"]) / (Object.values(marketStats.size).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.green} icon="📐" dl="Standard long" dlt="pos" spark={sp.t} />
+                    </div>
+
+                    <div className="g2" style={{ marginBottom: 20 }}>
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
                         <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Status Mix (Full/Empty)</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.status} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div>
@@ -2803,6 +2873,38 @@
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
                         <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.cyan }} />Container Size Distribution</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.size} theme={theme} customColors={{ "20'": C.cyan, "40'": C.green, "45'": C.blue }} label="Size" /></div>
+                      </div>
+                    </div>
+
+                    <div className="card">
+                      <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Container Inventory Breakdown by Carrier & Size</div><span style={{ fontSize: 9.5, color: "var(--t3)" }}>Detailed distribution</span></div>
+                      <div className="tw">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Shipping Line / Operator</th>
+                              <th style={{ textAlign: "right" }}>Total Units</th>
+                              <th style={{ textAlign: "right" }}>Full (Laden)</th>
+                              <th style={{ textAlign: "right" }}>Empty</th>
+                              <th style={{ textAlign: "right" }}>20'</th>
+                              <th style={{ textAlign: "right" }}>40'</th>
+                              <th style={{ textAlign: "right" }}>45'</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {marketStats.byOp.map((o, i) => (
+                              <tr key={i}>
+                                <td style={{ fontWeight: 600 }}>{o.op}</td>
+                                <td style={{ textAlign: "right" }}>{o.total.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: C.purple }}>{o.full.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: "var(--t3)" }}>{o.empty.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: C.cyan }}>{o.s20.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: C.green }}>{o.s40.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", color: C.blue }}>{o.s45.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </>)}
