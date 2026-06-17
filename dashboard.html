@@ -1321,13 +1321,17 @@
     .dl-lbl {
       font-size: 10.5px;
       color: var(--t2);
-      flex: 1
+      width: 110px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .dl-v {
       font-size: 11px;
       font-weight: 700;
-      color: var(--t1)
+      color: var(--t1);
+      margin-left: 8px;
     }
 
     .dl-p {
@@ -2035,10 +2039,10 @@
           </div>
           <div style={{ flex: 1, minWidth: 100 }}>
             {groups.map(g => (
-              <div key={g.t} className="dl-i" style={{ marginBottom: 6 }}>
+              <div key={g.t} className="dl-i" style={{ marginBottom: 4 }}>
                 <div className="dl-dot" style={{ background: clrs[g.t] || C.blue, width: 7, height: 7 }} />
-                <div className="dl-lbl" style={{ fontSize: 10.5, fontWeight: 500 }}>{g.t}</div>
-                <div className="dl-v" style={{ fontSize: 11, fontWeight: 700 }}>{g.h.toLocaleString()}</div>
+                <div className="dl-lbl" style={{ fontSize: 10.5, fontWeight: 500, width: 100, flex: "none" }}>{g.t}</div>
+                <div className="dl-v" style={{ fontSize: 11, fontWeight: 700, marginLeft: 10 }}>{g.h.toLocaleString()}</div>
               </div>
             ))}
           </div>
