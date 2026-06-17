@@ -35,6 +35,7 @@ _CSV_MAP = {
     "qc_operator_productivity":"qc_operator_productivity.csv",
     "delay_events":            "delay_details.csv",
     "delay_details":           "delay_details.csv",
+    "container_details_wide":  "container_details_wide.csv",
 }
 
 app = Flask(__name__, static_url_path="")
@@ -485,47 +486,45 @@ def _build_sparklines(df_vessel: pd.DataFrame, df_delay: pd.DataFrame) -> dict:
     return sp
 
 
-def _build_market_stats(df_vessel: pd.DataFrame, df_cont: pd.DataFrame) -> dict:
+def _build_market_stats(df_vessel: pd.DataFrame, df_cont: pd.DataFrame) -> list:
     if df_cont.empty:
-        return {"cargo": {"Discharge": 0, "Load": 0}, "status": {"Full": 0, "Empty": 0}, "size": {"20'": 0, "40'": 0, "45'": 0}, "trends": []}
+        return []
     
-    # 1. Cargo Mix (OperationType)
-    cargo = df_cont.groupby("OperationType")["Total Conts"].sum().to_dict()
+    # 1. Prepare Columns for granular result
+    # We want a record for each Vessel/Voyage containing all the mix stats
     
-    # 2. Status Mix (Full vs Empty)
-    full_cols = [c for c in df_cont.columns if "Full" in c or "Laden" in c]
+    # Status Mix columns
+    full_cols  = [c for c in df_cont.columns if "Full" in c or "Laden" in c]
     empty_cols = [c for c in df_cont.columns if "Empty" in c]
-    status = {
-        "Full":  int(df_cont[full_cols].sum().sum()),
-        "Empty": int(df_cont[empty_cols].sum().sum())
-    }
     
-    # 3. Size Mix (20/40/45)
+    # Size Mix columns
     s20 = [c for c in df_cont.columns if "_20" in c]
     s40 = [c for c in df_cont.columns if "_40" in c]
     s45 = [c for c in df_cont.columns if "_45" in c]
-    size = {
-        "20'": int(df_cont[s20].sum().sum()),
-        "40'": int(df_cont[s40].sum().sum()),
-        "45'": int(df_cont[s45].sum().sum())
-    }
     
-    # 4. Trends (per Report Date)
-    trends = []
-    if not df_vessel.empty and "Report Date" in df_vessel.columns:
-        # Link container stats to vessel dates
-        merged = df_cont.merge(df_vessel[["Vessel Name", "Voyage", "Report Date", "Operator"]], on=["Vessel Name", "Voyage"], how="left")
-        merged["Report Date"] = pd.to_datetime(merged["Report Date"], errors="coerce").dt.strftime("%Y-%m-%d")
-        daily = merged.groupby("Report Date")["Total Conts"].sum().reset_index()
-        daily = daily.sort_values("Report Date").tail(12) # last 12 periods
-        trends = daily.rename(columns={"Report Date": "date", "Total Conts": "volume"}).to_dict("records")
+    # Aggregate at Vessel/Voyage/OperationType level
+    # This is small enough to send (usually ~2-4 rows per vessel: Imp/Exp)
+    df_cont["Full"]  = df_cont[full_cols].sum(axis=1)
+    df_cont["Empty"] = df_cont[empty_cols].sum(axis=1)
+    df_cont["s20"]   = df_cont[s20].sum(axis=1)
+    df_cont["s40"]   = df_cont[s40].sum(axis=1)
+    df_cont["s45"]   = df_cont[s45].sum(axis=1)
+    
+    # Keep only necessary columns
+    needed = ["Vessel Name", "Voyage", "OperationType", "Total Conts", "Full", "Empty", "s20", "s40", "s45"]
+    res = df_cont[needed].copy()
+    
+    # Merge with Vessel metadata for filtering
+    if not df_vessel.empty:
+        v_meta = df_vessel[["Vessel Name", "Voyage", "Report Date", "Operator"]].copy()
+        v_meta["Voyage"] = v_meta["Voyage"].astype(str).str.strip()
+        res["Voyage"]    = res["Voyage"].astype(str).str.strip()
         
-    return {
-        "cargo": cargo,
-        "status": status,
-        "size": size,
-        "trends": trends
-    }
+        merged = res.merge(v_meta, on=["Vessel Name", "Voyage"], how="left")
+        merged["Report Date"] = pd.to_datetime(merged["Report Date"], errors="coerce").dt.strftime("%Y-%m-%d")
+        return merged.to_dict("records")
+        
+    return res.to_dict("records")
 
 
 def _build_feed(df_vessel: pd.DataFrame, df_delay: pd.DataFrame, df_qc: pd.DataFrame) -> list:

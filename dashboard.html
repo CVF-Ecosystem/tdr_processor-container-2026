@@ -1917,7 +1917,8 @@
       { id: "overview", icon: "📊", lbl: "Operational Overview" },
       { id: "berth", icon: "🛳️", lbl: "Live Berth Status" },
       { id: "vessels", icon: "🚢", lbl: "Vessel Summary" },
-      { id: "market", icon: "📈", lbl: "Market Insights" },
+      { id: "market", icon: "📈", lbl: "Market Analysis" },
+      { id: "containers", icon: "📦", lbl: "Container Analysis" },
       { id: "cranes", icon: "🏗️", lbl: "QC Productivity" },
       { id: "operators", icon: "👥", lbl: "QC Operator Productivity" },
       { id: "delays", icon: "⏱️", lbl: "Delay & Downtime" },
@@ -1927,7 +1928,8 @@
       overview: "Operational Overview",
       berth: "Live Berth Status",
       vessels: "Vessel Performance",
-      market: "Market & Container Insights",
+      market: "Market Trend & Cargo Analysis",
+      containers: "Container Status & Size Mix",
       cranes: "QC Productivity Analysis",
       operators: "QC Operator Productivity",
       delays: "Delay & Downtime Analysis",
@@ -1975,14 +1977,19 @@
           {sec(C.red, "Delay Events")}
           <DelayAccordion data={delays} />
         </>}
-        {nav === "market" && (apiData?.market) && <>
-          <KpiStrip items={[{ lbl: "Moves", val: apiData.market.status.Full + apiData.market.status.Empty, ic: C.blue, icon: "📦", dl: "total", dlt: "pos", spark: sp.t }, { lbl: "Full %", val: `${Math.round(apiData.market.status.Full / (apiData.market.status.Full + apiData.market.status.Empty || 1) * 100)}%`, ic: C.purple, icon: "⚡", dl: "laden", dlt: "pos", spark: sp.t }, { lbl: "Imp Ratio", val: `${Math.round(apiData.market.cargo.Discharge / (apiData.market.cargo.Discharge + apiData.market.cargo.Load || 1) * 100)}%`, ic: C.cyan, icon: "📉", dl: "discharge", dlt: "pos", spark: sp.t }, { lbl: "40' Ratio", val: `${Math.round(apiData.market.size["40'"] / (apiData.market.size["20'"] + apiData.market.size["40'"] + apiData.market.size["45'"] || 1) * 100)}%`, ic: C.green, icon: "📏", dl: "large conts", dlt: "pos", spark: sp.t }]} />
+        {nav === "market" && <>
+          <KpiStrip items={[{ lbl: "Total Moves", val: Object.values(marketStats.cargo).reduce((a, b) => a + b, 0), ic: C.blue, icon: "📦", dl: "filtered", dlt: "pos", spark: sp.t }, { lbl: "Imp Ratio", val: `${Math.round((marketStats.cargo.Discharge || 0) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`, ic: C.cyan, icon: "📉", dl: "discharge", dlt: "pos", spark: sp.t }]} />
           {sec(C.blue, "Cargo Mix (Discharge/Load)")}
-          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px' }}><DonutChart data={apiData.market.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div></div>
-          {sec(C.purple, "Full vs Empty Status")}
-          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px' }}><DonutChart data={apiData.market.status} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div></div>
+          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px' }}><DonutChart data={marketStats.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div></div>
           {sec(C.cyan, "Market Volume Trend")}
-          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px', height: 200 }}><MarketTrendChart data={apiData.market.trends} theme={theme} /></div></div>
+          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px', height: 200 }}><MarketTrendChart data={marketStats.trends} theme={theme} /></div></div>
+        </>}
+        {nav === "containers" && <>
+          <KpiStrip items={[{ lbl: "Full %", val: `${Math.round(marketStats.status.Full / (marketStats.status.Full + marketStats.status.Empty || 1) * 100)}%`, ic: C.purple, icon: "⚡", dl: "laden", dlt: "pos", spark: sp.t }, { lbl: "40' Ratio", val: `${Math.round(marketStats.size["40'"] / (Object.values(marketStats.size).reduce((a, b) => a + b, 0) || 1) * 100)}%`, ic: C.green, icon: "📏", dl: "large units", dlt: "pos", spark: sp.t }]} />
+          {sec(C.purple, "Full vs Empty Status")}
+          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px' }}><DonutChart data={marketStats.status} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div></div>
+          {sec(C.cyan, "Container Size Distribution")}
+          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px' }}><DonutChart data={marketStats.size} theme={theme} label="Size" /></div></div>
         </>}
         {nav === "config" && <>
           <KpiStrip items={[{ lbl: "API", val: "OK", ic: C.green, icon: "✓", dl: "Healthy", dlt: "pos", spark: [1, 1, 1, 1, 1, 1, 1, 1] }, { lbl: "KPI Target", val: kt, unit: "M/h", ic: C.blue, icon: "🎯", dl: "target", dlt: "neu", spark: Array(8).fill(kt) }, { lbl: "Records", val: `${vessels.length}·${qcData.length}`, ic: C.purple, icon: "🗄", dl: "v·qc", dlt: "neu", spark: sp.v }, { lbl: "Last Load", val: new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }), ic: C.cyan, icon: "⏱", dl: "success", dlt: "pos", spark: [1, 1, 1, 1, 1, 1, 1, 1] }]} />
@@ -2234,6 +2241,40 @@
           return b;
         });
       }, [apiData, vessels]);
+
+      // --- Granular Market & Container Analysis Filtering ---
+      const marketData = useMemo(() => {
+        let res = apiData?.market ?? [];
+        if (fDateFrom || fDateTo) res = res.filter(m => {
+          if (!m["Report Date"]) return false;
+          if (fDateFrom && m["Report Date"] < fDateFrom) return false;
+          if (fDateTo && m["Report Date"] > fDateTo) return false;
+          return true;
+        });
+        if (fOp) res = res.filter(m => m["Operator"] === fOp);
+        if (fVessel) res = res.filter(m => m["Vessel Name"] === fVessel);
+        return res;
+      }, [apiData, fDateFrom, fDateTo, fOp, fVessel]);
+
+      const marketStats = useMemo(() => {
+        if (!marketData.length) return { cargo: {}, status: {}, size: {}, trends: [] };
+        const cargo = {}; const status = { Full: 0, Empty: 0 }; const size = { "20'": 0, "40'": 0, "45'": 0 };
+        const trendsRaw = {};
+
+        marketData.forEach(m => {
+          const opType = m.OperationType || "Unknown";
+          cargo[opType] = (cargo[opType] || 0) + m["Total Conts"];
+          status.Full += (m.Full || 0); status.Empty += (m.Empty || 0);
+          size["20'"] += (m.s20 || 0); size["40'"] += (m.s40 || 0); size["45'"] += (m.s45 || 0);
+
+          const dt = m["Report Date"];
+          if (dt) trendsRaw[dt] = (trendsRaw[dt] || 0) + m["Total Conts"];
+        });
+
+        const trends = Object.entries(trendsRaw).sort(([a], [b]) => a.localeCompare(b)).map(([date, volume]) => ({ date, volume })).slice(-12);
+
+        return { cargo, status, size, trends };
+      }, [marketData]);
 
       const operators = apiData?.operators ?? [];
       const sp = apiData?.spark ?? SP0;
@@ -2738,25 +2779,31 @@
                     </div>
                   </>)}
 
-                  {/* ═══ MARKET INSIGHTS ═══ */}
+                  {/* ═══ MARKET ANALYSIS (Cargo Mix) ═══ */}
                   {nav === "market" && (<>
-                    <div className="g3">
-                      <div className="card">
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix (Imp/Exp)</div></div>
-                        <div className="cb" style={{ height: 160 }}><DonutChart data={apiData?.market?.cargo || {}} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 20 }}>
+                      <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix [Imp/Exp]</div><Tooltip text="Percentage breakdown of Discharge (Import) vs Load (Export) operations." /></div>
+                        <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div>
                       </div>
                       <div className="card">
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Status Mix (Full/Empty)</div></div>
-                        <div className="cb" style={{ height: 160 }}><DonutChart data={apiData?.market?.status || {}} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div>
-                      </div>
-                      <div className="card">
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.cyan }} />Container Size Distribution</div></div>
-                        <div className="cb" style={{ height: 160 }}><DonutChart data={apiData?.market?.size || {}} theme={theme} customColors={{ "20'": C.cyan, "40'": C.green, "45'": C.blue }} label="Size" /></div>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Market Volume Trends (Market Fluctuation)</div><div className="tabs"><div className="tab ac">Weekly</div><div className="tab">Monthly</div></div></div>
+                        <div className="cb" style={{ height: 320 }}><MarketTrendChart data={marketStats.trends} theme={theme} /></div>
                       </div>
                     </div>
-                    <div className="card" style={{ flex: 1 }}>
-                      <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Market Volume Trends (Market Fluctuation)</div><div className="tabs"><div className="tab ac">Weekly</div><div className="tab">Monthly</div></div></div>
-                      <div className="cb" style={{ height: 300 }}><MarketTrendChart data={apiData?.market?.trends || []} theme={theme} /></div>
+                  </>)}
+
+                  {/* ═══ CONTAINER ANALYSIS (Status & Size) ═══ */}
+                  {nav === "containers" && (<>
+                    <div className="g2">
+                      <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Status Mix (Full/Empty)</div><Tooltip text="Analysis of Laden (Full) vs Empty container throughput." /></div>
+                        <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.status} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div>
+                      </div>
+                      <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.cyan }} />Container Size Distribution</div><Tooltip text="Market split across 20', 40', and 45' units." /></div>
+                        <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.size} theme={theme} customColors={{ "20'": C.cyan, "40'": C.green, "45'": C.blue }} label="Size" /></div>
+                      </div>
                     </div>
                   </>)}
 
