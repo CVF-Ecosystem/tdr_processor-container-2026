@@ -6,10 +6,8 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('dashboard.py', '.'),
-        ('dashboard_shared.py', '.'),
-        ('pages', 'pages'),
-        ('.streamlit', '.streamlit'),
+        ('dashboard_api.py', '.'),
+        ('dashboard.html', '.'),
         ('locales.json', '.'),
     ],
     hiddenimports=['watchdog', 'utils.watcher', 'schedule', 'ttkbootstrap', 'keyring'],

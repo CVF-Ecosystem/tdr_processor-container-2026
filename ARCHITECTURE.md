@@ -1,8 +1,8 @@
-# TDR Processor v3.0 - Architecture Documentation
+# TDR Processor v1.0 - Architecture Documentation
 
-**Version:** 3.0.0  
-**Last Updated:** December 2025  
-**Status:** Production Ready
+**Version:** v1.0  
+**Last Updated:** May 2026  
+**Status:** Conditionally Production Ready (Under Security & Architecture Remediation)
 
 ---
 
@@ -38,12 +38,11 @@
 
 ### Project Statistics
 
-
 Language:          Python 3.11+
 Lines of Code:     ~15,000
-Test Coverage:     62% (139 tests)
-Security Rating:   CRITICAL=0, HIGH=0, MEDIUM=0 (audited)
-Performance:       50-65% faster Excel I/O vs v2.1
+Test Coverage:     226 unit tests passing (100% pass rate)
+Security Rating:   UNDER REMEDIATION (P0 API Auth, SQLite WAL mode, Rate limiting pending)
+Performance:       High-performance optimized rendering with Light/Dark support
 
 
 ---

@@ -53,7 +53,7 @@ graph LR
 1. **Thu thập dữ liệu**: Đặt file TDR vào thư mục `data_input/`
 2. **Xử lý tự động**: Ứng dụng đọc, trích xuất, làm sạch và tổng hợp dữ liệu
 3. **Lưu trữ**: Kết quả được lưu vào SQLite database và CSV/Excel trong `outputs/`
-4. **Trực quan hóa**: Web Dashboard (Streamlit) hoặc REST API
+4. **Trực quan hóa**: Web Dashboard (Flask/React) hoặc REST API
 5. **Chia sẻ**: Xuất bản báo cáo hoặc kết nối Power BI
 
 ---
@@ -118,8 +118,8 @@ python main.py
 ### Chạy Web Dashboard
 
 ```bash
-streamlit run dashboard.py
-# Mở http://localhost:8501
+python dashboard_api.py
+# Mở http://localhost:8503
 ```
 
 ### Chạy REST API
@@ -194,7 +194,7 @@ curl "http://localhost:8000/api/export/vessel_summary" -o vessel_summary.csv
 ```yaml
 # docker-compose.yml
 services:
-  dashboard:  # Streamlit - port 8501
+  dashboard:  # Flask/React - port 8503
   api:        # FastAPI - port 8000
 ```
 
@@ -223,12 +223,12 @@ TDR_EMAIL_ENABLED=false
 
 ## 📊 Dashboard
 
-### Web Dashboard (Streamlit)
+### Web Dashboard (Flask / React)
 
-Mở Dashboard bằng nút **"📈 Open Web Dashboard"** trên GUI, hoặc chạy:
+Mở Dashboard bằng cách khởi động máy chủ Flask API:
 
 ```bash
-streamlit run dashboard.py
+python dashboard_api.py
 ```
 
 **8 Tabs phân tích:**
@@ -275,9 +275,9 @@ Xem [`plugins/README.md`](plugins/README.md) để biết thêm chi tiết.
 ```
 tdr_processor/
 ├── main.py               # GUI chính (Tkinter/ttkbootstrap)
-├── app.py                # Streamlit simple entrypoint
-├── api.py                # REST API (FastAPI)          ← NEW v3.1
-├── dashboard.py          # Web Dashboard (Streamlit)
+├── dashboard_api.py      # Web Dashboard API (Flask Server)
+├── api.py                # REST API (FastAPI)
+├── dashboard.html        # Web Dashboard UI (React Client)
 ├── core_processor.py     # Logic xử lý thuần (+ parallel)
 ├── config.py             # Cấu hình với dataclasses
 ├── data_extractors.py    # Trích xuất dữ liệu từ Excel

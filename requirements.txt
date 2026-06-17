@@ -15,10 +15,13 @@ Pillow>=10.0           # S4-3: Icon image generation
 tkinterdnd2>=0.3.0     # S4-10: Drag & Drop file support
 plyer>=2.1             # S4-11: Windows Toast notifications
 
-# Web Dashboard (Streamlit)
+# Web Dashboard (Streamlit — legacy, kept for reference)
 streamlit==1.45.1
 plotly==6.0.0
 streamlit-aggrid>=0.3.4
+
+# Web Dashboard (Flask — new dashboard_api.py)
+flask==3.1.1
 
 # REST API (NEW - v3.1)
 fastapi==0.115.0

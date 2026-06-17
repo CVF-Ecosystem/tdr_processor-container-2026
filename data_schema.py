@@ -36,7 +36,7 @@ except ImportError:
     logging.warning("pydantic not available. Runtime validation models disabled.")
 
 # Schema version - increment when changing column names or calculations
-SCHEMA_VERSION = "3.0.0"
+SCHEMA_VERSION = "1.0"
 
 
 class DataType(Enum):
@@ -233,15 +233,12 @@ def normalize_qc_name(qc_name: Any) -> str:
     
     name = str(qc_name).strip().upper()
     
-    # Remove spaces
-    name = name.replace(" ", "")
-    
-    # Handle patterns like GC1 -> GC01
+    # Extract letters and numbers
     import re
-    match = re.match(r'^([A-Z]+)(\d+)$', name)
-    if match:
-        prefix, number = match.groups()
-        return f"{prefix}{int(number):02d}"
+    letters = ''.join(re.findall(r'[A-Z]', name))
+    numbers = ''.join(re.findall(r'\d', name))
+    if letters and numbers:
+        return f"{letters}{int(numbers):02d}"
     
     return name
 

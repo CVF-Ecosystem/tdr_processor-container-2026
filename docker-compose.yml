@@ -3,7 +3,7 @@ version: "3.9"
 # TDR Processor - Docker Compose Configuration
 # 
 # Services:
-#   dashboard  - Streamlit web dashboard (port 8501)
+#   dashboard  - Flask web dashboard (port 8503)
 #   api        - FastAPI REST API (port 8000)
 #
 # Usage:
@@ -15,7 +15,7 @@ version: "3.9"
 
 services:
   # ============================================================================
-  # Streamlit Dashboard
+  # Flask Dashboard
   # ============================================================================
   dashboard:
     build:
@@ -23,7 +23,7 @@ services:
       target: dashboard
     container_name: tdr_dashboard
     ports:
-      - "8501:8501"
+      - "8503:8503"
     volumes:
       # Mount data directories for persistence
       - ./data_input:/app/data_input
@@ -34,7 +34,7 @@ services:
       - TDR_EMAIL_ENABLED=${TDR_EMAIL_ENABLED:-false}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8503/"]
       interval: 30s
       timeout: 10s
       retries: 3

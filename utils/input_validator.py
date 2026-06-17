@@ -235,8 +235,7 @@ def validate_smtp_port(port: int) -> Tuple[bool, str]:
     """
     Validate SMTP port number.
 
-    Accepts any valid TCP port in range 1-65535.
-    Common SMTP ports: 25, 587 (STARTTLS), 465 (SMTPS), 2525 (alternate).
+    Accepts standard SMTP ports: 25, 587 (STARTTLS), 465 (SMTPS), 2525 (alternate).
 
     Args:
         port: Port number to validate
@@ -258,6 +257,10 @@ def validate_smtp_port(port: int) -> Tuple[bool, str]:
 
     if not (1 <= port <= 65535):
         return False, "SMTP port must be between 1 and 65535"
+
+    allowed_ports = {25, 465, 587, 2525}
+    if port not in allowed_ports:
+        return False, "Invalid SMTP port. Allowed ports are 25, 465, 587, 2525"
 
     return True, ""
 

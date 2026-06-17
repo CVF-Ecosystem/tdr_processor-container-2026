@@ -390,7 +390,7 @@ class App(ttkb.Window):
             logging.error(f"Lỗi khi xử lý file Power BI: {e}", exc_info=True)
             messagebox.showerror("Lỗi", f"Không thể tạo hoặc mở file báo cáo Power BI.\nLỗi: {e}")
 
-    def _kill_existing_streamlit(self, port: int = 8501):
+    def _kill_existing_process(self, port: int = 8503):
         """Kill any process occupying the given port (Windows)."""
         try:
             result = subprocess.run(
@@ -406,56 +406,41 @@ class App(ttkb.Window):
         except Exception as e:
             logging.warning(f"[Dashboard] Không thể kill process cũ: {e}")
 
-    def _open_browser_after_delay(self, port: int = 8501):
+    def _open_browser_after_delay(self, port: int = 8503):
         """Open browser after a short delay using threading.Timer (non-blocking)."""
-        threading.Timer(3.0, webbrowser.open, args=[f"http://localhost:{port}"]).start()
+        token = os.environ.get("TDR_API_TOKEN", "tdr_secret_token_12345")
+        threading.Timer(3.0, webbrowser.open, args=[f"http://localhost:{port}/?token={token}"]).start()
 
     def open_web_dashboard(self):
-        dashboard_script = "dashboard.py"
-        if not Path(dashboard_script).exists():
+        dashboard_script = Path(__file__).parent / "dashboard_api.py"
+        if not dashboard_script.exists():
             messagebox.showerror("Lỗi", f"Không tìm thấy file dashboard: {dashboard_script}")
             return
 
-        logging.info("[Dashboard] Đang khởi chạy Web Dashboard...")
+        port = 8503
+        logging.info(f"[Dashboard] Đang khởi chạy Flask Dashboard trên cổng {port}...")
         try:
-            if hasattr(sys, '_MEIPASS'):
-                streamlit_executable = "streamlit"
-                use_module = False
-            else:
-                streamlit_executable = os.path.join(sys.prefix, 'Scripts', 'streamlit.exe')
-                if not os.path.exists(streamlit_executable):
-                    streamlit_executable = os.path.join(sys.prefix, 'bin', 'streamlit')
-                use_module = not os.path.exists(streamlit_executable)
-
             startupinfo = None
             if os.name == 'nt':
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-            port = 8501
-            self._kill_existing_streamlit(port)
+            self._kill_existing_process(port)
 
-            if use_module:
-                command = [
-                    sys.executable, "-m", "streamlit", "run", dashboard_script,
-                    "--server.headless", "true", "--server.enableCORS", "false",
-                    "--server.port", str(port)
-                ]
-            else:
-                command = [
-                    streamlit_executable, "run", dashboard_script,
-                    "--server.headless", "true", "--server.enableCORS", "false",
-                    "--server.port", str(port)
-                ]
+            command = [sys.executable, str(dashboard_script)]
+            env = os.environ.copy()
+            env["TDR_DASH_PORT"] = str(port)
+            env["TDR_API_TOKEN"] = os.environ.get("TDR_API_TOKEN", "tdr_secret_token_12345")
 
-            subprocess.Popen(command, startupinfo=startupinfo, cwd=str(Path(__file__).parent))
-            self.status_label.config(text="📈 Web Dashboard is running in the browser...")
-            # Open browser after 3 seconds using non-blocking Timer
+            subprocess.Popen(
+                command,
+                startupinfo=startupinfo,
+                cwd=str(Path(__file__).parent),
+                env=env,
+            )
+            self.status_label.config(text="📈 Web Dashboard đang chạy trên trình duyệt...")
             self._open_browser_after_delay(port)
 
-        except FileNotFoundError:
-            logging.error("Lỗi không tìm thấy lệnh 'streamlit'.")
-            messagebox.showerror("Lỗi", "Không tìm thấy lệnh 'streamlit'.\nVui lòng đảm bảo Streamlit đã được cài đặt đúng cách.")
         except Exception as e:
             logging.error(f"Lỗi khi khởi chạy dashboard: {e}", exc_info=True)
             messagebox.showerror("Lỗi", f"Không thể khởi chạy Web Dashboard.\nLỗi: {e}")
