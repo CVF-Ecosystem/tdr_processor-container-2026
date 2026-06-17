@@ -1765,6 +1765,84 @@
       return <canvas ref={ref} />;
     }
 
+    function MarketBarChart({ data, theme = "dark" }) {
+      const ref = useRef(null); const ch = useRef(null);
+      useEffect(() => {
+        if (!ref.current || !data?.length) return;
+        ch.current?.destroy();
+        const ctx = ref.current.getContext("2d");
+        const labels = data.map(d => d.op);
+        const isL = theme === "light";
+        const gridColor = isL ? "rgba(226,232,240,0.8)" : "rgba(20,36,56,.9)";
+        const tickColor = isL ? "#64748B" : "#94A3B8";
+
+        ch.current = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              { label: "Discharge", data: data.map(d => d.dis), backgroundColor: C.blue + "CC", borderRadius: 4 },
+              { label: "Load", data: data.map(d => d.load), backgroundColor: C.green + "CC", borderRadius: 4 }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "bottom", labels: { color: tickColor, boxWidth: 10, font: { size: 10 } } },
+              tooltip: { borderWidth: 1, borderColor: "var(--br)" }
+            },
+            scales: {
+              x: { stacked: true, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 9 } } },
+              y: { stacked: true, grid: { display: false }, ticks: { color: tickColor, font: { size: 10, weight: 600 } } }
+            }
+          }
+        });
+        return () => ch.current?.destroy();
+      }, [data, theme]);
+      return <canvas ref={ref} />;
+    }
+
+    function ContainerBarChart({ data, theme = "dark" }) {
+      const ref = useRef(null); const ch = useRef(null);
+      useEffect(() => {
+        if (!ref.current || !data?.length) return;
+        ch.current?.destroy();
+        const ctx = ref.current.getContext("2d");
+        const labels = data.map(d => d.op);
+        const isL = theme === "light";
+        const gridColor = isL ? "rgba(226,232,240,0.8)" : "rgba(20,36,56,.9)";
+        const tickColor = isL ? "#64748B" : "#94A3B8";
+
+        ch.current = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              { label: "Full (Laden)", data: data.map(d => d.full), backgroundColor: C.purple + "CC", borderRadius: 4 },
+              { label: "Empty", data: data.map(d => d.empty), backgroundColor: "#3D556E", borderRadius: 4 }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "bottom", labels: { color: tickColor, boxWidth: 10, font: { size: 10 } } },
+              tooltip: { borderWidth: 1, borderColor: "var(--br)" }
+            },
+            scales: {
+              x: { stacked: true, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 9 } } },
+              y: { stacked: true, grid: { display: false }, ticks: { color: tickColor, font: { size: 10, weight: 600 } } }
+            }
+          }
+        });
+        return () => ch.current?.destroy();
+      }, [data, theme]);
+      return <canvas ref={ref} />;
+    }
+
     function MarketTrendChart({ data, theme = "dark" }) {
       const ref = useRef(null); const ch = useRef(null);
       useEffect(() => {
@@ -2804,17 +2882,21 @@
                     <div className="kg k3" style={{ marginBottom: 20 }}>
                       <KpiCard lbl="Total Market Moves" val={Object.values(marketStats.cargo).reduce((a, b) => a + b, 0).toLocaleString()} ic={C.blue} icon="📦" dl="Total volume" dlt="pos" spark={sp.t} />
                       <KpiCard lbl="Import Ratio (Discharge)" val={`${Math.round((marketStats.cargo.Discharge || 0) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.cyan} icon="📉" dl="Market share" dlt="pos" spark={sp.t} />
-                      <KpiCard lbl="Export Ratio (Load)" val={`${Math.round((marketStats.cargo.Load || 0) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.green} icon="📈" dl="Market share" dlt="pos" spark={sp.t} />
+                      <KpiCard lbl="Export Ratio (Load)" val={`${Math.round((marketStats.cargo.Load || 0 || marketStats.cargo.Loading) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.green} icon="📈" dl="Market share" dlt="pos" spark={sp.t} />
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 20, marginBottom: 20 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 20, marginBottom: 20 }}>
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix [Discharge/Load]</div></div>
-                        <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix Dist.</div></div>
+                        <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Loading": C.green, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div>
                       </div>
                       <div className="card">
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Market Volume Trends (Market Fluctuation)</div><div className="tabs"><div className="tab ac">Weekly</div><div className="tab">Monthly</div></div></div>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Market Volume Trends</div><div className="tabs"><div className="tab ac">Weekly</div><div className="tab">Monthly</div></div></div>
                         <div className="cb" style={{ height: 260 }}><MarketTrendChart data={marketStats.trends} theme={theme} /></div>
+                      </div>
+                      <div className="card">
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.green }} />Carrier Volume Share</div></div>
+                        <div className="cb" style={{ height: 260 }}><MarketBarChart data={marketStats.byOp.slice(0, 8)} theme={theme} /></div>
                       </div>
                     </div>
 
@@ -2865,54 +2947,54 @@
                       <KpiCard lbl="40/45' (Large) Ratio" val={`${Math.round((marketStats.size["40'"] + marketStats.size["45'"]) / (Object.values(marketStats.size).reduce((a, b) => a + b, 0) || 1) * 100)}%`} ic={C.green} icon="📐" dl="Standard long" dlt="pos" spark={sp.t} />
                     </div>
 
-                    <div className="g2" style={{ marginBottom: 20 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 20, marginBottom: 20 }}>
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
                         <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Status Mix (Full/Empty)</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.status} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div>
+                      </div>
+                      <div className="card">
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Carrier Status Distribution (Laden vs Empty)</div></div>
+                        <div className="cb" style={{ height: 300 }}><ContainerBarChart data={marketStats.byOp.slice(0, 10)} theme={theme} /></div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 20 }}>
+                      <div className="card">
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Container Inventory Breakdown</div></div>
+                        <div className="tw">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Carrier</th>
+                                <th style={{ textAlign: "right" }}>Total</th>
+                                <th style={{ textAlign: "right" }}>Full</th>
+                                <th style={{ textAlign: "right" }}>20'</th>
+                                <th style={{ textAlign: "right" }}>40'</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {marketStats.byOp.slice(0, 6).map((o, i) => (
+                                <tr key={i}>
+                                  <td style={{ fontWeight: 600 }}>{o.op}</td>
+                                  <td style={{ textAlign: "right" }}>{o.total}</td>
+                                  <td style={{ textAlign: "right", color: C.purple }}>{o.full}</td>
+                                  <td style={{ textAlign: "right", color: C.cyan }}>{o.s20}</td>
+                                  <td style={{ textAlign: "right", color: C.green }}>{o.s40}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
                         <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.cyan }} />Container Size Distribution</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.size} theme={theme} customColors={{ "20'": C.cyan, "40'": C.green, "45'": C.blue }} label="Size" /></div>
                       </div>
                     </div>
-
-                    <div className="card">
-                      <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Container Inventory Breakdown by Carrier & Size</div><span style={{ fontSize: 9.5, color: "var(--t3)" }}>Detailed distribution</span></div>
-                      <div className="tw">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Shipping Line / Operator</th>
-                              <th style={{ textAlign: "right" }}>Total Units</th>
-                              <th style={{ textAlign: "right" }}>Full (Laden)</th>
-                              <th style={{ textAlign: "right" }}>Empty</th>
-                              <th style={{ textAlign: "right" }}>20'</th>
-                              <th style={{ textAlign: "right" }}>40'</th>
-                              <th style={{ textAlign: "right" }}>45'</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {marketStats.byOp.map((o, i) => (
-                              <tr key={i}>
-                                <td style={{ fontWeight: 600 }}>{o.op}</td>
-                                <td style={{ textAlign: "right" }}>{o.total.toLocaleString()}</td>
-                                <td style={{ textAlign: "right", color: C.purple }}>{o.full.toLocaleString()}</td>
-                                <td style={{ textAlign: "right", color: "var(--t3)" }}>{o.empty.toLocaleString()}</td>
-                                <td style={{ textAlign: "right", color: C.cyan }}>{o.s20.toLocaleString()}</td>
-                                <td style={{ textAlign: "right", color: C.green }}>{o.s40.toLocaleString()}</td>
-                                <td style={{ textAlign: "right", color: C.blue }}>{o.s45.toLocaleString()}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
                   </>)}
 
                   {/* ═══ CRANES ═══ */}
                   {nav === "cranes" && (() => {
-                    /* Crane selector — get unique crane IDs from qcData */
-                    const craneIds = ["ALL", ...Array.from(new Set(qcData.map(q => q.qc))).sort()];
 
                     const qcPerPage = 12;
                     const sortedQc = [...filteredQc].sort((a, b) => a.qc.localeCompare(b.qc) || (a.vessel || '').localeCompare(b.vessel || ''));
