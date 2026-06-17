@@ -1,8 +1,8 @@
 # TDR Processor — Development Roadmap
 
 > Cập nhật lần cuối: 2026-04-09  
-> Phiên bản hiện tại: **3.0.0**  
-> Trạng thái: Sprint 1 ✅ hoàn thành
+> Phiên bản hiện tại: **3.2.0**  
+> Trạng thái: Sprint 1–4 ✅ hoàn thành toàn bộ
 
 ---
 
@@ -246,6 +246,80 @@ if dark:
 
 ---
 
+### S4-5 · Tối ưu hóa Biểu đồ (Plotly Styling) *(Effort: Vừa | Impact: Cao)*
+
+**Vấn đề:** Biểu đồ Plotly mặc định thường có màu sắc ngẫu nhiên, viền khung rối mắt và tooltip hiển thị kiểu dữ liệu thô.
+
+**Giải pháp:** Thống nhất một `layout template` đồ thị cho toàn app (giấu grid lines, font chữ chuẩn, chuẩn hóa bảng màu, format số).
+
+**File cần sửa:** `dashboard_shared.py` (tạo hàm wrap trả về figure đã style)
+
+---
+
+### S4-6 · Nâng cấp Bảng dữ liệu tương tác (AgGrid) *(Effort: Vừa | Impact: Cao)*
+
+**Vấn đề:** Bảng dữ liệu mặc định của Streamlit hơi đơn điệu khi cần lọc (filter) hoặc ghim cột (pin column) với lượng dữ liệu lớn.
+
+**Giải pháp:** Dùng thư viện `streamlit-aggrid` tạo cảm giác giống Excel/Enterprise App: kéo thả cột, ghim cột, lọc trực tiếp trên header.
+
+**Thêm vào `requirements.txt`:** `streamlit-aggrid>=1.0.0`  
+**File cần sửa:** Các file chứa bảng trong `pages/*.py`
+
+---
+
+### S4-7 · Skeleton Loading & Trạng thái chờ *(Effort: Thấp | Impact: Vừa)*
+
+**Vấn đề:** Khi query dữ liệu lớn, web bị "đứng" hoặc hiện `st.spinner` xoay tròn khá đơn điệu.
+
+**Giải pháp:** Sử dụng `st.status()` để hiển thị các bước đang xử lý chi tiết, thêm placeholder text tránh giật cục UI.
+
+**File cần sửa:** Các `pages/*.py` có fetch data nặng
+
+---
+
+### S4-8 · Branding & Xóa rác giao diện (Clean UI) *(Effort: Thấp | Impact: Vừa)*
+
+**Vấn đề:** Dấu ấn Streamlit mặc định (menu góc phải, nút Deploy, footer) làm giảm độ chuyên nghiệp.
+
+**Giải pháp:** Dùng CSS để ẩn UI Streamlit mặc định, chèn Logo Công ty vào sidebar/header.
+
+**File cần sửa:** `dashboard_shared.py` / `.streamlit/config.toml`
+
+---
+
+### S4-9 · Hiện đại hóa Desktop UI (CustomTkinter) *(Effort: Vừa | Impact: Cao)*
+
+**Vấn đề:** Giao diện `tkinter` mặc định trông khá lỗi thời.
+
+**Giải pháp:** Áp dụng `customtkinter` hoặc theme `sv-ttk` (Sun Valley Theme) để mang lại giao diện bo góc, dark/light mode chuẩn Windows 11.
+
+**Thêm vào `requirements.txt`:** `customtkinter` hoặc `sv-ttk`  
+**File cần sửa:** `main.py`
+
+---
+
+### S4-10 · Vùng kéo-thả File (Drag & Drop Zone) *(Effort: Vừa | Impact: Cao)*
+
+**Vấn đề:** Người dùng phải bấm click để chọn file khá chậm.
+
+**Giải pháp:** Hỗ trợ kéo thả file/folder TDR trực tiếp vào màn hình Desktop app.
+
+**Thêm vào `requirements.txt`:** `tkinterdnd2`  
+**File cần sửa:** `main.py`
+
+---
+
+### S4-11 · Thông báo hệ thống (Windows Toast) *(Effort: Thấp | Impact: Vừa)*
+
+**Vấn đề:** Người dùng không biết khi nào xử lý file ngầm xong nếu đang mở tab khác.
+
+**Giải pháp:** Bắn popup notification hệ thống khi hoàn thành tác vụ dài.
+
+**Thêm vào `requirements.txt`:** `win11toast` hoặc `plyer`  
+**File cần sửa:** `main.py`
+
+---
+
 ## 📊 Ma trận ưu tiên
 
 | ID | Đề xuất | Effort | Impact | Sprint |
@@ -262,6 +336,13 @@ if dark:
 | S4-2 | Excel export đẹp | 🟡 Vừa | 🟡 Vừa | 4 |
 | S4-3 | System tray icon | 🟡 Vừa | 🟢 Thấp | 4 |
 | S4-4 | Dark mode toggle | 🟢 Thấp | 🟢 Thấp | 4 |
+| S4-5 | Tối ưu hóa Biểu đồ | 🟡 Vừa | 🔴 Cao | 4 |
+| S4-6 | Nâng cấp Bảng dữ liệu | 🟡 Vừa | 🔴 Cao | 4 |
+| S4-7 | Skeleton Loading | 🟢 Thấp | 🟡 Vừa | 4 |
+| S4-8 | Branding & Clean UI | 🟢 Thấp | 🟡 Vừa | 4 |
+| S4-9 | Hiện đại hóa Desktop UI | 🟡 Vừa | 🔴 Cao | 4 |
+| S4-10 | Vùng kéo-thả File | 🟡 Vừa | 🔴 Cao | 4 |
+| S4-11 | Thông báo hệ thống | 🟢 Thấp | 🟡 Vừa | 4 |
 
 ---
 
@@ -269,22 +350,29 @@ if dark:
 
 ```
 Sprint 2 (Quick wins):
-  [ ] S2-1: st.navigation() → dashboard.py
-  [ ] S2-2: @st.fragment → pages/*.py
-  [ ] S2-3: Progress bar → report_processor.py + main.py
-  [ ] S2-4: Locales fallback → dashboard_shared.py
+  [x] S2-1: st.navigation() → dashboard.py
+  [x] S2-2: @st.fragment → pages/*.py
+  [x] S2-3: Progress bar → report_processor.py + main.py  (đã có sẵn từ Sprint 1)
+  [x] S2-4: Locales fallback → dashboard_shared.py
 
 Sprint 3 (Architecture):
-  [ ] S3-1: SQLite migration → report_processor.py + dashboard_shared.py
-  [ ] S3-2: pydantic-settings → config.py + requirements.txt
-  [ ] S3-3: JSON logging → main.py + requirements.txt
-  [ ] S3-4: Async processing → core_processor.py (optional)
+  [x] S3-1: SQLite migration → report_processor.py + dashboard_shared.py
+  [x] S3-2: pydantic-settings → config.py + requirements.txt
+  [x] S3-3: JSON logging → logger_setup.py + requirements.txt
+  [ ] S3-4: Async processing → core_processor.py (optional — bỏ qua)
 
 Sprint 4 (Polish):
-  [ ] S4-1: KPI card CSS → dashboard_shared.py + dashboard.py
-  [ ] S4-2: Excel formatting → dashboard_shared.py
-  [ ] S4-3: System tray → main.py + requirements.txt
-  [ ] S4-4: Dark mode → dashboard_shared.py
+  [x] S4-1: KPI card CSS → dashboard_shared.py + dashboard.py
+  [x] S4-2: Excel formatting → dashboard_shared.py (_create_styled_excel)
+  [x] S4-3: System tray → main.py + requirements.txt (pystray + Pillow)
+  [x] S4-4: Dark mode → dashboard_shared.py (inject_global_css)
+  [x] S4-5: Tối ưu đồ thị Plotly → dashboard_shared.py (apply_chart_theme)
+  [x] S4-6: AgGrid Interactive Tables → pages/*.py (render_aggrid_table)
+  [x] S4-7: Loading states (st.status) → pages/*.py + dashboard.py
+  [x] S4-8: Custom Branding & Streamlit cleanup → dashboard_shared.py (inject_global_css)
+  [x] S4-9: Desktop UI hiện đại → ttkbootstrap đã đáp ứng (litera theme)
+  [x] S4-10: Drag & Drop files → main.py + requirements.txt (tkinterdnd2)
+  [x] S4-11: Windows Toast Notifications → main.py + requirements.txt (plyer)
 ```
 
 ---
