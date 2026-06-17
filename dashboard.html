@@ -2995,6 +2995,7 @@
 
                   {/* ═══ CRANES ═══ */}
                   {nav === "cranes" && (() => {
+                    const craneIds = ["ALL", ...Array.from(new Set(qcData.map(q => q.qc))).sort()];
 
                     const qcPerPage = 12;
                     const sortedQc = [...filteredQc].sort((a, b) => a.qc.localeCompare(b.qc) || (a.vessel || '').localeCompare(b.vessel || ''));
