@@ -2783,7 +2783,7 @@
                   {nav === "market" && (<>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 20 }}>
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix [Imp/Exp]</div><Tooltip text="Percentage breakdown of Discharge (Import) vs Load (Export) operations." /></div>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix [Imp/Exp]</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div>
                       </div>
                       <div className="card">
@@ -2797,11 +2797,11 @@
                   {nav === "containers" && (<>
                     <div className="g2">
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Status Mix (Full/Empty)</div><Tooltip text="Analysis of Laden (Full) vs Empty container throughput." /></div>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Status Mix (Full/Empty)</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.status} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div>
                       </div>
                       <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.cyan }} />Container Size Distribution</div><Tooltip text="Market split across 20', 40', and 45' units." /></div>
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.cyan }} />Container Size Distribution</div></div>
                         <div className="cb" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><DonutChart data={marketStats.size} theme={theme} customColors={{ "20'": C.cyan, "40'": C.green, "45'": C.blue }} label="Size" /></div>
                       </div>
                     </div>
