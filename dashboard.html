@@ -1841,7 +1841,7 @@
       return <canvas ref={ref} />;
     }
 
-    function ContainerBarChart({ data, theme = "dark" }) {
+    function ContainerBarChart({ data, theme = "dark", overrideColors = null }) {
       const ref = useRef(null); const ch = useRef(null);
       useEffect(() => {
         if (!ref.current || !data?.length) return;
@@ -1849,34 +1849,34 @@
         const ctx = ref.current.getContext("2d");
         const labels = data.map(d => d.op);
         const isL = theme === "light";
-        const gridColor = isL ? "rgba(226,232,240,0.8)" : "rgba(20,36,56,.9)";
         const tickColor = isL ? "#64748B" : "#94A3B8";
+        const gridColor = isL ? "rgba(226, 232, 240, 0.8)" : "rgba(20,36,56,.9)";
 
         ch.current = new Chart(ctx, {
           type: "bar",
           data: {
             labels,
             datasets: [
-              { label: "Full (Laden)", data: data.map(d => d.full), backgroundColor: C.blue + "CC", borderRadius: 4 },
-              { label: "Empty", data: data.map(d => d.empty), backgroundColor: "#3D556E", borderRadius: 4 }
+              { label: "Full (Laden)", data: data.map(d => d.full), backgroundColor: (overrideColors?.full || C.blue) + "CC", borderRadius: 4, barThickness: 12, maxBarThickness: 16 },
+              { label: "Empty", data: data.map(d => d.empty), backgroundColor: (overrideColors?.empty || "#3D556E") + "CC", borderRadius: 4, barThickness: 12, maxBarThickness: 16 }
             ]
           },
           options: {
-            indexAxis: 'y',
+            indexAxis: 'x',
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: "bottom", labels: { color: tickColor, boxWidth: 10, font: { size: 10 } } },
+              legend: { position: "bottom", labels: { color: tickColor, boxWidth: 10, font: { size: 10 }, usePointStyle: true, padding: 15 } },
               tooltip: { borderWidth: 1, borderColor: "var(--br)" }
             },
             scales: {
-              x: { stacked: true, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 9 } } },
-              y: { stacked: true, grid: { display: false }, ticks: { color: tickColor, font: { size: 10, weight: 600 } } }
+              x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 9, weight: 500 } } },
+              y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 9 } } }
             }
           }
         });
         return () => ch.current?.destroy();
-      }, [data, theme]);
+      }, [data, theme, overrideColors]);
       return <canvas ref={ref} />;
     }
 
@@ -1929,28 +1929,29 @@
         const labels = data.map(d => d.op);
         const isL = theme === "light";
         const tickColor = isL ? "#64748B" : "#94A3B8";
+        const gridColor = isL ? "rgba(226, 232, 240, 0.8)" : "rgba(20,36,56,.9)";
 
         ch.current = new Chart(ctx, {
           type: "bar",
           data: {
             labels,
             datasets: [
-              { label: "20'", data: data.map(d => d.s20), backgroundColor: C.cyan + "CC", borderRadius: 4 },
-              { label: "40'", data: data.map(d => d.s40), backgroundColor: C.blue + "CC", borderRadius: 4 },
-              { label: "45'", data: data.map(d => d.s45), backgroundColor: C.green + "CC", borderRadius: 4 }
+              { label: "20'", data: data.map(d => d.s20), backgroundColor: C.cyan + "CC", borderRadius: 3, barThickness: 10, maxBarThickness: 12 },
+              { label: "40'", data: data.map(d => d.s40), backgroundColor: C.blue + "CC", borderRadius: 3, barThickness: 10, maxBarThickness: 12 },
+              { label: "45'", data: data.map(d => d.s45), backgroundColor: C.teal + "CC", borderRadius: 3, barThickness: 10, maxBarThickness: 12 }
             ]
           },
           options: {
-            indexAxis: 'y',
+            indexAxis: 'x',
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: "bottom", labels: { color: tickColor, boxWidth: 8, font: { size: 9 } } },
+              legend: { position: "bottom", labels: { color: tickColor, boxWidth: 8, font: { size: 9 }, usePointStyle: true, padding: 12 } },
               tooltip: { borderWidth: 1, borderColor: "var(--br)" }
             },
             scales: {
-              x: { stacked: true, display: false },
-              y: { stacked: true, grid: { display: false }, ticks: { color: tickColor, font: { size: 10, weight: 600 } } }
+              x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 9 } } },
+              y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 9 } } }
             }
           }
         });
