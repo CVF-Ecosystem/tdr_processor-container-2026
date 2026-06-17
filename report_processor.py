@@ -228,16 +228,19 @@ class ReportProcessor:
             "vessel_summary":            config.VESSEL_MASTER_FILE,
             "qc_productivity":           config.QC_MASTER_FILE,
             "qc_operator_productivity":  config.QC_OPERATOR_MASTER_FILE,
+            "delay_events":              config.DELAY_MASTER_FILE,
             "delay_details":             config.DELAY_MASTER_FILE,
             "container_details_long":    config.CONTAINER_MASTER_LONG_FILE,
+            "container_details_wide":    config.CONTAINER_MASTER_WIDE_FILE,
         }
         try:
             con = sqlite3.connect(db_path)
             for table_name, excel_key in table_map.items():
                 if excel_key in final_dataframes and final_dataframes[excel_key] is not None:
                     df = final_dataframes[excel_key]
-                    df.to_sql(table_name, con, if_exists="replace", index=False)
-                    logging.info(f"[SQLite] Đã ghi bảng '{table_name}' — {len(df)} rows.")
+                    if not df.empty:
+                        df.to_sql(table_name, con, if_exists="replace", index=False)
+                        logging.info(f"[SQLite] Đã ghi bảng '{table_name}' — {len(df)} rows.")
             con.close()
             logging.info(f"[SQLite] Database đã được lưu tại: {db_path}")
         except Exception as e:

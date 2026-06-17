@@ -1765,6 +1765,45 @@
       return <canvas ref={ref} />;
     }
 
+    function MarketTrendChart({ data, theme = "dark" }) {
+      const ref = useRef(null); const ch = useRef(null);
+      useEffect(() => {
+        if (!ref.current || !data?.length) return;
+        ch.current?.destroy();
+        const isLight = theme === "light";
+        const tickColor = isLight ? "#64748B" : "#3D556E";
+        const gridColor = isLight ? "rgba(226, 232, 240, 0.8)" : "rgba(20,36,56,.9)";
+
+        ch.current = new Chart(ref.current.getContext("2d"), {
+          type: "line",
+          data: {
+            labels: data.map(d => d.date),
+            datasets: [{
+              label: "Total Volume (Conts)",
+              data: data.map(d => d.volume),
+              borderColor: C.blue,
+              backgroundColor: "rgba(59,130,246,.1)",
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: C.blue
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 9 } } },
+              y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 9 } } }
+            }
+          }
+        });
+        return () => ch.current?.destroy();
+      }, [data, theme]);
+      return <canvas ref={ref} />;
+    }
+
     function QCBarChart({ data, theme = "dark" }) {
       const ref = useRef(null); const ch = useRef(null);
       useEffect(() => {
@@ -1789,25 +1828,71 @@
       return <canvas ref={ref} />;
     }
 
-    function DonutChart({ data, theme = "dark" }) {
+    function DonutChart({ data, theme = "dark", customColors = null, label = "Total" }) {
       const ref = useRef(null); const ch = useRef(null);
-      const groups = useMemo(() => { const acc = {}; data.forEach(d => { acc[d.type] = (acc[d.type] || 0) + d.dur; }); return Object.entries(acc).map(([t, h]) => ({ t, h: Math.round(h * 100) / 100 })); }, [data]);
-      const clrs = { "Terminal Convenience": C.red, "Non-Terminal Convenience": C.amber, "Other/Force Majeure": C.purple };
+      const groups = useMemo(() => {
+        if (Array.isArray(data)) {
+          const acc = {}; data.forEach(d => { acc[d.type] = (acc[d.type] || 0) + d.dur; });
+          return Object.entries(acc).map(([t, h]) => ({ t, h: Math.round(h * 100) / 100 }));
+        } else {
+          return Object.entries(data).map(([t, h]) => ({ t, h }));
+        }
+      }, [data]);
+
+      const clrs = customColors || { "Terminal Convenience": C.red, "Non-Terminal Convenience": C.amber, "Other/Force Majeure": C.purple };
       const total = groups.reduce((s, g) => s + g.h, 0);
+
       useEffect(() => {
         if (!ref.current) return;
         ch.current?.destroy();
-
         const isLight = theme === "light";
         const ttBg = isLight ? "#FFFFFF" : "#121A2B";
         const ttBorder = isLight ? "#E2E8F0" : "#243048";
-        const ttTitle = isLight ? "#0F172A" : "#E8EFF8";
-        const ttBody = isLight ? "#334155" : "#8FA3BC";
 
-        ch.current = new Chart(ref.current.getContext("2d"), { type: "doughnut", data: { labels: groups.map(g => g.t), datasets: [{ data: groups.map(g => g.h), backgroundColor: groups.map(g => (clrs[g.t] || C.blue) + "BB"), borderColor: groups.map(g => clrs[g.t] || C.blue), borderWidth: 1.5, hoverOffset: 5 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: "72%", plugins: { legend: { display: false }, tooltip: { backgroundColor: ttBg, borderColor: ttBorder, borderWidth: 1, titleColor: ttTitle, bodyColor: ttBody, callbacks: { label: c => ` ${c.parsed.toFixed(2)}h (${((c.parsed / total) * 100).toFixed(0)}%)` } } } } });
+        ch.current = new Chart(ref.current.getContext("2d"), {
+          type: "doughnut",
+          data: {
+            labels: groups.map(g => g.t),
+            datasets: [{
+              data: groups.map(g => g.h),
+              backgroundColor: groups.map(g => (clrs[g.t] || C.blue) + "BB"),
+              borderColor: groups.map(g => clrs[g.t] || C.blue),
+              borderWidth: 1.5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "72%",
+            plugins: {
+              legend: { display: false },
+              tooltip: { backgroundColor: ttBg, borderColor: ttBorder, borderWidth: 1 }
+            }
+          }
+        });
         return () => ch.current?.destroy();
-      }, [groups, theme]);
-      return (<div style={{ display: "flex", gap: 14, alignItems: "center" }}><div style={{ position: "relative", width: 110, height: 110, flexShrink: 0 }}><canvas ref={ref} /><div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{total.toFixed(1)}</div><div style={{ fontSize: 8, color: "var(--t4)", marginTop: 1 }}>TOT HRS</div></div></div><div style={{ flex: 1 }}>{groups.map(g => (<div key={g.t} className="dl-i"><div className="dl-dot" style={{ background: clrs[g.t] || C.blue }} /><div className="dl-lbl">{g.t.replace(" Convenience", "")}</div><div className="dl-v">{g.h.toFixed(1)}h</div><div className="dl-p">{((g.h / total) * 100).toFixed(0)}%</div></div>))}</div></div>);
+      }, [groups, theme, clrs]);
+
+      return (
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div style={{ position: "relative", width: 100, height: 100, flexShrink: 0 }}>
+            <canvas ref={ref} />
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{total > 1000 ? (total / 1000).toFixed(1) + 'k' : total}</div>
+              <div style={{ fontSize: 7, color: "var(--t4)", marginTop: 1, textTransform: 'uppercase' }}>{label}</div>
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            {groups.map(g => (
+              <div key={g.t} className="dl-i" style={{ marginBottom: 4 }}>
+                <div className="dl-dot" style={{ background: clrs[g.t] || C.blue, width: 6, height: 6 }} />
+                <div className="dl-lbl" style={{ fontSize: 10 }}>{g.t}</div>
+                <div className="dl-v" style={{ fontSize: 10 }}>{g.h}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
     }
 
     function useMobile() { const [m, setM] = useState(() => window.innerWidth <= 768); useEffect(() => { const fn = () => setM(window.innerWidth <= 768); window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn); }, []); return m; }
@@ -1828,8 +1913,26 @@
       return (<div style={{ padding: '0 10px' }}>{sorted.map((d, i) => (<div key={d.id} className="acc"><div className="acc-hd" onClick={() => setOpen(open === i ? null : i)}><div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}><div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: ec[d.code] || C.red }} /><div style={{ minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.vessel}</div><div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1 }}>{d.qc} · {d.cat || '—'} · {d.from}–{d.to}</div></div></div><div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}><span style={{ color: d.dur >= 1 ? C.red : C.amber, fontWeight: 700, fontSize: 13 }}>{d.dur.toFixed(2)}h</span><ErrCodeBadge code={d.code} /><span style={{ fontSize: 11, color: 'var(--t4)' }}>{open === i ? '▲' : '▼'}</span></div></div>{open === i && (<div className="acc-bd"><div style={{ background: 'var(--bg3)', borderRadius: 6, padding: '9px 11px', marginBottom: 6, fontSize: 11 }}><Ebadge t={d.type} /></div><div className="acc-grid">{[['QC', d.qc], ['Stop Cat.', d.cat || '—'], ['From', d.from], ['To', d.to], ['Duration', `${d.dur.toFixed(2)}h`]].map(([k, v]) => (<div key={k} className="acc-cell"><div className="acc-cl">{k}</div><div className="acc-cv">{v}</div></div>))}</div></div>)}</div>))}</div>);
     }
 
-    const NAV = [{ id: "overview", icon: "◈", lbl: "Executive Overview" }, { id: "vessels", icon: "⛵", lbl: "Vessel Operations" }, { id: "cranes", icon: "⚙", lbl: "Crane Productivity" }, { id: "operators", icon: "👥", lbl: "QC Operator Productivity" }, { id: "delays", icon: "⏱", lbl: "Delay & Downtime" }, { id: "config", icon: "🛠", lbl: "Config & Logs" }];
-    const PT = { overview: "Executive Overview", vessels: "Vessel Schedules & Operations", cranes: "Crane Productivity & Performance", operators: "QC Operator Productivity", delays: "Delay & Downtime Analysis", config: "Configuration & System Logs" };
+    const NAV = [
+      { id: "overview", icon: "📊", lbl: "Operational Overview" },
+      { id: "berth", icon: "🛳️", lbl: "Live Berth Status" },
+      { id: "vessels", icon: "🚢", lbl: "Vessel Summary" },
+      { id: "market", icon: "📈", lbl: "Market Insights" },
+      { id: "cranes", icon: "🏗️", lbl: "QC Productivity" },
+      { id: "operators", icon: "👥", lbl: "QC Operator Productivity" },
+      { id: "delays", icon: "⏱️", lbl: "Delay & Downtime" },
+      { id: "config", icon: "🛠️", lbl: "Config & Logs" }
+    ];
+    const PT = {
+      overview: "Operational Overview",
+      berth: "Live Berth Status",
+      vessels: "Vessel Performance",
+      market: "Market & Container Insights",
+      cranes: "QC Productivity Analysis",
+      operators: "QC Operator Productivity",
+      delays: "Delay & Downtime Analysis",
+      config: "Configuration & System Logs"
+    };
 
     function MobileBottomNav({ nav, setNav, delayCount = 0 }) {
       return (<nav className="m-nav">{NAV.map(n => (<div key={n.id} className="m-nav-i" onClick={() => setNav(n.id)} style={{ color: nav === n.id ? C.blue : 'var(--t4)', background: nav === n.id ? 'rgba(59,130,246,.09)' : 'transparent' }}><span style={{ fontSize: 18, lineHeight: 1 }}>{n.icon}</span><span style={{ fontSize: 9, fontWeight: nav === n.id ? 600 : 400 }}>{n.lbl.split(' ')[0]}</span>{n.id === "delays" && delayCount > 0 && <div style={{ position: 'absolute', top: 4, right: 'calc(50% - 16px)', background: C.red, color: '#fff', fontSize: 7, fontWeight: 700, padding: '1px 4px', borderRadius: 8 }}>{delayCount}</div>}</div>))}</nav>);
@@ -1871,6 +1974,15 @@
           <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, overflowX: 'auto', padding: '10px 12px' }}><DelayGantt data={delays} /></div></div>
           {sec(C.red, "Delay Events")}
           <DelayAccordion data={delays} />
+        </>}
+        {nav === "market" && (apiData?.market) && <>
+          <KpiStrip items={[{ lbl: "Moves", val: apiData.market.status.Full + apiData.market.status.Empty, ic: C.blue, icon: "📦", dl: "total", dlt: "pos", spark: sp.t }, { lbl: "Full %", val: `${Math.round(apiData.market.status.Full / (apiData.market.status.Full + apiData.market.status.Empty || 1) * 100)}%`, ic: C.purple, icon: "⚡", dl: "laden", dlt: "pos", spark: sp.t }, { lbl: "Imp Ratio", val: `${Math.round(apiData.market.cargo.Discharge / (apiData.market.cargo.Discharge + apiData.market.cargo.Load || 1) * 100)}%`, ic: C.cyan, icon: "📉", dl: "discharge", dlt: "pos", spark: sp.t }, { lbl: "40' Ratio", val: `${Math.round(apiData.market.size["40'"] / (apiData.market.size["20'"] + apiData.market.size["40'"] + apiData.market.size["45'"] || 1) * 100)}%`, ic: C.green, icon: "📏", dl: "large conts", dlt: "pos", spark: sp.t }]} />
+          {sec(C.blue, "Cargo Mix (Discharge/Load)")}
+          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px' }}><DonutChart data={apiData.market.cargo} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div></div>
+          {sec(C.purple, "Full vs Empty Status")}
+          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px' }}><DonutChart data={apiData.market.status} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div></div>
+          {sec(C.cyan, "Market Volume Trend")}
+          <div style={{ padding: '0 10px 8px' }}><div style={{ background: 'var(--bg2)', border: '1px solid var(--br2)', borderRadius: 8, padding: '12px', height: 200 }}><MarketTrendChart data={apiData.market.trends} theme={theme} /></div></div>
         </>}
         {nav === "config" && <>
           <KpiStrip items={[{ lbl: "API", val: "OK", ic: C.green, icon: "✓", dl: "Healthy", dlt: "pos", spark: [1, 1, 1, 1, 1, 1, 1, 1] }, { lbl: "KPI Target", val: kt, unit: "M/h", ic: C.blue, icon: "🎯", dl: "target", dlt: "neu", spark: Array(8).fill(kt) }, { lbl: "Records", val: `${vessels.length}·${qcData.length}`, ic: C.purple, icon: "🗄", dl: "v·qc", dlt: "neu", spark: sp.v }, { lbl: "Last Load", val: new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }), ic: C.cyan, icon: "⏱", dl: "success", dlt: "pos", spark: [1, 1, 1, 1, 1, 1, 1, 1] }]} />
@@ -2623,6 +2735,28 @@
                     <div className="card" style={{ flex: 1 }}>
                       <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />All Vessel Records</div><span style={{ fontSize: 9.5, color: "var(--t3)" }}>{vessels.length} records</span></div>
                       <VesselTable data={vessels} perPage={20} />
+                    </div>
+                  </>)}
+
+                  {/* ═══ MARKET INSIGHTS ═══ */}
+                  {nav === "market" && (<>
+                    <div className="g3">
+                      <div className="card">
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Cargo Mix (Imp/Exp)</div></div>
+                        <div className="cb" style={{ height: 160 }}><DonutChart data={apiData?.market?.cargo || {}} theme={theme} customColors={{ "Discharge": C.blue, "Load": C.green, "Shifting": C.purple }} label="Moves" /></div>
+                      </div>
+                      <div className="card">
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.purple }} />Status Mix (Full/Empty)</div></div>
+                        <div className="cb" style={{ height: 160 }}><DonutChart data={apiData?.market?.status || {}} theme={theme} customColors={{ "Full": C.purple, "Empty": "#3D556E" }} label="Total" /></div>
+                      </div>
+                      <div className="card">
+                        <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.cyan }} />Container Size Distribution</div></div>
+                        <div className="cb" style={{ height: 160 }}><DonutChart data={apiData?.market?.size || {}} theme={theme} customColors={{ "20'": C.cyan, "40'": C.green, "45'": C.blue }} label="Size" /></div>
+                      </div>
+                    </div>
+                    <div className="card" style={{ flex: 1 }}>
+                      <div className="ch"><div className="ct"><div className="cdot" style={{ background: C.blue }} />Market Volume Trends (Market Fluctuation)</div><div className="tabs"><div className="tab ac">Weekly</div><div className="tab">Monthly</div></div></div>
+                      <div className="cb" style={{ height: 300 }}><MarketTrendChart data={apiData?.market?.trends || []} theme={theme} /></div>
                     </div>
                   </>)}
 

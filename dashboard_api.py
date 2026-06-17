@@ -485,6 +485,49 @@ def _build_sparklines(df_vessel: pd.DataFrame, df_delay: pd.DataFrame) -> dict:
     return sp
 
 
+def _build_market_stats(df_vessel: pd.DataFrame, df_cont: pd.DataFrame) -> dict:
+    if df_cont.empty:
+        return {"cargo": {"Discharge": 0, "Load": 0}, "status": {"Full": 0, "Empty": 0}, "size": {"20'": 0, "40'": 0, "45'": 0}, "trends": []}
+    
+    # 1. Cargo Mix (OperationType)
+    cargo = df_cont.groupby("OperationType")["Total Conts"].sum().to_dict()
+    
+    # 2. Status Mix (Full vs Empty)
+    full_cols = [c for c in df_cont.columns if "Full" in c or "Laden" in c]
+    empty_cols = [c for c in df_cont.columns if "Empty" in c]
+    status = {
+        "Full":  int(df_cont[full_cols].sum().sum()),
+        "Empty": int(df_cont[empty_cols].sum().sum())
+    }
+    
+    # 3. Size Mix (20/40/45)
+    s20 = [c for c in df_cont.columns if "_20" in c]
+    s40 = [c for c in df_cont.columns if "_40" in c]
+    s45 = [c for c in df_cont.columns if "_45" in c]
+    size = {
+        "20'": int(df_cont[s20].sum().sum()),
+        "40'": int(df_cont[s40].sum().sum()),
+        "45'": int(df_cont[s45].sum().sum())
+    }
+    
+    # 4. Trends (per Report Date)
+    trends = []
+    if not df_vessel.empty and "Report Date" in df_vessel.columns:
+        # Link container stats to vessel dates
+        merged = df_cont.merge(df_vessel[["Vessel Name", "Voyage", "Report Date", "Operator"]], on=["Vessel Name", "Voyage"], how="left")
+        merged["Report Date"] = pd.to_datetime(merged["Report Date"], errors="coerce").dt.strftime("%Y-%m-%d")
+        daily = merged.groupby("Report Date")["Total Conts"].sum().reset_index()
+        daily = daily.sort_values("Report Date").tail(12) # last 12 periods
+        trends = daily.rename(columns={"Report Date": "date", "Total Conts": "volume"}).to_dict("records")
+        
+    return {
+        "cargo": cargo,
+        "status": status,
+        "size": size,
+        "trends": trends
+    }
+
+
 def _build_feed(df_vessel: pd.DataFrame, df_delay: pd.DataFrame, df_qc: pd.DataFrame) -> list:
     now = datetime.now().strftime("%H:%M:%S")
     feed = []
@@ -570,6 +613,7 @@ def api_data():
     df_vessel = _load_table("vessel_summary")
     df_qc     = _load_table("qc_productivity")
     df_qc_op  = _load_table("qc_operator_productivity")
+    df_cont   = _load_table("container_details_wide") # New table
     df_delay  = _load_table("delay_events")
     if df_delay.empty:
         df_delay = _load_table("delay_details")
@@ -589,6 +633,7 @@ def api_data():
     operators  = _build_operators(df_vessel)
     spark      = _build_sparklines(df_vessel, df_delay)
     feed       = _build_feed(df_vessel, df_delay, df_qc)
+    market     = _build_market_stats(df_vessel, df_cont) # New stats
 
     report_date = ""
     if not df_vessel.empty and "Report Date" in df_vessel.columns:
@@ -604,6 +649,7 @@ def api_data():
         "berths":     berths,
         "delays":     delays,
         "operators":  operators,
+        "market":     market, # New data
         "spark":      spark,
         "feed":       feed,
         "meta": {
