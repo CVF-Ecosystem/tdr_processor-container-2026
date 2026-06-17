@@ -522,9 +522,9 @@ def _build_market_stats(df_vessel: pd.DataFrame, df_cont: pd.DataFrame) -> list:
         
         merged = res.merge(v_meta, on=["Vessel Name", "Voyage"], how="left")
         merged["Report Date"] = pd.to_datetime(merged["Report Date"], errors="coerce").dt.strftime("%Y-%m-%d")
-        return merged.to_dict("records")
+        return merged.fillna("").to_dict("records")
         
-    return res.to_dict("records")
+    return res.fillna("").to_dict("records")
 
 
 def _build_feed(df_vessel: pd.DataFrame, df_delay: pd.DataFrame, df_qc: pd.DataFrame) -> list:
