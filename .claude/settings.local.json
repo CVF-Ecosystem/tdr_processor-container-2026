@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -c \"from pythonjsonlogger import jsonlogger; from pydantic_settings import BaseSettings; print\\('OK'\\)\")",
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(C:\\\\Users\\\\tiennm.tt\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python312\\\\python.exe -m pip install \"python-json-logger>=2.0\" \"pydantic-settings>=2.0\")",
+      "Bash(python -m pip install \"python-json-logger>=2.0\" \"pydantic-settings>=2.0\")",
+      "Bash(python -c ':*)",
+      "Bash(python -m pip install \"streamlit-aggrid>=0.3.4\" \"pystray>=0.19\" \"Pillow>=10.0\" \"plyer>=2.1\" -q)",
+      "Bash(python -c \"import pystray; from PIL import Image; print\\('pystray+PIL OK'\\)\")",
+      "Bash(python -c \"from plyer import notification; print\\('plyer OK'\\)\")",
+      "Bash(python -c \"from st_aggrid import AgGrid; print\\('aggrid OK'\\)\")",
+      "Bash(python -m pip install \"tkinterdnd2>=0.3.0\" -q)",
+      "Bash(python -c \"from tkinterdnd2 import DND_FILES; print\\('tkdnd OK'\\)\")"
+    ]
+  }
+}

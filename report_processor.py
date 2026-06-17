@@ -1,4 +1,5 @@
 import logging
+import sqlite3
 import threading
 from pathlib import Path
 import pandas as pd
@@ -240,6 +241,28 @@ class ReportProcessor:
         
         return df_container_long_filtered, df_container_wide
 
+    def _save_sqlite(self, final_dataframes: dict) -> None:
+        """Ghi tất cả master DataFrames vào SQLite (thay thế toàn bộ — dữ liệu đã được merge đầy đủ)."""
+        db_path = self.output_dir / "tdr_master.db"
+        table_map = {
+            "vessel_summary":            config.VESSEL_MASTER_FILE,
+            "qc_productivity":           config.QC_MASTER_FILE,
+            "qc_operator_productivity":  config.QC_OPERATOR_MASTER_FILE,
+            "delay_details":             config.DELAY_MASTER_FILE,
+            "container_details_long":    config.CONTAINER_MASTER_LONG_FILE,
+        }
+        try:
+            con = sqlite3.connect(db_path)
+            for table_name, excel_key in table_map.items():
+                if excel_key in final_dataframes and final_dataframes[excel_key] is not None:
+                    df = final_dataframes[excel_key]
+                    df.to_sql(table_name, con, if_exists="replace", index=False)
+                    logging.info(f"[SQLite] Đã ghi bảng '{table_name}' — {len(df)} rows.")
+            con.close()
+            logging.info(f"[SQLite] Database đã được lưu tại: {db_path}")
+        except Exception as e:
+            logging.error(f"[SQLite] Lỗi khi ghi database: {e}", exc_info=True)
+
     def _save_csv_files(self, final_dataframes: dict):
         logging.info("Bắt đầu chuyển đổi tất cả master data sang CSV...")
         csv_map = {
@@ -330,8 +353,9 @@ class ReportProcessor:
                 if final_df is not None:
                     final_dataframes_for_csv[filename] = final_df
 
-        # --- Bước 4: Ghi file CSV ---
+        # --- Bước 4: Ghi file CSV + SQLite ---
         self._save_csv_files(final_dataframes_for_csv)
+        self._save_sqlite(final_dataframes_for_csv)
         self._save_skipped_log()
 
         msg = f"Xử lý hoàn tất!\nĐã cập nhật dữ liệu vào thư mục:\n{self.data_excel_dir}"

@@ -10,10 +10,15 @@ XlsxWriter==3.2.3
 
 # Desktop GUI
 ttkbootstrap==1.13.8
+pystray>=0.19          # S4-3: System tray icon
+Pillow>=10.0           # S4-3: Icon image generation
+tkinterdnd2>=0.3.0     # S4-10: Drag & Drop file support
+plyer>=2.1             # S4-11: Windows Toast notifications
 
 # Web Dashboard (Streamlit)
 streamlit==1.45.1
 plotly==6.0.0
+streamlit-aggrid>=0.3.4
 
 # REST API (NEW - v3.1)
 fastapi==0.115.0
@@ -22,6 +27,10 @@ httpx==0.27.0  # For API testing
 
 # Data Validation (NEW - v3.1)
 pydantic==2.7.0
+pydantic-settings>=2.0
+
+# Structured Logging (NEW - v3.2)
+python-json-logger>=2.0
 
 # Email & Notifications
 python-dotenv==1.0.0

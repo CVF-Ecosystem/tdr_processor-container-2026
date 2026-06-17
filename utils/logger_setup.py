@@ -33,56 +33,43 @@ except ImportError:
 
 
 def setup_logging():
-    """
-    Configure logging for the entire TDR Processor application.
-    
-    Sets up file-based logging with the following features:
-    - Reads configuration from config.py (LOG_FILENAME, LOG_LEVEL, LOG_FORMAT, LOG_DATE_FORMAT)
-    - Removes old handlers to prevent duplicate log entries
-    - Creates log file in UTF-8 encoding
-    - Overwrites log file on each run (filemode='w')
-    - Logs setup confirmation with configured log level and file path
-    - Adds session separator for each execution run
-    
-    Log Levels Supported:
-        DEBUG, INFO, WARNING, ERROR, CRITICAL (case-insensitive)
-    
-    Returns:
-        None (configures logging module globally)
-    
-    Example:
-        >>> setup_logging()
-        # Logs: "Logging được thiết lập. Mức log: INFO. File log: tdr_processor.log"
-    
-    Note:
-        This function should be called once at application startup.
-        Calling it multiple times is safe due to handler cleanup.
-    """
+    """Configure logging: plain-text file + JSON structured file (python-json-logger)."""
     log_file_path = Path(config.LOG_FILENAME)
-    log_level_from_config_str = config.LOG_LEVEL.upper()
-    log_level = getattr(logging, log_level_from_config_str, logging.INFO)
+    json_log_path = log_file_path.with_suffix(".json.log")
+    log_level_str = config.LOG_LEVEL.upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
 
-    # Xóa các handlers cũ để tránh log bị nhân đôi khi gọi lại hàm này
-    # (Hữu ích nếu bạn có các kịch bản phức tạp hơn)
+    # Xóa handlers cũ tránh duplicate
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    logging.basicConfig(
-        filename=log_file_path,
-        level=log_level,
-        format=config.LOG_FORMAT,
-        datefmt=config.LOG_DATE_FORMAT,
-        filemode='w',       # <<< THAY ĐỔI: 'w' để ghi đè (tạo mới) mỗi lần chạy
-        encoding='utf-8'    # <<< THÊM MỚI: Chỉ định mã hóa UTF-8
-    )
-    
-    # === ENHANCED SESSION LOGGING ===
-    # Add session separator to clearly identify each execution run
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # --- Handler 1: Plain-text (giữ nguyên như cũ) ---
+    plain_handler = logging.FileHandler(log_file_path, mode='w', encoding='utf-8')
+    plain_handler.setLevel(log_level)
+    plain_handler.setFormatter(logging.Formatter(config.LOG_FORMAT, datefmt=config.LOG_DATE_FORMAT))
+    root_logger.addHandler(plain_handler)
+
+    # --- Handler 2: JSON structured log (python-json-logger) ---
+    try:
+        from pythonjsonlogger import jsonlogger  # type: ignore[import]
+        json_handler = logging.FileHandler(json_log_path, mode='w', encoding='utf-8')
+        json_handler.setLevel(log_level)
+        json_handler.setFormatter(
+            jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(name)s %(module)s %(funcName)s %(message)s')
+        )
+        root_logger.addHandler(json_handler)
+    except ImportError:
+        pass  # python-json-logger chưa cài — chỉ dùng plain text
+
+    # Session banner
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     logging.info("=" * 100)
     logging.info(f"🚀 NEW SESSION STARTED: {current_time}")
     logging.info("=" * 100)
-    logging.info(f"Logging được thiết lập. Mức log: {log_level_from_config_str}. File log: {log_file_path}")
+    logging.info(f"Logging được thiết lập. Mức log: {log_level_str}. File log: {log_file_path}")
     logging.info(f"Python version: {__import__('sys').version}")
     logging.info(f"Working directory: {Path.cwd()}")
     logging.info("-" * 100)
