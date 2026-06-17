@@ -2446,10 +2446,19 @@
         });
 
         const trends = Object.entries(trendsRaw).sort(([a], [b]) => a.localeCompare(b)).map(([date, volume]) => ({ date, volume })).slice(-12);
+
+        // Monthly trend aggregation
+        const monthlyRaw = {};
+        Object.entries(trendsRaw).forEach(([date, volume]) => {
+          const month = date.substring(0, 7); // "YYYY-MM"
+          monthlyRaw[month] = (monthlyRaw[month] || 0) + volume;
+        });
+        const trendsMonthly = Object.entries(monthlyRaw).sort(([a], [b]) => a.localeCompare(b)).map(([date, volume]) => ({ date, volume })).slice(-6);
+
         const byOp = Object.values(ops).sort((a, b) => b.total - a.total);
         const byVessel = Object.values(vsls).sort((a, b) => b.total - a.total);
 
-        return { cargo, status, size, trends, byOp, byVessel };
+        return { cargo, status, size, trends, trendsMonthly, byOp, byVessel };
       }, [marketData]);
 
       const operators = apiData?.operators ?? [];
