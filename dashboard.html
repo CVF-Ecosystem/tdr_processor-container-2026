@@ -2277,13 +2277,13 @@
           if (!ops[op]) ops[op] = { op, total: 0, dis: 0, load: 0, full: 0, empty: 0, s20: 0, s40: 0, s45: 0 };
           ops[op].total += total; ops[op].full += full; ops[op].empty += empty;
           ops[op].s20 += s20; ops[op].s40 += s40; ops[op].s45 += s45;
-          if (opType === "Discharge") ops[op].dis += total; else if (opType === "Load") ops[op].load += total;
+          if (opType === "Discharge") ops[op].dis += total; else if (opType === "Load" || opType === "Loading") ops[op].load += total;
 
           // Vessel summary
           if (!vsls[v]) vsls[v] = { v, total: 0, dis: 0, load: 0, full: 0, empty: 0, s20: 0, s40: 0, s45: 0 };
           vsls[v].total += total; vsls[v].full += full; vsls[v].empty += empty;
           vsls[v].s20 += s20; vsls[v].s40 += s40; vsls[v].s45 += s45;
-          if (opType === "Discharge") vsls[v].dis += total; else if (opType === "Load") vsls[v].load += total;
+          if (opType === "Discharge") vsls[v].dis += total; else if (opType === "Load" || opType === "Loading") vsls[v].load += total;
 
           const dt = m["Report Date"];
           if (dt) trendsRaw[dt] = (trendsRaw[dt] || 0) + total;
