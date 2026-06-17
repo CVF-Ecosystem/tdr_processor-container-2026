@@ -643,9 +643,9 @@
     }
 
     .card {
-      background: var(--bg2);
+      background: var(--bg1);
       border: 1px solid var(--br2);
-      border-radius: 8px;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
       min-height: 0;
@@ -836,24 +836,25 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11px
+      font-size: 11.5px;
+      letter-spacing: -0.1px
     }
 
     thead th {
       position: sticky;
       top: 0;
       z-index: 10;
-      padding: 6px 9px;
+      padding: 10px 12px;
       background: var(--bg2);
       color: var(--t4);
-      font-weight: 500;
-      font-size: 9.5px;
+      font-weight: 700;
+      font-size: 9px;
       text-transform: uppercase;
-      letter-spacing: .5px;
+      letter-spacing: 0.8px;
       text-align: left;
       white-space: nowrap;
       cursor: pointer;
-      border-bottom: 1px solid var(--br2);
+      border-bottom: 2px solid var(--br2);
       user-select: none;
       transition: color .12s
     }
@@ -874,11 +875,12 @@
 
     tbody tr {
       border-bottom: 1px solid var(--br);
-      transition: background .08s
+      transition: background-color .15s ease;
+      background: var(--bg1)
     }
 
     tbody tr:hover {
-      background: rgba(59, 130, 246, .04)
+      background-color: rgba(59, 130, 246, 0.04) !important
     }
 
     tbody tr:last-child {
@@ -886,14 +888,15 @@
     }
 
     td {
-      padding: 5px 9px;
+      padding: 10px 12px;
       color: var(--t2);
-      white-space: nowrap
+      white-space: nowrap;
+      vertical-align: middle
     }
 
     .tb {
       color: var(--t1);
-      font-weight: 600
+      font-weight: 700
     }
 
     .tr {
@@ -1534,7 +1537,7 @@
       const sorted = useMemo(() => [...data].sort((a, b) => { let va = a[col], vb = b[col]; if (va == null) va = dir === "asc" ? Infinity : -Infinity; if (vb == null) vb = dir === "asc" ? Infinity : -Infinity; if (typeof va === "string") return dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va); return dir === "asc" ? va - vb : vb - va; }), [data, col, dir]);
       const rows = sorted.slice(pg * perPage, (pg + 1) * perPage); const pages = Math.ceil(data.length / perPage);
       const Th = ({ c, l, r }) => <th className={col === c ? (dir === "asc" ? "sa" : "sd") : ""} onClick={() => { if (col === c) setDir(d => d === "asc" ? "desc" : "asc"); else { setCol(c); setDir("asc"); } setPg(0); }} style={r ? { textAlign: "right" } : {}}>{l}</th>;
-      return (<><div className="tw"><table><thead><tr><th style={{ width: 12 }}></th><Th c="name" l="Vessel" /><Th c="voyage" l="Voyage" /><Th c="op" l="Operator" /><Th c="berth" l="Berth" /><Th c="ata" l="ATB" r /><Th c="atd" l="ATD" r /><Th c="portstay" l="Portstay h" r /><Th c="net" l="Net Wk h" r /><Th c="cranes" l="Cranes" r /><Th c="ci" l="CI" r /><Th c="gmph" l="GMPH" r /><Th c="nmph" l="NMPH" r /><Th c="dis" l="Disch." r /><Th c="load" l="Load" r /><Th c="conts" l="Conts" r /><Th c="teus" l="TEUs" r /></tr></thead><tbody>{rows.map(v => (<tr key={v.id}><td style={{ padding: "5px 6px" }}><div style={{ width: 6, height: 6, borderRadius: "50%", background: v.nmph >= KPI_TARGET ? C.green : C.red }} /></td><td className="tb">{v.name}</td><td className="tm" style={{ color: "var(--t3)" }}>{v.voyage}</td><td>{v.op}</td><td><span className="tm" style={{ color: C.blue }}>{v.berth}</span></td><td className="tr tm">{v.ata || "—"}</td><td className="tr tm" style={{ color: "var(--t3)" }}>{v.atd || "—"}</td><td className="tr">{v.portstay != null ? v.portstay.toFixed(1) : "—"}</td><td className="tr">{v.net.toFixed(1)}</td><td className="tr">{v.cranes}</td><td className="tr" style={{ color: "var(--t3)" }}>{v.ci.toFixed(1)}</td><td className="tr">{v.gmph.toFixed(1)}</td><td className="tr"><div className="kd"><div className="kd-dot" style={{ background: v.nmph >= KPI_TARGET ? C.green : C.red }} /><span style={{ color: v.nmph >= KPI_TARGET ? C.green : C.red, fontWeight: 700 }}>{v.nmph.toFixed(1)}</span></div></td><td className="tr">{v.dis.toLocaleString()}</td><td className="tr">{v.load.toLocaleString()}</td><td className="tr tb">{v.conts.toLocaleString()}</td><td className="tr" style={{ color: "var(--t2)" }}>{v.teus.toLocaleString()}</td></tr>))}</tbody></table></div><div className="pgr"><span className="pgi">{pg * perPage + 1}–{Math.min((pg + 1) * perPage, data.length)} of {data.length} · <span style={{ color: C.green }}>{data.filter(v => v.nmph >= KPI_TARGET).length} above KPI</span> · <span style={{ color: C.red }}>{data.filter(v => v.nmph < KPI_TARGET).length} below</span></span><button className="pb" onClick={() => setPg(p => p - 1)} disabled={pg === 0}>‹</button>{renderPageButtons(pg, pages, setPg)}<button className="pb" onClick={() => setPg(p => p + 1)} disabled={pg >= pages - 1}>›</button></div></>);
+      return (<><div className="tw"><table><thead><tr><th style={{ width: 12 }}></th><Th c="name" l="Vessel" /><Th c="voyage" l="Voyage" /><Th c="op" l="Operator" /><Th c="berth" l="Berth" /><Th c="ata" l="ATB" r /><Th c="atd" l="ATD" r /><Th c="portstay" l="Portstay h" r /><Th c="net" l="Net Wk h" r /><Th c="cranes" l="Cranes" r /><Th c="ci" l="VMPH" r /><Th c="gmph" l="GMPH" r /><Th c="nmph" l="NMPH" r /><Th c="dis" l="Disch." r /><Th c="load" l="Load" r /><Th c="conts" l="Conts" r /><Th c="teus" l="TEUs" r /></tr></thead><tbody>{rows.map(v => (<tr key={v.id}><td style={{ padding: "5px 6px" }}><div style={{ width: 6, height: 6, borderRadius: "50%", background: v.nmph >= KPI_TARGET ? C.green : C.red }} /></td><td className="tb">{v.name}</td><td className="tm" style={{ color: "var(--t3)" }}>{v.voyage}</td><td>{v.op}</td><td><span className="tm" style={{ color: C.blue }}>{v.berth}</span></td><td className="tr tm">{v.ata || "—"}</td><td className="tr tm" style={{ color: "var(--t3)" }}>{v.atd || "—"}</td><td className="tr">{v.portstay != null ? v.portstay.toFixed(1) : "—"}</td><td className="tr">{v.net.toFixed(1)}</td><td className="tr">{v.cranes}</td><td className="tr" style={{ color: "var(--t3)" }}>{v.ci.toFixed(1)}</td><td className="tr">{v.gmph.toFixed(1)}</td><td className="tr"><div className="kd"><div className="kd-dot" style={{ background: v.nmph >= KPI_TARGET ? C.green : C.red }} /><span style={{ color: v.nmph >= KPI_TARGET ? C.green : C.red, fontWeight: 700 }}>{v.nmph.toFixed(1)}</span></div></td><td className="tr">{v.dis.toLocaleString()}</td><td className="tr">{v.load.toLocaleString()}</td><td className="tr tb">{v.conts.toLocaleString()}</td><td className="tr" style={{ color: "var(--t2)" }}>{v.teus.toLocaleString()}</td></tr>))}</tbody></table></div><div className="pgr"><span className="pgi">{pg * perPage + 1}–{Math.min((pg + 1) * perPage, data.length)} of {data.length} · <span style={{ color: C.green }}>{data.filter(v => v.nmph >= KPI_TARGET).length} above KPI</span> · <span style={{ color: C.red }}>{data.filter(v => v.nmph < KPI_TARGET).length} below</span></span><button className="pb" onClick={() => setPg(p => p - 1)} disabled={pg === 0}>‹</button>{renderPageButtons(pg, pages, setPg)}<button className="pb" onClick={() => setPg(p => p + 1)} disabled={pg >= pages - 1}>›</button></div></>);
     }
 
     function DelayTable({ data, perPage = 12 }) {
@@ -1565,9 +1568,107 @@
     }
 
     function BerthMap({ berths }) {
-      const sc = { Berthed: C.blue, Available: "#1E293B", Anchored: C.amber }; const sb = { Berthed: C.blue, Available: "#243048", Anchored: C.amber };
-      const displayBerths = berths;
-      return (<div className="bmap"><div style={{ position: "relative", marginBottom: 10 }}><div style={{ height: 2, background: "linear-gradient(90deg,transparent,#3B82F6,transparent)", borderRadius: 1 }} /><div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 8, color: "var(--t4)", textTransform: "uppercase", letterSpacing: ".7px" }}><span>◀ Sea Side / Quay Wall</span><span>Land Side ▶</span></div></div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>{displayBerths.map(b => (<div key={b.id} style={{ background: b.status === "Available" ? "rgba(26,36,56,.3)" : "rgba(59,130,246,.06)", border: `1px solid ${sb[b.status] || "#243048"}`, borderTop: `3px solid ${sc[b.status] || "#1E293B"}`, borderRadius: 8, padding: "12px 14px", minHeight: 120, transition: "all .15s", cursor: "default", display: "flex", flexDirection: "column", gap: 3 }}><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".8px", color: "var(--t4)", textTransform: "uppercase", marginBottom: 4 }}>{b.id}</div>{b.vessel ? (<><div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", lineHeight: 1.3, marginBottom: 2 }}>{b.vessel.split(" ").slice(0, 2).join(" ")}</div><div style={{ fontSize: 10.5, color: "var(--t3)", marginBottom: 6 }}>{b.op}</div><div style={{ fontSize: 13, color: C.cyan, letterSpacing: 2, marginBottom: 6 }}>{"▲".repeat(b.cranes || 1)}</div><div style={{ height: 4, background: "rgba(20,36,56,.8)", borderRadius: 2, marginBottom: 5 }}><div style={{ height: "100%", width: `${b.pct}%`, background: sc[b.status] || C.blue, borderRadius: 2, transition: "width .3s" }} /></div><div style={{ fontSize: 9.5, color: "var(--t4)" }}>{b.pct}% complete · {b.conts} conts{b.atb ? ` · ATB ${b.atb}` : ""}</div></>) : (<div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, letterSpacing: 1, color: "var(--t4)", textTransform: "uppercase" }}>AVAILABLE</div>)}</div>))}</div></div>);
+      const sc = { Berthed: C.blue, Available: "#1E293B", Anchored: C.amber };
+      const sb = { Berthed: C.blue, Available: "#243048", Anchored: C.amber };
+
+      // Better wave/water visualization
+      const Waves = ({ color }) => (
+        <svg width="100%" height="24" viewBox="0 0 120 24" preserveAspectRatio="none" style={{ opacity: 0.4 }}>
+          <path d="M0,12 C20,8 40,16 60,12 C80,8 100,16 120,12 V24 H0 Z" fill={color} />
+          <path d="M0,16 C30,12 60,20 90,16 C120,12 150,20 180,16" fill="none" stroke={color} strokeWidth="1" strokeDasharray="4 2" />
+        </svg>
+      );
+
+      // Custom QC Crane Icon (Simple SVG)
+      const QCIcon = ({ color }) => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 22h20" />
+          <path d="M8 22V7l10-2v17" />
+          <path d="M12 15h10" />
+          <path d="M18 15V8" />
+        </svg>
+      );
+
+      return (
+        <div className="bmap" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 180 }}>
+          <div style={{ position: "relative", marginBottom: 16 }}>
+            <div style={{ height: 2, background: "linear-gradient(90deg,transparent,#3B82F6,transparent)", borderRadius: 1 }} />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 8, color: "var(--t4)", textTransform: "uppercase", letterSpacing: ".7px" }}>
+              <span>◀ Sea Side / Quay Wall</span>
+              <span>Land Side ▶</span>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, flex: 1 }}>
+            {berths.map(b => (
+              <div key={b.id} style={{
+                background: b.status === "Available" ? "rgba(26,36,56,.3)" : "rgba(59,130,246,.08)",
+                border: `1px solid ${sb[b.status] || "#243048"}`,
+                borderTop: `4px solid ${sc[b.status] || "#1E293B"}`,
+                borderRadius: 14,
+                padding: "18px 20px",
+                transition: "all .2s cubic-bezier(0.4, 0, 0.2, 1)",
+                cursor: "default",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: b.status !== "Available" ? '0 4px 20px rgba(0,0,0,0.15)' : 'none'
+              }}>
+                <div style={{ borderRadius: '50%', background: sc[b.status], opacity: 0.04, width: 90, height: 90, position: 'absolute', top: -25, right: -25, filter: 'blur(10px)' }} />
+
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "1px", color: "var(--t4)", textTransform: "uppercase", marginBottom: 8, opacity: 0.8 }}>{b.id}</div>
+                  {b.vessel ? (
+                    <>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: "var(--t1)", lineHeight: 1.2, marginBottom: 4, letterSpacing: '-0.3px' }}>{b.vessel}</div>
+                      <div style={{ fontSize: 11, color: "var(--t3)", fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 12, height: 1.5, background: sc[b.status] }} /> {b.op}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                        <div style={{ display: 'flex', gap: 2 }}>
+                          {Array.from({ length: b.cranes || 1 }).map((_, i) => <QCIcon key={i} color={C.cyan} />)}
+                        </div>
+                        <span style={{ fontSize: 9.5, color: C.cyan, fontWeight: 700, marginLeft: 2 }}>{b.cranes || 1} QC</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ marginTop: 24, textAlign: 'center', fontSize: 11, fontWeight: 800, letterSpacing: 2, color: "var(--t4)", opacity: 0.5 }}>VACANT</div>
+                  )}
+                </div>
+
+                {b.vessel && (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', margin: '12px 0 18px' }}>
+                    <div style={{ fontSize: 40, marginBottom: 0, filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))', position: 'relative', zIndex: 2 }}>🚢</div>
+                    <div style={{ width: '100%', marginTop: -10 }}>
+                      <Waves color={sc[b.status]} />
+                    </div>
+                  </div>
+                )}
+
+                {b.vessel && (
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{ height: 7, background: "rgba(20,36,56,.7)", borderRadius: 3.5, marginBottom: 12, border: '1px solid var(--br)', overflow: 'hidden' }}>
+                      <div style={{ height: "100%", width: `${b.pct}%`, background: `linear-gradient(90deg, ${sc[b.status]}, ${C.cyan})`, borderRadius: 3.5, transition: "width .5s ease-out" }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--t4)", display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span><b style={{ color: 'var(--t1)' }}>{b.pct}%</b> <span style={{ color: 'var(--t3)', fontSize: 9 }}>COMPLETE</span></span>
+                        <span><b style={{ color: 'var(--t1)' }}>{b.conts}</b> <span style={{ color: 'var(--t4)', fontSize: 9 }}>CONTS</span></span>
+                      </div>
+                      {b.atb && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9.5, color: 'var(--t3)', background: 'var(--bg4)', padding: '4px 8px', borderRadius: 6, border: '1px solid var(--br2)' }}>
+                          <span style={{ fontSize: 12 }}>⚓</span> {b.atb}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
     }
 
     function SystemFeed({ open, onToggle, initLines = [] }) {
@@ -1583,6 +1684,8 @@
       useEffect(() => {
         if (!ref.current) return;
         ch.current?.destroy();
+        const ctx = ref.current.getContext("2d");
+
         const allVals = [...data.map(d => d.nmh), kt];
         const minV = Math.max(0, Math.floor(Math.min(...allVals) * 0.85));
         const maxV = Math.ceil(Math.max(...allVals) * 1.08);
@@ -1590,13 +1693,73 @@
         const isLight = theme === "light";
         const gridColor = isLight ? "rgba(226, 232, 240, 0.8)" : "rgba(20,36,56,.9)";
         const tickColor = isLight ? "#64748B" : "#3D556E";
-        const legendColor = isLight ? "#475569" : "#5A748F";
-        const ttBg = isLight ? "#FFFFFF" : "#121A2B";
-        const ttBorder = isLight ? "#E2E8F0" : "#243048";
-        const ttTitle = isLight ? "#0F172A" : "#E8EFF8";
-        const ttBody = isLight ? "#334155" : "#8FA3BC";
 
-        ch.current = new Chart(ref.current.getContext("2d"), { type: "bar", data: { labels: data.map(d => d.op), datasets: [{ label: "Avg Net M/h", data: data.map(d => d.nmh), backgroundColor: data.map(d => d.nmh >= kt ? "rgba(16,185,129,.6)" : "rgba(239,68,68,.6)"), borderColor: data.map(d => d.nmh >= kt ? C.green : C.red), borderWidth: 1, borderRadius: 4, borderSkipped: false }, { label: `KPI (${kt})`, data: data.map(() => kt), type: "line", borderColor: C.blue, borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: "top", labels: { color: legendColor, font: { size: 9.5, family: "Inter" }, boxWidth: 10, padding: 10 } }, tooltip: { backgroundColor: ttBg, borderColor: ttBorder, borderWidth: 1, titleColor: ttTitle, bodyColor: ttBody } }, scales: { x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 9, family: "Inter" } } }, y: { grid: { color: gridColor }, border: { dash: [3, 3] }, ticks: { color: tickColor, font: { size: 9, family: "Inter" } }, min: minV, max: maxV } } } });
+        // Create gradients
+        const greenGrad = ctx.createLinearGradient(0, 0, 0, 200);
+        greenGrad.addColorStop(0, 'rgba(16,185,129,0.8)');
+        greenGrad.addColorStop(1, 'rgba(16,185,129,0.2)');
+
+        const redGrad = ctx.createLinearGradient(0, 0, 0, 200);
+        redGrad.addColorStop(0, 'rgba(239,68,68,0.8)');
+        redGrad.addColorStop(1, 'rgba(239,68,68,0.2)');
+
+        const amberGrad = ctx.createLinearGradient(0, 0, 0, 200);
+        amberGrad.addColorStop(0, 'rgba(245,158,11,0.8)');
+        amberGrad.addColorStop(1, 'rgba(245,158,11,0.2)');
+
+        const colors = data.map(d => {
+          if (d.nmh >= kt) return greenGrad;
+          if (d.nmh >= kt - 5) return amberGrad;
+          return redGrad;
+        });
+
+        const borderColors = data.map(d => {
+          if (d.nmh >= kt) return C.green;
+          if (d.nmh >= kt - 5) return C.amber;
+          return C.red;
+        });
+
+        ch.current = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: data.map(d => d.op),
+            datasets: [{
+              label: "Avg Net M/h",
+              data: data.map(d => d.nmh),
+              backgroundColor: colors,
+              borderColor: borderColors,
+              borderWidth: 1.5,
+              borderRadius: 6,
+              borderSkipped: false
+            }, {
+              label: `KPI (${kt})`,
+              data: data.map(() => kt),
+              type: "line",
+              borderColor: C.blue,
+              borderWidth: 2,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false,
+              tension: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ` ${ctx.raw.toFixed(1)} M/h`
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10, weight: 600 } } },
+              y: { grid: { color: gridColor }, border: { dash: [3, 3] }, ticks: { color: tickColor, font: { size: 9 } }, min: minV, max: maxV }
+            }
+          }
+        });
         return () => ch.current?.destroy();
       }, [data, kt, theme]);
       return <canvas ref={ref} />;
@@ -1723,6 +1886,20 @@
       const [nav, setNavState] = useState(() => getUrlParam("tab") || "overview");
       const [col, setCol] = useState(false);
       const [notif, setNotif] = useState(false);
+      const [uprof, setUprof] = useState(false);
+      const [userName, setUserNameState] = useState(() => localStorage.getItem("tdr_user_name") || "Vân Trình");
+      const [userRole, setUserRoleState] = useState(() => localStorage.getItem("tdr_user_role") || "System Admin");
+      const [showSettings, setShowSettings] = useState(false);
+
+      const setUserName = (v) => { setUserNameState(v); localStorage.setItem("tdr_user_name", v); };
+      const setUserRole = (v) => { setUserRoleState(v); localStorage.setItem("tdr_user_role", v); };
+
+      const userInitials = useMemo(() => {
+        const parts = userName.split(" ");
+        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        return userName.slice(0, 2).toUpperCase();
+      }, [userName]);
+
       const [feed, setFeed] = useState(false);
       const [opTab, setOpTab] = useState("MTD");
       const [qcPg, setQcPg] = useState(0);
@@ -2117,7 +2294,7 @@
           case "operators":
             return `${filteredQcOp.length} records · ${activeCranesCount} cranes · Adjusted Net M/h`;
           case "delays":
-            return `${delays.length} events · ${new Set(delays.map(d=>d.vessel)).size} vessels · ${critCount} critical (≥1h)`;
+            return `${delays.length} events · ${new Set(delays.map(d => d.vessel)).size} vessels · ${critCount} critical (≥1h)`;
           case "config":
             return `Flask ${metaVer} · SQLite · ${dbStatus}`;
           default:
@@ -2342,9 +2519,64 @@
                 <button className="ic-btn" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} title={theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"} style={{ fontFamily: "inherit", outline: "none" }}>
                   {theme === "dark" ? "☀️" : "🌙"}
                 </button>
-                <div className="ava">VT</div>
+                <div style={{ position: 'relative' }}>
+                  <div className="ava" onClick={() => setUprof(o => !o)} style={{ cursor: 'pointer' }}>{userInitials}</div>
+                  {uprof && (
+                    <div className="np" style={{ right: 0, width: 220 }}>
+                      <div className="np-hd" style={{ padding: '16px 20px', borderBottom: '1px solid var(--br)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div className="ava" style={{ width: 32, height: 32, fontSize: 12 }}>{userInitials}</div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{userName}</div>
+                            <div style={{ fontSize: 10, color: 'var(--t4)' }}>{userRole}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ padding: '8px 0' }}>
+                        <div className="np-i" style={{ padding: '10px 20px', cursor: 'pointer' }} onClick={() => { setShowSettings(true); setUprof(false); }}>
+                          <div className="np-t">Account Settings</div>
+                        </div>
+                        <div className="np-i" style={{ padding: '10px 20px', cursor: 'pointer' }}>
+                          <div className="np-t">Simulation Control</div>
+                        </div>
+                        <div className="np-i" style={{ padding: '10px 20px', cursor: 'pointer' }}>
+                          <div className="np-t">Help & Support</div>
+                        </div>
+                        <div style={{ margin: '8px 20px', height: 1, background: 'var(--br)' }} />
+                        <div className="np-i" style={{ padding: '10px 20px', cursor: 'pointer', color: 'var(--red)' }}>
+                          <div className="np-t">Sign Out</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </header>
+
+            {/* Account Settings Modal */}
+            {showSettings && (
+              <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
+                <div className="card" style={{ width: 400, padding: 0 }}>
+                  <div className="ch">
+                    <div className="ct">Account Settings</div>
+                    <div className="tab" onClick={() => setShowSettings(false)}>✕</div>
+                  </div>
+                  <div className="cb" style={{ padding: 24, gap: 16 }}>
+                    <div className="gcol" style={{ gap: 4 }}>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t4)' }}>DISPLAY NAME</label>
+                      <input className="input" style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid var(--br)', background: 'var(--bg2)', color: 'var(--t1)', outline: 'none' }} value={userName} onChange={e => setUserName(e.target.value)} placeholder="Enter your name" />
+                    </div>
+                    <div className="gcol" style={{ gap: 4 }}>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t4)' }}>SYSTEM ROLE</label>
+                      <input className="input" style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid var(--br)', background: 'var(--bg2)', color: 'var(--t1)', outline: 'none' }} value={userRole} onChange={e => setUserRole(e.target.value)} placeholder="e.g. Terminal Manager" />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                      <button className="btn bp" style={{ padding: '8px 20px' }} onClick={() => setShowSettings(false)}>Save Changes</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Page content */}
             {isMobile

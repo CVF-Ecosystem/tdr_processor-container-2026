@@ -44,7 +44,7 @@ import functools
 import time
 
 # Secure API Token
-API_TOKEN = os.environ.get("TDR_API_TOKEN", "admin123")
+API_TOKEN = os.environ.get("TDR_API_TOKEN", "tdr_secret_token_12345")
 IP_LIMITS = {}  # {ip: [timestamps]} for lightweight rate limiting
 
 def require_token(f):
@@ -171,8 +171,8 @@ def _sum_qc(df_qc: pd.DataFrame, vessel: str, voyage: str, col: str) -> float:
     if df_qc.empty or col not in df_qc.columns:
         return 0
     df = df_qc
-    v_str = str(vessel).strip()
-    voy_str = str(voyage).strip()
+    v_str = vessel.strip()
+    voy_str = voyage.strip()
     mask = (df["Vessel Name"].astype(str).str.strip() == v_str) & (df["Voyage"].astype(str).str.strip() == voy_str)
     return df[mask][col].fillna(0).sum()
 
@@ -188,7 +188,7 @@ def _build_vessels(df_vessel: pd.DataFrame, df_qc: pd.DataFrame) -> list:
         cranes_map = qc_df.groupby(["Vessel Name", "Voyage"])["QC No."].nunique().to_dict()
 
     vessels = []
-    for i, row in df_vessel.iterrows():
+    for idx, (i, row) in enumerate(df_vessel.iterrows(), start=1):
         name    = _safe(row.get("Vessel Name"), "Unknown")
         voyage  = _safe(row.get("Voyage"), "—")
         voyage_str = str(voyage).strip()
@@ -196,7 +196,7 @@ def _build_vessels(df_vessel: pd.DataFrame, df_qc: pd.DataFrame) -> list:
         atd_raw = _safe(row.get("ATD"))
         status  = "Berthed" if not atd_raw else "Completed"
         vessels.append({
-            "id":       i + 1,
+            "id":       idx,
             "name":     name,
             "voyage":   voyage,
             "op":       _safe(row.get("Operator"), "—"),
@@ -356,16 +356,32 @@ def _build_qc_timeline(df_qc: pd.DataFrame) -> list:
 def _build_berths(df_vessel: pd.DataFrame, cranes_map: dict) -> list:
     if df_vessel.empty or "Berth" not in df_vessel.columns:
         return []
+    
     df = df_vessel.copy()
+    
+    # ─── Synchronization & Cleanup ───
+    # 1. Ensure ATB is a datetime object for comparison
+    df["ATB_dt"] = pd.to_datetime(df["ATB"], errors="coerce")
+    
+    # 2. FILTER: Exclude futuristic junk data (e.g., Year 2525) that breaks "Live" view
+    # We allow some headroom (e.g., up to year 2030) but block obvious future-mocking
+    max_reasonable_year = 2030
+    df = df[df["ATB_dt"].dt.year <= max_reasonable_year]
+    
+    if df.empty:
+        return []
+
     all_berths = sorted(df["Berth"].dropna().unique().tolist())
     berths = []
+    
     for b in all_berths:
         rows = df[df["Berth"] == b]
         if rows.empty:
             berths.append({"id": b, "vessel": None, "op": None, "status": "Available",
                            "cranes": 0, "pct": 0, "conts": 0, "atb": None})
         else:
-            row = rows.sort_values("ATB", ascending=False).iloc[0]
+            # 3. LOGIC: Take the absolute LATEST vessel that arrived at this berth
+            row = rows.sort_values("ATB_dt", ascending=False).iloc[0]
             name    = _safe(row.get("Vessel Name"), "")
             voyage  = _safe(row.get("Voyage"), "")
             voyage_str = str(voyage).strip()
@@ -393,7 +409,7 @@ def _build_delays(df_delay: pd.DataFrame) -> list:
     result = []
     if df_delay.empty:
         return result
-    for i, row in df_delay.iterrows():
+    for idx, (i, row) in enumerate(df_delay.iterrows(), start=1):
         code = _safe(row.get("Error Code"), "d")
         raw_rmk = _safe(row.get("Remark"), "")
         stop_cat = _safe(row.get("Stop Category"), "")
@@ -405,7 +421,7 @@ def _build_delays(df_delay: pd.DataFrame) -> list:
         else:
             rmk = _safe(row.get("Error Type"), "")
         result.append({
-            "id":     i + 1,
+            "id":     idx,
             "vessel": _safe(row.get("Vessel Name"), "—"),
             "qc":     _safe(row.get("QC No."), "—"),
             "from":   _fmt_time(row.get("From Time")) or "—",
