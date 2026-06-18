@@ -32,9 +32,14 @@ services:
     environment:
       - TDR_LOG_LEVEL=${TDR_LOG_LEVEL:-INFO}
       - TDR_EMAIL_ENABLED=${TDR_EMAIL_ENABLED:-false}
+      # Auth — REQUIRED in production; or set TDR_AUTH_DISABLED=true for dev
+      - TDR_API_TOKEN=${TDR_API_TOKEN}
+      - TDR_AUTH_DISABLED=${TDR_AUTH_DISABLED:-false}
+      # Bind to 0.0.0.0 inside container so the published port is reachable
+      - TDR_DASH_HOST=0.0.0.0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8503/"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8503/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -65,9 +70,16 @@ services:
       - TDR_EMAIL_ENABLED=${TDR_EMAIL_ENABLED:-false}
       - TDR_EMAIL_SENDER=${TDR_EMAIL_SENDER:-}
       - TDR_EMAIL_RECIPIENTS=${TDR_EMAIL_RECIPIENTS:-}
+      # Auth — REQUIRED in production; or set TDR_AUTH_DISABLED=true for dev
+      - TDR_API_TOKEN=${TDR_API_TOKEN}
+      - TDR_AUTH_DISABLED=${TDR_AUTH_DISABLED:-false}
+      # CORS: allow dashboard to call API
+      - TDR_ALLOWED_ORIGINS=http://localhost:8503,http://127.0.0.1:8503
+      # Bind to 0.0.0.0 inside container so the published port is reachable
+      - TDR_API_HOST=0.0.0.0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -21,9 +21,9 @@ Usage:
     vessel_info = extractor.extract_vessel_info()
     vessel_info = VesselTransformer.calculate_kpis(vessel_info)
 """
+
 import logging
-import re
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -34,6 +34,7 @@ from utils.excel_utils import timedelta_to_hours
 # ============================================================================
 # VESSEL TRANSFORMER
 # ============================================================================
+
 
 class VesselTransformer:
     """
@@ -62,14 +63,17 @@ class VesselTransformer:
         """
         # Break time
         vessel_info["Break Time (hrs)"] = round(
-            vessel_info.get("Break Dis (hrs)", 0.0) + vessel_info.get("Break Load (hrs)", 0.0),
-            2
+            vessel_info.get("Break Dis (hrs)", 0.0)
+            + vessel_info.get("Break Load (hrs)", 0.0),
+            2,
         )
 
         # Net working = Gross - Break
         gross_working = vessel_info.get("Gross Working (hrs)", 0.0)
         break_time = vessel_info.get("Break Time (hrs)", 0.0)
-        vessel_info["Net Working (hrs)"] = round(max(0.0, gross_working - break_time), 2)
+        vessel_info["Net Working (hrs)"] = round(
+            max(0.0, gross_working - break_time), 2
+        )
 
         # Productivity metrics
         grand_total_conts = vessel_info.get("Grand Total Conts", 0)
@@ -78,15 +82,18 @@ class VesselTransformer:
 
         vessel_info["Vessel Moves/Net Hour"] = (
             round(grand_total_conts / net_working, 1)
-            if net_working > 0 and grand_total_conts > 0 else 0.0
+            if net_working > 0 and grand_total_conts > 0
+            else 0.0
         )
         vessel_info["Vessel Moves/Gross Hour"] = (
             round(grand_total_conts / gross_working, 1)
-            if gross_working > 0 and grand_total_conts > 0 else 0.0
+            if gross_working > 0 and grand_total_conts > 0
+            else 0.0
         )
         vessel_info["Vessel Moves/Portstay Hour"] = (
             round(grand_total_conts / portstay, 1)
-            if portstay > 0 and grand_total_conts > 0 else 0.0
+            if portstay > 0 and grand_total_conts > 0
+            else 0.0
         )
 
         return vessel_info
@@ -125,14 +132,16 @@ class VesselTransformer:
         # Discharge duration
         vessel_info["Discharge Duration (hrs)"] = (
             timedelta_to_hours(completed_discharge - cd)
-            if all(isinstance(x, datetime) for x in [completed_discharge, cd]) and completed_discharge > cd
+            if all(isinstance(x, datetime) for x in [completed_discharge, cd])
+            and completed_discharge > cd
             else 0.0
         )
 
         # Load duration
         vessel_info["Load Duration (hrs)"] = (
             timedelta_to_hours(completed_loading - cl)
-            if all(isinstance(x, datetime) for x in [completed_loading, cl]) and completed_loading > cl
+            if all(isinstance(x, datetime) for x in [completed_loading, cl])
+            and completed_loading > cl
             else 0.0
         )
 
@@ -140,16 +149,17 @@ class VesselTransformer:
         first_op = min(
             filter(None, [cd, cl]),
             default=None,
-            key=lambda x: x if isinstance(x, datetime) else datetime.max
+            key=lambda x: x if isinstance(x, datetime) else datetime.max,
         )
         last_op = max(
             filter(None, [completed_discharge, completed_loading]),
             default=None,
-            key=lambda x: x if isinstance(x, datetime) else datetime.min
+            key=lambda x: x if isinstance(x, datetime) else datetime.min,
         )
         vessel_info["Gross Working (hrs)"] = (
             timedelta_to_hours(last_op - first_op)
-            if all(isinstance(x, datetime) for x in [last_op, first_op]) and last_op > first_op
+            if all(isinstance(x, datetime) for x in [last_op, first_op])
+            and last_op > first_op
             else 0.0
         )
 
@@ -194,6 +204,7 @@ class VesselTransformer:
 # QC TRANSFORMER
 # ============================================================================
 
+
 class QCTransformer:
     """
     Business logic transformations for QC productivity data.
@@ -216,6 +227,7 @@ class QCTransformer:
             Normalized QC name
         """
         from data_schema import normalize_qc_name as schema_normalize_qc_name
+
         return schema_normalize_qc_name(name)
 
     @staticmethod
@@ -252,8 +264,7 @@ class QCTransformer:
 
     @staticmethod
     def calculate_operator_metrics(
-        qc_record: Dict[str, Any],
-        actual_delay_hours: float
+        qc_record: Dict[str, Any], actual_delay_hours: float
     ) -> Dict[str, Any]:
         """
         Calculate operator-adjusted QC metrics using actual delay from delay table.
@@ -308,13 +319,16 @@ class QCTransformer:
 # DELAY TRANSFORMER
 # ============================================================================
 
+
 class DelayTransformer:
     """
     Business logic transformations for delay event data.
     """
 
     @staticmethod
-    def classify_error(error_code_and_remark: Optional[str]) -> Tuple[Optional[str], str]:
+    def classify_error(
+        error_code_and_remark: Optional[str],
+    ) -> Tuple[Optional[str], str]:
         """
         Classify delay error code into error type.
 
@@ -325,6 +339,7 @@ class DelayTransformer:
             Tuple of (error_code, error_type)
         """
         from utils.excel_utils import classify_error_code
+
         return classify_error_code(error_code_and_remark)
 
     @staticmethod
@@ -332,7 +347,7 @@ class DelayTransformer:
         from_time: Optional[datetime],
         to_time: Optional[datetime],
         reported_hours: float = 0.0,
-        mismatch_threshold: float = 0.02
+        mismatch_threshold: float = 0.02,
     ) -> Tuple[float, Optional[datetime], Optional[datetime]]:
         """
         Calculate delay duration, handling overnight spans.
@@ -376,7 +391,9 @@ class DelayTransformer:
         return dur_use, from_f, to_f
 
     @staticmethod
-    def summarize_by_error_type(delay_records: List[Dict[str, Any]]) -> Dict[str, float]:
+    def summarize_by_error_type(
+        delay_records: List[Dict[str, Any]],
+    ) -> Dict[str, float]:
         """
         Summarize total delay hours by error type.
 
@@ -399,6 +416,7 @@ class DelayTransformer:
 # ============================================================================
 # CONTAINER TRANSFORMER
 # ============================================================================
+
 
 class ContainerTransformer:
     """
@@ -451,11 +469,20 @@ class ContainerTransformer:
         try:
             df_long = df_long.copy()
             df_long["ContainerTypeSize"] = (
-                df_long["ContainerCategory"] + "_" + df_long["ContainerSize"].astype(str)
+                df_long["ContainerCategory"]
+                + "_"
+                + df_long["ContainerSize"].astype(str)
             )
 
             base_cols = [
-                col for col in ["Filename", "Vessel Name", "Voyage", "OperationType", "Port"]
+                col
+                for col in [
+                    "Filename",
+                    "Vessel Name",
+                    "Voyage",
+                    "OperationType",
+                    "Port",
+                ]
                 if col in df_long.columns
             ]
 
@@ -465,7 +492,7 @@ class ContainerTransformer:
                 index=base_cols,
                 columns="ContainerTypeSize",
                 aggfunc="sum",
-                fill_value=0
+                fill_value=0,
             ).reset_index()
 
             # Add total columns
@@ -473,12 +500,13 @@ class ContainerTransformer:
             if quantity_cols:
                 df_wide["Total Conts"] = df_wide[quantity_cols].sum(axis=1)
                 df_wide["Total TEUs"] = sum(
-                    df_wide[col] * (1 if "_20" in col else 2)
-                    for col in quantity_cols
+                    df_wide[col] * (1 if "_20" in col else 2) for col in quantity_cols
                 )
 
             return df_wide
 
         except Exception as e:
-            logging.error(f"ContainerTransformer.pivot_to_wide_format failed: {e}", exc_info=True)
+            logging.error(
+                f"ContainerTransformer.pivot_to_wide_format failed: {e}", exc_info=True
+            )
             return pd.DataFrame()

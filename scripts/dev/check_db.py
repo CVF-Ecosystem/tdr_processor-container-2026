@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-db_path = 'outputs/tdr_master.db'
+db_path = "outputs/tdr_master.db"
 if os.path.exists(db_path):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -9,7 +9,7 @@ if os.path.exists(db_path):
     tables = [row[0] for row in cursor.fetchall()]
     print(f"Tables in {db_path}: {tables}")
     for table in tables:
-        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+        cursor.execute(f"SELECT COUNT(*) FROM {table}")  # nosec B608
         count = cursor.fetchone()[0]
         print(f"  - {table}: {count} rows")
     conn.close()

@@ -1,5 +1,6 @@
 # tests/test_data_transformers.py
 """Unit tests for data_transformers.py — VesselTransformer, QCTransformer, DelayTransformer, ContainerTransformer."""
+
 import pytest
 from datetime import datetime
 import pandas as pd
@@ -15,6 +16,7 @@ from data_transformers import (
 # ============================================================================
 # VesselTransformer
 # ============================================================================
+
 
 class TestVesselTransformerCalculateKPIs:
     def _base(self):
@@ -88,10 +90,12 @@ class TestVesselTransformerCalculateDurations:
         assert info["Portstay (hrs)"] == 0.0
 
     def test_gross_working_hours(self):
-        info = VesselTransformer.calculate_durations({
-            "Commenced Discharge": datetime(2024, 1, 1, 6, 0),
-            "Completed Loading": datetime(2024, 1, 1, 18, 0),
-        })
+        info = VesselTransformer.calculate_durations(
+            {
+                "Commenced Discharge": datetime(2024, 1, 1, 6, 0),
+                "Completed Loading": datetime(2024, 1, 1, 18, 0),
+            }
+        )
         assert info["Gross Working (hrs)"] == pytest.approx(12.0)
 
 
@@ -145,15 +149,19 @@ class TestVesselTransformerValidate:
 # QCTransformer
 # ============================================================================
 
+
 class TestQCTransformerNormalize:
-    @pytest.mark.parametrize("raw, expected", [
-        ("GC1", "GC01"),
-        ("GW2", "GW02"),
-        ("gc01", "GC01"),
-        ("GC12", "GC12"),
-        ("", ""),
-        (None, ""),
-    ])
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            ("GC1", "GC01"),
+            ("GW2", "GW02"),
+            ("gc01", "GC01"),
+            ("GC12", "GC12"),
+            ("", ""),
+            (None, ""),
+        ],
+    )
     def test_normalize(self, raw, expected):
         assert QCTransformer.normalize_qc_name(raw) == expected
 
@@ -199,23 +207,30 @@ class TestQCTransformerAggregateDelays:
 # DelayTransformer
 # ============================================================================
 
+
 class TestDelayTransformerDuration:
     def test_uses_reported_hours_when_available(self):
         from_t = datetime(2024, 1, 1, 8, 0)
         to_t = datetime(2024, 1, 1, 10, 0)
-        dur, _, _ = DelayTransformer.calculate_duration(from_t, to_t, reported_hours=2.0)
+        dur, _, _ = DelayTransformer.calculate_duration(
+            from_t, to_t, reported_hours=2.0
+        )
         assert dur == pytest.approx(2.0)
 
     def test_falls_back_to_calculated_when_no_reported(self):
         from_t = datetime(2024, 1, 1, 8, 0)
         to_t = datetime(2024, 1, 1, 10, 30)
-        dur, _, _ = DelayTransformer.calculate_duration(from_t, to_t, reported_hours=0.0)
+        dur, _, _ = DelayTransformer.calculate_duration(
+            from_t, to_t, reported_hours=0.0
+        )
         assert dur == pytest.approx(2.5)
 
     def test_handles_overnight_span(self):
         from_t = datetime(2024, 1, 1, 23, 0)
         to_t = datetime(2024, 1, 1, 1, 0)
-        dur, _, _ = DelayTransformer.calculate_duration(from_t, to_t, reported_hours=0.0)
+        dur, _, _ = DelayTransformer.calculate_duration(
+            from_t, to_t, reported_hours=0.0
+        )
         assert dur == pytest.approx(2.0)
 
     def test_none_datetimes_returns_zero(self):
@@ -241,6 +256,7 @@ class TestDelayTransformerSummarize:
 # ============================================================================
 # ContainerTransformer
 # ============================================================================
+
 
 class TestContainerTransformerTEUs:
     def test_20ft_is_1_teu(self):
@@ -275,14 +291,30 @@ class TestContainerTransformerTEUs:
 
 class TestContainerTransformerPivot:
     def _make_df(self):
-        return pd.DataFrame([
-            {"Filename": "f1", "Vessel Name": "V", "Voyage": "1",
-             "OperationType": "Discharge", "Port": "ABC",
-             "ContainerCategory": "Full DC", "ContainerSize": "20", "Quantity": 100},
-            {"Filename": "f1", "Vessel Name": "V", "Voyage": "1",
-             "OperationType": "Discharge", "Port": "ABC",
-             "ContainerCategory": "Empty DC", "ContainerSize": "40", "Quantity": 50},
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "Filename": "f1",
+                    "Vessel Name": "V",
+                    "Voyage": "1",
+                    "OperationType": "Discharge",
+                    "Port": "ABC",
+                    "ContainerCategory": "Full DC",
+                    "ContainerSize": "20",
+                    "Quantity": 100,
+                },
+                {
+                    "Filename": "f1",
+                    "Vessel Name": "V",
+                    "Voyage": "1",
+                    "OperationType": "Discharge",
+                    "Port": "ABC",
+                    "ContainerCategory": "Empty DC",
+                    "ContainerSize": "40",
+                    "Quantity": 50,
+                },
+            ]
+        )
 
     def test_pivot_creates_columns(self):
         df_long = self._make_df()

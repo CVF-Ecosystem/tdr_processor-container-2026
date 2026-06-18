@@ -1,7 +1,4 @@
-import pytest
 from report_processor import ReportProcessor
-from pathlib import Path
-import os
 
 
 def test_report_processor_init(tmp_path):
@@ -37,7 +34,9 @@ def test_report_processor_process_tdr_files_invalid_file(tmp_path):
     input_dir.mkdir()
     # Create a fake (invalid) xlsx file
     sample_file = input_dir / "sample.xlsx"
-    sample_file.write_bytes(b"PK\x03\x04Fake Excel content")  # ZIP magic bytes but invalid content
+    sample_file.write_bytes(
+        b"PK\x03\x04Fake Excel content"
+    )  # ZIP magic bytes but invalid content
 
     output_dir = tmp_path / "outputs"
     output_dir.mkdir()
@@ -54,7 +53,15 @@ def test_report_processor_process_tdr_files_invalid_file(tmp_path):
 def test_required_directories_created(tmp_path):
     """Test that setup_project_directories creates all required directories."""
     from utils.file_utils import setup_project_directories
-    required_dirs = ["data_input", "data_excel", "data_csv", "backup", "outputs", "templates"]
+
+    required_dirs = [
+        "data_input",
+        "data_excel",
+        "data_csv",
+        "backup",
+        "outputs",
+        "templates",
+    ]
     result = setup_project_directories(tmp_path, required_dirs)
     for d in required_dirs:
         assert (tmp_path / d).exists()

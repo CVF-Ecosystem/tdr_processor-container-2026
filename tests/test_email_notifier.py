@@ -1,5 +1,5 @@
-import pytest
 from utils.email_notifier import send_notification_email
+
 
 # Test gửi email với cấu hình sai (nên trả về False, không raise exception)
 # SECURITY: Email notifier now returns False instead of raising exceptions
@@ -13,9 +13,10 @@ def test_send_notification_email_invalid_config():
         smtp_pass="wrongpass",
         recipient_email="recipient@example.com",
         subject="Test",
-        body="Test body"
+        body="Test body",
     )
     assert result is False  # Should return False for invalid config
+
 
 # Test email validation
 def test_send_notification_email_invalid_recipient():
@@ -27,6 +28,6 @@ def test_send_notification_email_invalid_recipient():
         smtp_pass="password",
         recipient_email="invalid.email.no.at",  # Invalid email format
         subject="Test",
-        body="Test body"
+        body="Test body",
     )
     assert result is False  # Should return False for invalid recipient

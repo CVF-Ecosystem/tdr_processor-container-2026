@@ -1,7 +1,6 @@
-import pytest
 from utils.watcher import Watcher
-from pathlib import Path
 import time
+
 
 # Test khởi tạo Watcher và bắt đầu/dừng theo dõi thư mục
 def test_watcher_start_stop(tmp_path):
@@ -10,6 +9,7 @@ def test_watcher_start_stop(tmp_path):
     assert watcher.is_running
     watcher.stop()
     assert not watcher.is_running
+
 
 # Test phát hiện file mới (giả lập)
 def test_watcher_detect_new_file(tmp_path):

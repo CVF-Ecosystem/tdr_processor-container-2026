@@ -29,6 +29,7 @@ Usage:
     loader.load_plugins()
     extractor_class = loader.get_extractor_for_file("CUSTOM_001.xlsx")
 """
+
 import importlib
 import importlib.util
 import logging
@@ -41,6 +42,7 @@ from typing import Dict, List, Optional, Type
 # ============================================================================
 # BASE EXTRACTOR INTERFACE
 # ============================================================================
+
 
 class BaseExtractor(ABC):
     """
@@ -136,6 +138,7 @@ class BaseExtractor(ABC):
 # PLUGIN LOADER
 # ============================================================================
 
+
 class PluginLoader:
     """
     Discovers and loads custom extractor plugins from the plugins/ directory.
@@ -172,7 +175,9 @@ class PluginLoader:
             Number of plugins successfully loaded
         """
         if not self.plugin_dir.exists():
-            logging.debug(f"[PluginLoader] Plugin directory '{self.plugin_dir}' not found. No plugins loaded.")
+            logging.debug(
+                f"[PluginLoader] Plugin directory '{self.plugin_dir}' not found. No plugins loaded."
+            )
             self._loaded = True
             return 0
 
@@ -180,7 +185,9 @@ class PluginLoader:
         plugin_files = list(self.plugin_dir.glob("extractor_*.py"))
 
         if not plugin_files:
-            logging.debug(f"[PluginLoader] No plugin files found in '{self.plugin_dir}'")
+            logging.debug(
+                f"[PluginLoader] No plugin files found in '{self.plugin_dir}'"
+            )
             self._loaded = True
             return 0
 
@@ -190,9 +197,13 @@ class PluginLoader:
                 if plugin:
                     loaded_count += 1
             except Exception as e:
-                logging.error(f"[PluginLoader] Failed to load plugin '{plugin_file.name}': {e}")
+                logging.error(
+                    f"[PluginLoader] Failed to load plugin '{plugin_file.name}': {e}"
+                )
 
-        logging.info(f"[PluginLoader] Loaded {loaded_count} plugin(s) from '{self.plugin_dir}'")
+        logging.info(
+            f"[PluginLoader] Loaded {loaded_count} plugin(s) from '{self.plugin_dir}'"
+        )
         self._loaded = True
         return loaded_count
 
@@ -211,7 +222,9 @@ class PluginLoader:
         # Load module from file
         spec = importlib.util.spec_from_file_location(module_name, plugin_file)
         if not spec or not spec.loader:
-            logging.warning(f"[PluginLoader] Cannot create module spec for '{plugin_file.name}'")
+            logging.warning(
+                f"[PluginLoader] Cannot create module spec for '{plugin_file.name}'"
+            )
             return None
 
         module = importlib.util.module_from_spec(spec)
@@ -220,25 +233,34 @@ class PluginLoader:
 
         # Validate required attributes
         if not hasattr(module, "EXTRACTOR_NAME"):
-            logging.warning(f"[PluginLoader] Plugin '{plugin_file.name}' missing EXTRACTOR_NAME")
+            logging.warning(
+                f"[PluginLoader] Plugin '{plugin_file.name}' missing EXTRACTOR_NAME"
+            )
             return None
 
         if not hasattr(module, "EXTRACTOR_CLASS"):
-            logging.warning(f"[PluginLoader] Plugin '{plugin_file.name}' missing EXTRACTOR_CLASS")
+            logging.warning(
+                f"[PluginLoader] Plugin '{plugin_file.name}' missing EXTRACTOR_CLASS"
+            )
             return None
 
         extractor_name = module.EXTRACTOR_NAME
         extractor_class = module.EXTRACTOR_CLASS
 
         # Validate class inherits from BaseExtractor
-        if not (isinstance(extractor_class, type) and issubclass(extractor_class, BaseExtractor)):
+        if not (
+            isinstance(extractor_class, type)
+            and issubclass(extractor_class, BaseExtractor)
+        ):
             logging.warning(
                 f"[PluginLoader] Plugin '{plugin_file.name}' EXTRACTOR_CLASS must inherit from BaseExtractor"
             )
             return None
 
         self._plugins[extractor_name] = extractor_class
-        self._patterns[extractor_name] = getattr(module, "SUPPORTED_PATTERNS", ["*.xlsx"])
+        self._patterns[extractor_name] = getattr(
+            module, "SUPPORTED_PATTERNS", ["*.xlsx"]
+        )
 
         logging.info(
             f"[PluginLoader] Loaded plugin '{extractor_name}' from '{plugin_file.name}' "
@@ -268,6 +290,7 @@ class PluginLoader:
             patterns = self._patterns.get(plugin_name, [])
             for pattern in patterns:
                 import fnmatch
+
                 if fnmatch.fnmatch(filename, pattern):
                     logging.debug(
                         f"[PluginLoader] Using plugin '{plugin_name}' for file '{filename}'"

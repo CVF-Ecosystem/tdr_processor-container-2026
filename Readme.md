@@ -117,15 +117,27 @@ python main.py
 
 ### Chạy Web Dashboard
 
+Lưu ý: Bạn cần cấu hình `TDR_API_TOKEN` hoặc đặt `TDR_AUTH_DISABLED=true` trong môi trường/file `.env` trước khi khởi chạy:
+
 ```bash
-python dashboard_api.py
+# Windows (PowerShell):
+$env:TDR_AUTH_DISABLED="true"; python dashboard_api.py
+
+# Linux / macOS / Git Bash:
+TDR_AUTH_DISABLED=true python dashboard_api.py
 # Mở http://localhost:8503
 ```
 
 ### Chạy REST API
 
+Tương tự, cấu hình quyền truy cập trước khi chạy và bind về 127.0.0.1:
+
 ```bash
-uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+# Windows (PowerShell):
+$env:TDR_AUTH_DISABLED="true"; uvicorn api:app --host 127.0.0.1 --port 8000 --reload
+
+# Linux / macOS / Git Bash:
+TDR_AUTH_DISABLED=true uvicorn api:app --host 127.0.0.1 --port 8000 --reload
 # Swagger UI: http://localhost:8000/docs
 ```
 
@@ -160,7 +172,7 @@ API documentation tự động tại `http://localhost:8000/docs`
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
 | `GET` | `/health` | Health check + data summary |
-| `GET` | `/api/vessels` | Danh sách vessel với filters |
+| `GET` | `/api/vessels` | Danh sách vessel với filters (`limit` mặc định 10,000; tối đa 100,000) |
 | `GET` | `/api/vessels/{filename}` | Chi tiết một vessel |
 | `GET` | `/api/qc-productivity` | QC productivity data |
 | `GET` | `/api/delays` | Delay events |

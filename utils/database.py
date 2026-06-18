@@ -16,6 +16,7 @@ Usage:
     db.upsert_vessel_summary(df_vessel)
     vessels = db.query_vessels(operator="EVERGREEN", limit=50)
 """
+
 import logging
 import sqlite3
 from contextlib import contextmanager
@@ -27,8 +28,8 @@ import pandas as pd
 
 from exceptions import DatabaseConnectionError, DatabaseWriteError
 
-# Default database path
-DEFAULT_DB_PATH = Path("outputs/tdr_data.db")
+# Default database path — must match the canonical path written by report_processor.py
+DEFAULT_DB_PATH = Path("outputs/tdr_master.db")
 
 # Schema version - increment when changing table structure
 SCHEMA_VERSION = "1.0.0"
@@ -149,9 +150,6 @@ CREATE TABLE IF NOT EXISTS container_details (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_vessel_operator ON vessel_summary(operator);
-CREATE INDEX IF NOT EXISTS idx_vessel_berth ON vessel_summary(berth);
-CREATE INDEX IF NOT EXISTS idx_vessel_report_date ON vessel_summary(report_date);
 CREATE INDEX IF NOT EXISTS idx_qc_filename ON qc_productivity(filename);
 CREATE INDEX IF NOT EXISTS idx_delay_filename ON delay_details(filename);
 CREATE INDEX IF NOT EXISTS idx_container_filename ON container_details(filename);
@@ -212,23 +210,50 @@ class TDRDatabase:
         """Create tables if they don't exist and record schema version."""
         conn.executescript(_CREATE_TABLES_SQL)
 
+        # Dynamically create index for vessel_summary columns since they might be space-separated capitalized
+        col_operator = self._resolve_column(conn, "vessel_summary", "operator")
+        col_berth = self._resolve_column(conn, "vessel_summary", "berth")
+        col_report_date = self._resolve_column(conn, "vessel_summary", "report_date")
+
+        try:
+            conn.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_vessel_operator ON vessel_summary({col_operator})"
+            )
+            conn.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_vessel_berth ON vessel_summary({col_berth})"
+            )
+            conn.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_vessel_report_date ON vessel_summary({col_report_date})"
+            )
+        except Exception as e:
+            logging.warning(
+                f"[Database] Could not create indices on vessel_summary: {e}"
+            )
+
         # Record schema version if not already present
         existing = conn.execute("SELECT version FROM schema_version LIMIT 1").fetchone()
         if not existing:
             conn.execute(
                 "INSERT INTO schema_version (version, applied_at) VALUES (?, ?)",
-                (SCHEMA_VERSION, datetime.now().isoformat())
+                (SCHEMA_VERSION, datetime.now().isoformat()),
             )
         logging.debug(f"[Database] Schema initialized (version {SCHEMA_VERSION})")
 
-    def _df_to_db(self, conn: sqlite3.Connection, df: pd.DataFrame,
-                  table: str, if_exists: str = "append") -> int:
+    def _df_to_db(
+        self,
+        conn: sqlite3.Connection,
+        df: pd.DataFrame,
+        table: str,
+        if_exists: str = "append",
+    ) -> int:
         """Write DataFrame to database table. Returns rows written."""
         if df.empty:
             return 0
         # Convert datetime columns to ISO strings for SQLite compatibility
         df_copy = df.copy()
-        for col in df_copy.select_dtypes(include=["datetime64[ns]", "datetimetz"]).columns:
+        for col in df_copy.select_dtypes(
+            include=["datetime64[ns]", "datetimetz"]
+        ).columns:
             df_copy[col] = df_copy[col].dt.strftime("%Y-%m-%d %H:%M:%S")
         df_copy.to_sql(table, conn, if_exists=if_exists, index=False)
         return len(df_copy)
@@ -261,8 +286,8 @@ class TDRDatabase:
                 if filenames:
                     placeholders = ",".join("?" * len(filenames))
                     conn.execute(
-                        f"DELETE FROM vessel_summary WHERE filename IN ({placeholders})",
-                        filenames
+                        f"DELETE FROM vessel_summary WHERE filename IN ({placeholders})",  # nosec B608
+                        filenames,
                     )
                 count = self._df_to_db(conn, df, "vessel_summary")
                 logging.info(f"[Database] Upserted {count} vessel summary records")
@@ -280,8 +305,8 @@ class TDRDatabase:
                 if filenames:
                     placeholders = ",".join("?" * len(filenames))
                     conn.execute(
-                        f"DELETE FROM qc_productivity WHERE filename IN ({placeholders})",
-                        filenames
+                        f"DELETE FROM qc_productivity WHERE filename IN ({placeholders})",  # nosec B608
+                        filenames,
                     )
                 count = self._df_to_db(conn, df, "qc_productivity")
                 logging.info(f"[Database] Upserted {count} QC productivity records")
@@ -299,11 +324,13 @@ class TDRDatabase:
                 if filenames:
                     placeholders = ",".join("?" * len(filenames))
                     conn.execute(
-                        f"DELETE FROM qc_operator_productivity WHERE filename IN ({placeholders})",
-                        filenames
+                        f"DELETE FROM qc_operator_productivity WHERE filename IN ({placeholders})",  # nosec B608
+                        filenames,
                     )
                 count = self._df_to_db(conn, df, "qc_operator_productivity")
-                logging.info(f"[Database] Upserted {count} QC operator productivity records")
+                logging.info(
+                    f"[Database] Upserted {count} QC operator productivity records"
+                )
                 return count
         except Exception as e:
             raise DatabaseWriteError("qc_operator_productivity", str(e)) from e
@@ -318,8 +345,8 @@ class TDRDatabase:
                 if filenames:
                     placeholders = ",".join("?" * len(filenames))
                     conn.execute(
-                        f"DELETE FROM delay_details WHERE filename IN ({placeholders})",
-                        filenames
+                        f"DELETE FROM delay_details WHERE filename IN ({placeholders})",  # nosec B608
+                        filenames,
                     )
                 count = self._df_to_db(conn, df, "delay_details")
                 logging.info(f"[Database] Upserted {count} delay detail records")
@@ -337,8 +364,8 @@ class TDRDatabase:
                 if filenames:
                     placeholders = ",".join("?" * len(filenames))
                     conn.execute(
-                        f"DELETE FROM container_details WHERE filename IN ({placeholders})",
-                        filenames
+                        f"DELETE FROM container_details WHERE filename IN ({placeholders})",  # nosec B608
+                        filenames,
                     )
                 count = self._df_to_db(conn, df, "container_details")
                 logging.info(f"[Database] Upserted {count} container detail records")
@@ -350,13 +377,33 @@ class TDRDatabase:
     # QUERY METHODS
     # =========================================================================
 
+    def _resolve_column(self, conn: sqlite3.Connection, table: str, col: str) -> str:
+        """Resolve a logical snake_case column name to the actual column name in the database."""
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"PRAGMA table_info({table})")  # nosec B608
+            cols = [row[1] for row in cursor.fetchall()]
+            for c in cols:
+                # Direct match
+                if c.lower() == col.lower():
+                    return f"[{c}]"
+                # Match by converting spaces to underscores
+                if c.lower().replace(" ", "_") == col.lower():
+                    return f"[{c}]"
+                # Match by converting underscores to spaces
+                if c.lower() == col.lower().replace("_", " "):
+                    return f"[{c}]"
+        except Exception:
+            pass
+        return f"[{col}]"
+
     def query_vessels(
         self,
         operator: Optional[str] = None,
         berth: Optional[str] = None,
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
-        limit: int = 1000
+        limit: int = 1000,
     ) -> pd.DataFrame:
         """
         Query vessel summary data with optional filters.
@@ -374,31 +421,37 @@ class TDRDatabase:
         conditions: List[str] = []
         params: List[Any] = []
 
-        if operator:
-            conditions.append("operator = ?")
-            params.append(operator)
-        if berth:
-            conditions.append("berth = ?")
-            params.append(berth)
-        if date_from:
-            conditions.append("report_date >= ?")
-            params.append(date_from)
-        if date_to:
-            conditions.append("report_date <= ?")
-            params.append(date_to)
-
-        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        sql = f"SELECT * FROM vessel_summary {where_clause} ORDER BY report_date DESC LIMIT ?"
-        params.append(limit)
-
         with self._get_connection() as conn:
+            col_operator = self._resolve_column(conn, "vessel_summary", "operator")
+            col_berth = self._resolve_column(conn, "vessel_summary", "berth")
+            col_report_date = self._resolve_column(
+                conn, "vessel_summary", "report_date"
+            )
+
+            if operator:
+                conditions.append(f"{col_operator} = ?")
+                params.append(operator)
+            if berth:
+                conditions.append(f"{col_berth} = ?")
+                params.append(berth)
+            if date_from:
+                conditions.append(f"{col_report_date} >= ?")
+                params.append(date_from)
+            if date_to:
+                conditions.append(f"{col_report_date} <= ?")
+                params.append(date_to)
+
+            where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+            sql = f"SELECT * FROM vessel_summary {where_clause} ORDER BY {col_report_date} DESC LIMIT ?"  # nosec B608
+            params.append(limit)
+
             return pd.read_sql_query(sql, conn, params=params)
 
     def query_qc_productivity(
         self,
         filename: Optional[str] = None,
         qc_no: Optional[str] = None,
-        limit: int = 1000
+        limit: int = 1000,
     ) -> pd.DataFrame:
         """Query QC productivity data."""
         conditions: List[str] = []
@@ -412,7 +465,7 @@ class TDRDatabase:
             params.append(qc_no)
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        sql = f"SELECT * FROM qc_productivity {where_clause} LIMIT ?"
+        sql = f"SELECT * FROM qc_productivity {where_clause} LIMIT ?"  # nosec B608
         params.append(limit)
 
         with self._get_connection() as conn:
@@ -422,7 +475,7 @@ class TDRDatabase:
         self,
         filename: Optional[str] = None,
         error_type: Optional[str] = None,
-        limit: int = 5000
+        limit: int = 5000,
     ) -> pd.DataFrame:
         """Query delay detail records."""
         conditions: List[str] = []
@@ -436,7 +489,7 @@ class TDRDatabase:
             params.append(error_type)
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        sql = f"SELECT * FROM delay_details {where_clause} LIMIT ?"
+        sql = f"SELECT * FROM delay_details {where_clause} LIMIT ?"  # nosec B608
         params.append(limit)
 
         with self._get_connection() as conn:
@@ -463,13 +516,24 @@ class TDRDatabase:
             Dict with counts and date ranges
         """
         with self._get_connection() as conn:
-            vessel_count = conn.execute("SELECT COUNT(*) FROM vessel_summary").fetchone()[0]
-            qc_count = conn.execute("SELECT COUNT(*) FROM qc_productivity").fetchone()[0]
-            delay_count = conn.execute("SELECT COUNT(*) FROM delay_details").fetchone()[0]
-            container_count = conn.execute("SELECT COUNT(*) FROM container_details").fetchone()[0]
+            vessel_count = conn.execute(
+                "SELECT COUNT(*) FROM vessel_summary"
+            ).fetchone()[0]
+            qc_count = conn.execute("SELECT COUNT(*) FROM qc_productivity").fetchone()[
+                0
+            ]
+            delay_count = conn.execute("SELECT COUNT(*) FROM delay_details").fetchone()[
+                0
+            ]
+            container_count = conn.execute(
+                "SELECT COUNT(*) FROM container_details"
+            ).fetchone()[0]
 
+            col_report_date = self._resolve_column(
+                conn, "vessel_summary", "report_date"
+            )
             date_range = conn.execute(
-                "SELECT MIN(report_date), MAX(report_date) FROM vessel_summary"
+                f"SELECT MIN({col_report_date}), MAX({col_report_date}) FROM vessel_summary"  # nosec B608
             ).fetchone()
 
         return {
@@ -504,11 +568,13 @@ class TDRDatabase:
         counts = {}
         with self._get_connection() as conn:
             for table, csv_name in tables.items():
-                df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
+                df = pd.read_sql_query(f"SELECT * FROM {table}", conn)  # nosec B608
                 csv_path = output_dir / csv_name
                 df.to_csv(csv_path, index=False, encoding="utf-8-sig")
                 counts[table] = len(df)
-                logging.info(f"[Database] Exported {len(df)} rows from '{table}' to {csv_name}")
+                logging.info(
+                    f"[Database] Exported {len(df)} rows from '{table}' to {csv_name}"
+                )
         return counts
 
     def vacuum(self) -> None:

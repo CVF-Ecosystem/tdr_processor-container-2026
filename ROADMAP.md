@@ -1,380 +1,397 @@
-# TDR Processor — Development & Remediation Roadmap (v1.0)
+# TDR Processor - Remediation Roadmap
 
-> **Cập nhật lần cuối:** 2026-05-24  
-> **Phiên bản hiện tại:** **v3.2.0**  
-> **Trạng thái:** Sprint 1–4 ✅ hoàn thành toàn bộ.  
-> **Kế hoạch tiếp theo:** Sprint 2 & 3 - Sửa lỗi bảo mật (P0), cải thiện kiến trúc và tính năng (P1/P2) dựa trên EA Assessment.
+> Last verified: 2026-06-18  
+> Purpose: source of truth for implementation agents.  
+> Current quality gate: not production-ready. Treat this roadmap as the execution order.
 
----
+## Agent Brief
 
-## 📋 Tóm tắt Kế hoạch Hành động (Remediation Backlog)
+This repository is a Python desktop/API/dashboard app for processing Terminal Departure Report (TDR) Excel files and serving analytics through Flask dashboard and FastAPI endpoints.
 
-Dưới đây là các hạng mục đã được khảo sát trực tiếp từ mã nguồn thực tế (`dashboard.html`, `dashboard_api.py`) và được phân loại theo mức độ ưu tiên xử lý.
+The immediate goal is not feature expansion. The goal is to make the application internally consistent, secure enough for controlled deployment, and verifiable by CI.
 
-| ID | Hạng mục | Độ ưu tiên | Trạng thái | File cần chỉnh sửa |
-|:---|:---|:---:|:---:|:---|
-| **S2-1** | Tích hợp **API Token Authentication** cho Flask API (`/api/data` & `/api/meta`) | **🔴 P0 (Critical)** | 📅 Kế hoạch | `dashboard_api.py`, `dashboard.html` |
-| **S2-2** | Cấu hình **SQLite WAL Mode** ngăn chặn tranh chấp ghi/đọc (Race Conditions) | **🔴 P0 (Critical)** | 📅 Kế hoạch | `dashboard_api.py` |
-| **S2-3** | Tích hợp **Rate Limiting middleware** cho Flask API tránh quá tải | **🔴 P0 (Critical)** | 📅 Kế hoạch | `dashboard_api.py` |
-| **S2-4** | Triển khai **Auto-Refresh (Polling 30 giây)** cập nhật dữ liệu tự động | **🟡 P1 (High)** | 📅 Kế hoạch | `dashboard.html` |
-| **S2-5** | Bổ sung **Error Boundaries** trong React tránh crash trắng trang khi lỗi biểu đồ | **🟡 P1 (High)** | 📅 Kế hoạch | `dashboard.html` |
-| **S2-6** | Hoàn thiện tính năng **Export CSV/Excel** trực tiếp trên giao diện | **🟡 P1 (High)** | 📅 Kế hoạch | `dashboard.html` |
-| **S2-7** | Lưu trữ cấu hình **KPI Target** tùy chỉnh vào `localStorage` | **🟡 P1 (High)** | 📅 Kế hoạch | `dashboard.html` |
-| **S3-1** | Bổ sung Tab **QC Operator Productivity** (hiện backend đã có nhưng frontend chưa vẽ) | **🟢 P2 (Medium)** | 📅 Kế hoạch | `dashboard.html` |
-| **S3-2** | Đồng bộ hóa bộ lọc (Filter State) với **URL Query Parameters** | **🟢 P2 (Medium)** | 📅 Kế hoạch | `dashboard.html` |
-| **S3-3** | Khắc phục **Gantt Chart** hiển thị chuẩn khi tàu hoạt động qua nhiều ngày | **🟢 P2 (Medium)** | 📅 Kế hoạch | `dashboard.html` |
-| **S3-4** | Tối ưu hóa **Berth Map** hỗ trợ động thay vì giới hạn cứng 4 berths | **🟢 P2 (Medium)** | 📅 Kế hoạch | `dashboard.html` |
-| **S3-5** | Tối ưu hóa API Response Caching phía server (30 giây TTL) | **🟢 P2 (Medium)** | 📅 Kế hoạch | `dashboard_api.py` |
+Implementation agents should follow this order:
 
----
+1. Fix data source consistency.
+2. Fix API security defaults.
+3. Fix test/CI tooling.
+4. Fix Docker runtime healthchecks.
+5. Clean frontend delivery risk.
+6. Normalize versioning and docs.
+7. Only then address lower-priority UX/refactor work.
 
-## 🔴 Sprint 2 — Security & Stability (Ưu tiên Cao nhất)
+Do not start broad refactors before P0/P1 items are complete.
 
-### S2-1 · API Token Authentication
-* **Vấn đề:** Các endpoint dữ liệu nhạy cảm `/api/data` và `/api/meta` đang mở public không cần mật khẩu hay token bảo mật.
-* **Giải pháp:** 
-  - Yêu cầu token gửi qua header `X-API-Token` hoặc query parameter `?token=...`.
-  - Lưu trữ API Token an toàn trong biến môi trường hoặc file config.
-  - Cập nhật hàm `fetch` ở `dashboard.html` để tự động đính kèm token.
+## Verified Findings
 
-### S2-2 · SQLite WAL Mode
-* **Vấn đề:** Ghi và đọc dữ liệu đồng thời vào SQLite có nguy cơ gây lỗi `database is locked` hoặc hỏng file db.
-* **Giải pháp:** Bật chế độ WAL (Write-Ahead Logging) khi khởi tạo kết nối SQLite:
-  ```python
-  con.execute("PRAGMA journal_mode=WAL;")
-  con.execute("PRAGMA synchronous=NORMAL;")
-  ```
+These findings were checked against the working tree on 2026-06-18.
 
-### S2-3 · API Rate Limiting
-* **Vấn đề:** Không có cơ chế chặn brute-force hoặc spam request tải dữ liệu.
-* **Giải pháp:** Sử dụng `Flask-Limiter` hoặc cơ chế throttle tự dựng để giới hạn tối đa 60 requests/phút từ cùng một IP.
+| Finding | Evidence | Risk |
+|---|---|---|
+| Dashboard and FastAPI use different SQLite databases | `report_processor.py` writes `outputs/tdr_master.db`; `utils/database.py` defaults to `outputs/tdr_data.db`; `api.py` calls `TDRDatabase()` with no path | API/dashboard can show different or empty data |
+| Flask dashboard token has insecure default | `dashboard_api.py` defaults `TDR_API_TOKEN` to `tdr_secret_token_12345` | Anyone knowing source can access protected data |
+| FastAPI has no authentication and broad CORS | `api.py` uses `allow_origins=["*"]`; process/export endpoints are unauthenticated | Data export and processing can be triggered remotely if exposed |
+| Default pytest run is broken in current environment | `pytest tests/ -q` fails during collection; `pytest tests/ -q -p no:asyncio` passes 226 tests | CI/release confidence is unreliable |
+| Ruff quality gate fails | `python -m ruff check .` reports 124 lint errors | Pre-commit/CI promises do not match actual code quality |
+| Docker healthchecks use missing binary | Dockerfile healthcheck calls `curl`; image installs only `gcc` | Containers can become unhealthy even when app runs |
+| Roadmap/docs had merge conflict and version drift | old `ROADMAP.md` contained unresolved merge-conflict text; README says v3.1.0, roadmap v3.2.0, config v1.0, FastAPI v3.0.0 | Agents and users cannot trust docs as execution source |
+| Dashboard frontend is monolithic dev-mode HTML | `dashboard.html` uses CDN React development build and browser Babel | Slow, fragile, no production build contract |
 
----
+## Verification Baseline
 
-## 🟡 Sprint 3 — Feature Polish & UX (Cải thiện Trải nghiệm)
+Run these commands before starting and after each milestone:
 
-### S3-1 · Bổ sung Tab Năng suất Vận hành QC (QC Operator)
-* **Vấn đề:** Backend đã tổng hợp dữ liệu năng suất tài xế cẩu (`qc_operator_productivity`) nhưng giao diện chưa có tab hiển thị.
-* **Giải pháp:**
-  - Thêm tab "QC Operator" vào thanh sidebar điều hướng.
-  - Vẽ biểu đồ cột so sánh GMPH/NMPH giữa các tài xế cẩu và bảng danh sách chi tiết.
-
-### S3-2 · Auto-Refresh dữ liệu
-* **Vấn đề:** Khi có file TDR mới được watcher xử lý, người dùng không biết và phải ấn nút "Refresh" thủ công.
-* **Giải pháp:** Sử dụng `setInterval` trong React Hook để tự động gọi `reloadData()` mỗi 30 giây.
-
-### S3-3 · Persist KPI Target & Filter State
-* **Vấn đề:** Người dùng nhập target KPI mới hoặc chọn filter, nhưng khi F5 hoặc mở tab mới thì bị mất hết.
-* **Giải pháp:**
-  - Lưu `customKt` vào `localStorage`.
-  - Đồng bộ các bộ lọc (Vessel, Operator, Berth, Date) lên URL thông qua `window.history.pushState` hoặc `URLSearchParams`.
-
----
-
-## 🟢 Sprint 4 — Code Quality & Refactoring (Dài hạn)
-
-### S4-1 · Tách Monolithic dashboard.html sang React Project tiêu chuẩn
-* **Vấn đề:** File `dashboard.html` hiện tại dài gần 1000 dòng, chứa toàn bộ CSS, HTML, Component React, Chart logic, gây khó khăn cho việc quản lý mã nguồn và bảo trì.
-* **Giải pháp:** Di chuyển mã nguồn sang cấu trúc Vite + React + TypeScript tiêu chuẩn, build thành bundle tĩnh tối ưu trước khi phân phối.
-
----
-
-<<<<<<< HEAD
-### S2-4 · Locales fallback khi key thiếu *(Effort: Thấp | Impact: Vừa)*
-
-**Vấn đề:** Nếu key thiếu trong ngôn ngữ `en` → hiển thị raw key thay vì fallback về `vi`.
-
-**Giải pháp:**
-```python
-# dashboard_shared.py
-def t(key: str, **kwargs) -> str:
-    lang = st.session_state.get("lang", "vi")
-    text = translations[lang].get(key) or translations["vi"].get(key, key)
-    return text.format(**kwargs) if kwargs else text
+```powershell
+python -m compileall -q .
+pytest tests/ -q
+pytest tests/ -q -p no:asyncio
+python -m ruff check .
+python -m bandit -r . --exclude .\.git,.\node_modules,.\tests -ll
 ```
 
-**File cần sửa:** `dashboard_shared.py`
+Expected current baseline:
 
----
+| Command | Current Result | Target |
+|---|---:|---:|
+| `python -m compileall -q .` | pass | pass |
+| `pytest tests/ -q` | pass (246 passed) | pass |
+| `pytest tests/ -q -p no:asyncio` | pass (246 passed) | pass without workaround |
+| `python -m ruff check .` | 0 errors | 0 errors |
+| `bandit ... -ll` | 0 medium/high issues | no untriaged medium/high issues |
 
-## 🟡 Sprint 3 — Architecture (quan trọng dài hạn)
+## P0 - Correctness And Security
 
-### S3-1 · SQLite thay CSV làm data source *(Effort: Cao | Impact: Cao)*
+### P0-1 - Unify SQLite Data Source [DONE]
 
-**Vấn đề:** CSV bị file lock khi đọc/ghi đồng thời, query chậm với dataset lớn, không có schema validation.
+**Resolution:** Unified SQLite data source to use `outputs/tdr_master.db` consistently. Added tests checking fallback behavior and vessel consistency.
 
-**Giải pháp:**
+Problem:
+The app has two SQLite paths and two schema styles:
+
+- `report_processor.py` writes `outputs/tdr_master.db` with original column names such as `Vessel Name`.
+- `utils/database.py` defaults to `outputs/tdr_data.db` with normalized snake_case schema.
+- `dashboard_api.py` reads `outputs/tdr_master.db`.
+- `api.py` initializes `TDRDatabase()` without specifying the dashboard database path.
+
+Required decision:
+Use one canonical storage contract.
+
+Recommended implementation:
+
+1. Make `outputs/tdr_master.db` the canonical runtime database for the current release because it is already produced by `report_processor.py` and consumed by `dashboard_api.py`.
+2. Update FastAPI to read the same canonical DB or explicitly fall back to CSV without creating an empty alternate DB.
+3. Remove or quarantine the unused `outputs/tdr_data.db` path unless a full migration to normalized schema is completed.
+4. Add tests proving Flask dashboard and FastAPI see the same vessel count for the same fixture/output data.
+
+Files:
+
+- `api.py`
+- `dashboard_api.py`
+- `report_processor.py`
+- `utils/database.py`
+- `tests/`
+
+Acceptance criteria:
+
+- No runtime code silently creates `outputs/tdr_data.db` when `outputs/tdr_master.db` exists.
+- `/health`, `/api/vessels`, dashboard `/api/meta`, and dashboard `/api/data` report consistent record counts.
+- Tests cover DB present, DB missing, CSV fallback present, and CSV fallback missing.
+
+### P0-2 - Secure API Authentication Defaults [DONE]
+
+**Resolution:** Standardized security token validation in `dashboard_api.py` and `api.py`. Eliminated fallback default credentials and enforced constant-time string comparison (`hmac.compare_digest`).
+
+Problem:
+`dashboard_api.py` uses a public fallback token, and `api.py` has no auth.
+
+Required implementation:
+
+1. Require `TDR_API_TOKEN` for protected deployments.
+2. Remove the hardcoded fallback token.
+3. Use constant-time token comparison.
+4. Apply token auth to FastAPI endpoints that expose data or trigger processing.
+5. Keep `/health` public only if it does not expose sensitive data.
+6. Add a clear local-dev mode, for example `TDR_AUTH_DISABLED=true`, but never enable it by default.
+
+Files:
+
+- `dashboard_api.py`
+- `api.py`
+- `.env.example`
+- `docker-compose.yml`
+- `Readme.md`
+- `tests/test_security.py` or new API auth tests
+
+Acceptance criteria:
+
+- Missing token returns 401 for protected Flask and FastAPI endpoints.
+- Wrong token returns 401.
+- Correct token returns success.
+- No source file contains a real or default shared secret.
+
+### P0-3 - Restrict CORS And Network Binding [DONE]
+
+**Resolution:** Added `TDR_ALLOWED_ORIGINS` to restrict CORS endpoints. Network interfaces default to loopback `127.0.0.1` unless running inside container environment.
+
+Problem:
+FastAPI allows all origins and both servers bind to `0.0.0.0` by default.
+
+Required implementation:
+
+1. Add `TDR_ALLOWED_ORIGINS`, defaulting to localhost dashboard origins.
+2. Parse origins from env as a comma-separated list.
+3. Add `TDR_API_HOST` and `TDR_DASH_HOST`, defaulting to `127.0.0.1` for local execution.
+4. In Docker compose, explicitly set host/binding behavior needed for containers.
+
+Files:
+
+- `api.py`
+- `dashboard_api.py`
+- `docker-compose.yml`
+- `.env.example`
+
+Acceptance criteria:
+
+- Local run binds to localhost by default.
+- Docker still works when ports are published.
+- Bandit binding warnings are either fixed or documented with targeted `# nosec` and rationale.
+
+## P1 - CI, Tooling, And Deployment Reliability
+
+### P1-1 - Fix Pytest Default Run [DONE]
+
+**Resolution:** Upgraded `pytest-asyncio` dependency to `0.24.0` in `requirements.txt` to align compatibility with Python 3.12. Fixed a date-parsing order bug in `excel_utils.py` where `dd/mm` was misparsed as `mm/dd` for ambiguous cases, ensuring all tests pass without bypass parameters.
+
+Problem:
+`pytest tests/ -q` fails during collection in the current environment, while `pytest tests/ -q -p no:asyncio` passes.
+
+Recommended implementation:
+
+1. Upgrade `pytest-asyncio` to a compatible version or remove it if no async tests require it.
+2. Add `pytest.ini` or `pyproject.toml` with explicit pytest config.
+3. Ensure CI and local command use the same test behavior.
+
+Files:
+
+- `requirements.txt`
+- `tests/`
+- `.github/workflows/ci.yml`
+- optional `pytest.ini`
+
+Acceptance criteria:
+
+- `pytest tests/ -q` passes without disabling plugins.
+- CI test matrix passes on Python 3.11 and 3.12.
+
+### P1-2 - Make Ruff Quality Gate Realistic [DONE]
+
+**Resolution:** Configured auto-formatter to fix E701/E702/E402 style rules. Unused/duplicate imports are fixed. `ruff check .` passes with 0 errors.
+
+Problem:
+Ruff is configured in pre-commit/CI, but current code fails with 124 errors.
+
+Required implementation:
+
+1. Fix straightforward unused imports, duplicate imports, invalid f-strings, and module import order.
+2. For large legacy files, either fix rule violations or configure scoped ignores with comments.
+3. Do not hide broad categories globally unless unavoidable.
+
+Files:
+
+- Python source files reported by `python -m ruff check .`
+- `.pre-commit-config.yaml`
+- optional `pyproject.toml`
+
+Acceptance criteria:
+
+- `python -m ruff check .` returns 0.
+- `ruff format --check .` passes or formatting policy is explicitly configured.
+
+### P1-3 - Fix Docker Healthchecks [DONE]
+
+**Resolution:** Standardized Docker healthchecks to use native Python `urllib` script checks in order to bypass the lack of `curl` on default Alpine/Debian base containers.
+
+Problem:
+Dockerfile healthchecks call `curl`, but `curl` is not installed.
+
+Recommended implementation:
+
+Option A:
+Install `curl` in the base image.
+
+Option B:
+Replace healthchecks with Python standard-library checks.
+
+Recommended choice:
+Use Python healthchecks to avoid extra OS dependency.
+
+Files:
+
+- `Dockerfile`
+- `docker-compose.yml`
+
+Acceptance criteria:
+
+- `docker compose build` succeeds.
+- `docker compose up` marks both services healthy when apps are running.
+
+### P1-4 - Make Security Scan Actionable [DONE]
+
+**Resolution:** Relocated local developer cleaning scripts to `scripts/dev/` to isolate them. Added `# nosec B608` bypass annotations to safe parameterized DB execution statements. Bandit outputs 0 Medium/High errors.
+
+Problem:
+Bandit reports medium issues, some real and some false positives.
+
+Required implementation:
+
+1. Fix real issues: auth defaults, broad binding defaults, unchecked SQL table names where user-controlled.
+2. For safe dynamic SQL over fixed allowlists, add narrow `# nosec B608` with rationale.
+3. Exclude one-off local demo cleanup scripts from production scan or move them under `scripts/dev/`.
+
+Files:
+
+- `api.py`
+- `dashboard_api.py`
+- `utils/database.py`
+- `check_db.py`
+- `final_data_clean.py`
+- `.github/workflows/ci.yml`
+
+Acceptance criteria:
+
+- No untriaged medium/high Bandit findings.
+- CI security job fails on new high findings instead of always swallowing results.
+
+## P2 - Frontend And Maintainability
+
+### P2-1 - Stabilize Dashboard Frontend Delivery [DONE]
+
+**Resolution:** Transpiled `dashboard.html` JSX code block to static `/assets/dashboard.js` bundle using local Babel transpiler. Replaced CDN imports with production builds of React/ReactDOM and eliminated `@babel/standalone` runtime dependency.
+
+Problem:
+`dashboard.html` is a large monolithic React app using CDN development builds and browser Babel.
+
+Required implementation:
+
+1. Short-term: switch to production UMD builds and remove browser Babel if feasible.
+2. Medium-term: migrate to Vite + React + TypeScript or plain bundled React with a build artifact.
+3. Keep `dashboard.html` serving behavior compatible with `dashboard_api.py` until migration is complete.
+
+Files:
+
+- `dashboard.html`
+- `package.json`
+- new frontend source directory if migrating
+- `dashboard_api.py`
+
+Acceptance criteria:
+
+- No React development build in production dashboard.
+- No runtime JSX transpilation in browser for production path.
+- Dashboard still supports token entry, auto-refresh, filters, KPI target persistence, and CSV export.
+
+### P2-2 - Normalize Versioning [DONE]
+
+**Resolution:** Standardized release version `3.1.0` in `config.py` (`APP_VERSION`), `api.py`, `dashboard_api.py`, and test assertions (`test_config_security.py`).
+
+Problem:
+Versions differ across docs and code:
+
+- README badge: v3.1.0
+- Old roadmap: v3.2.0
+- `config.py`: v1.0
+- `api.py`: v3.0.0
+- `dashboard_api.py`: v1.0
+
+Required implementation:
+
+1. Define one canonical version source.
+2. Import/use it in FastAPI and Flask dashboard metadata.
+3. Update README and release notes.
+
+Recommended implementation:
+Use `config.APP_VERSION` as the canonical source after updating it to the intended release version.
+
+Files:
+
+- `config.py`
+- `api.py`
+- `dashboard_api.py`
+- `Readme.md`
+- release notes
+
+Acceptance criteria:
+
+- `/health`, `/api/meta`, README, and package/build metadata agree.
+
+### P2-3 - Clean Local Utility Scripts [DONE]
+
+**Resolution:** Created the `scripts/dev/` directory, relocated all developer script files inside it, and documented them in `scripts/dev/README.md`.
+
+Problem:
+Ad hoc files such as `check_demo_db.py`, `check_excel_demo.py`, `clean_demo_labels.py`, and `final_data_clean.py` are in the repo root and show lint/security issues.
+
+Required implementation:
+
+1. Move dev-only scripts to `scripts/dev/` or remove if obsolete.
+2. Add explicit documentation for any script that remains.
+3. Exclude dev-only scripts from production packaging if needed.
+
+Acceptance criteria:
+
+- Repo root contains only primary app entrypoints and docs.
+- Ruff/Bandit behavior for dev scripts is intentional.
+
+## P3 - Product Polish
+
+These are lower priority. Do not start until P0 and P1 are complete.
+
+| ID | Task | Notes |
+|---|---|---|
+| P3-1 | Improve dashboard error boundaries | Prevent blank screen on chart/component errors |
+| P3-2 | Add API response ETag or mtime-aware cache invalidation | Current Flask cache is time-only |
+| P3-3 | Add integration tests for dashboard API payload shape | Protect frontend/backend contract |
+| P3-4 | Add sample fixture TDR files or synthetic dataset | Make onboarding and tests reproducible |
+| P3-5 | Improve observability | Structured logs are partly present, standardize request IDs and processing job IDs |
+
+## Suggested Claude Work Plan
+
+Give Claude this sequence as separate commits or pull requests:
+
+1. `fix(data): unify API and dashboard SQLite source`
+2. `fix(security): require token auth across protected APIs`
+3. `fix(test): make pytest pass without plugin workaround`
+4. `chore(lint): make ruff gate pass`
+5. `fix(docker): repair healthchecks`
+6. `chore(version): normalize app version metadata`
+7. `refactor(frontend): prepare dashboard for production bundle`
+
+Each commit should include tests or verification output in the commit message/PR notes.
+
+## Definition Of Done
+
+The remediation is complete when:
+
+```powershell
+python -m compileall -q .
+pytest tests/ -q
+python -m ruff check .
+python -m ruff format --check .
+python -m bandit -r . --exclude .\.git,.\node_modules,.\tests -ll
 ```
-outputs/
-  tdr_master.db     ← thay thế 5 file CSV
-    tables: vessel_summary, qc_productivity, qc_operator_productivity,
-            delay_details, container_details_long
+
+all pass or any remaining exceptions are explicitly documented with narrow, file-local rationale.
+
+For runtime verification:
+
+```powershell
+python dashboard_api.py
+uvicorn api:app --host 127.0.0.1 --port 8000
 ```
 
-```python
-# dashboard_shared.py
-@st.cache_data(ttl=30)
-def load_table(table: str) -> pd.DataFrame:
-    con = sqlite3.connect("outputs/tdr_master.db")
-    return pd.read_sql(f"SELECT * FROM {table}", con)
-```
-
-**File cần sửa:** `report_processor.py` (writer), `dashboard_shared.py` (reader)
-
----
-
-### S3-2 · `pydantic-settings` cho configuration *(Effort: Vừa | Impact: Vừa)*
-
-**Vấn đề:** `config.py` dùng `dataclass` thuần — không validate kiểu, không đọc từ `.env`, không có error message rõ ràng.
-
-**Giải pháp:**
-```python
-# config.py
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-class Settings(BaseSettings):
-    kpi_moves_per_hour: int = 45
-    max_message_size_mb: int = 500
-    log_level: str = "INFO"
-    data_dir: str = "outputs/data_csv"
-    
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="TDR_")
-
-settings = Settings()
-```
-
-**Thêm vào `requirements.txt`:** `pydantic-settings>=2.0`  
-**File cần sửa:** `config.py`, `requirements.txt`
-
----
-
-### S3-3 · Structured logging (JSON) *(Effort: Vừa | Impact: Vừa)*
-
-**Vấn đề:** `tdr_processor.log` là plain text → khó filter, khó tích hợp monitoring.
-
-**Giải pháp:**
-```python
-from pythonjsonlogger import jsonlogger
-
-handler = logging.FileHandler("tdr_processor.log")
-handler.setFormatter(jsonlogger.JsonFormatter(
-    '%(asctime)s %(levelname)s %(name)s %(message)s'
-))
-```
-
-**Thêm vào `requirements.txt`:** `python-json-logger>=2.0`  
-**File cần sửa:** `main.py` (logging setup)
-
----
-
-### S3-4 · Async processing với `asyncio` *(Effort: Cao | Impact: Vừa)*
-
-**Vấn đề:** `ThreadPoolExecutor` + `threading.Lock` phức tạp, cancellation khó, error propagation không rõ ràng.
-
-**Giải pháp:** Chuyển sang `asyncio` + `aiofiles` cho file I/O-bound operations → cleaner cancellation, better error propagation.
-
-**File cần sửa:** `core_processor.py`, `report_processor.py`, `main.py`
-
----
-
-## 🟢 Sprint 4 — Polish & UX
-
-### S4-1 · KPI Scorecard custom CSS *(Effort: Thấp | Impact: Vừa)*
-
-**Vấn đề:** `st.metric()` thuần — thiếu visual hierarchy, không nổi bật.
-
-**Giải pháp:**
-```python
-def kpi_card(title: str, value: str, delta: str, color: str = "#FF4B4B"):
-    st.markdown(f"""
-    <div style="border-left:4px solid {color}; padding:12px 16px;
-                border-radius:6px; background:#f8f9fa; margin-bottom:8px;">
-        <div style="font-size:12px; color:#666; margin-bottom:4px">{title}</div>
-        <div style="font-size:28px; font-weight:700; color:#303030">{value}</div>
-        <div style="font-size:12px; color:{color}">{delta}</div>
-    </div>""", unsafe_allow_html=True)
-```
-
-**File cần sửa:** `dashboard_shared.py`, `dashboard.py`
-
----
-
-### S4-2 · Excel export có định dạng đẹp *(Effort: Vừa | Impact: Vừa)*
-
-**Vấn đề:** Export Excel hiện tại là raw data, không có header formatting hay conditional formatting.
-
-**Giải pháp (dùng `openpyxl` styling):**
-- Header row: bold + màu nền `#4472C4`, chữ trắng
-- Conditional formatting: đỏ nếu `Net moves/h < 45`  
-- Auto column width
-- Freeze top row (`freeze_panes = "A2"`)
-
-**File cần sửa:** `dashboard_shared.py` (hàm `render_export_sidebar`)
-
----
-
-### S4-3 · System tray icon cho GUI Desktop *(Effort: Vừa | Impact: Thấp)*
-
-**Vấn đề:** Minimize/đóng cửa sổ → kill toàn bộ app kể cả watcher đang chạy ngầm.
-
-**Giải pháp:**
-```python
-import pystray
-from PIL import Image
-
-def on_quit(icon, item): icon.stop(); app.destroy()
-icon = pystray.Icon("TDR", Image.open("icon.ico"),
-    menu=pystray.Menu(pystray.MenuItem("Open", lambda: app.deiconify()),
-                      pystray.MenuItem("Quit", on_quit)))
-```
-
-**Thêm vào `requirements.txt`:** `pystray>=0.19`, `Pillow>=10.0`  
-**File cần sửa:** `main.py`, `requirements.txt`
-
----
-
-### S4-4 · Dark mode toggle trong Dashboard *(Effort: Thấp | Impact: Thấp)*
-
-**Giải pháp:**
-```python
-dark = st.sidebar.toggle("🌙 Dark mode", key="dark_mode")
-if dark:
-    st.markdown("<style>:root { --bg: #1e1e1e; }</style>", unsafe_allow_html=True)
-```
-
-**File cần sửa:** `dashboard_shared.py`
-
----
-
-### S4-5 · Tối ưu hóa Biểu đồ (Plotly Styling) *(Effort: Vừa | Impact: Cao)*
-
-**Vấn đề:** Biểu đồ Plotly mặc định thường có màu sắc ngẫu nhiên, viền khung rối mắt và tooltip hiển thị kiểu dữ liệu thô.
-
-**Giải pháp:** Thống nhất một `layout template` đồ thị cho toàn app (giấu grid lines, font chữ chuẩn, chuẩn hóa bảng màu, format số).
-
-**File cần sửa:** `dashboard_shared.py` (tạo hàm wrap trả về figure đã style)
-
----
-
-### S4-6 · Nâng cấp Bảng dữ liệu tương tác (AgGrid) *(Effort: Vừa | Impact: Cao)*
-
-**Vấn đề:** Bảng dữ liệu mặc định của Streamlit hơi đơn điệu khi cần lọc (filter) hoặc ghim cột (pin column) với lượng dữ liệu lớn.
-
-**Giải pháp:** Dùng thư viện `streamlit-aggrid` tạo cảm giác giống Excel/Enterprise App: kéo thả cột, ghim cột, lọc trực tiếp trên header.
-
-**Thêm vào `requirements.txt`:** `streamlit-aggrid>=1.0.0`  
-**File cần sửa:** Các file chứa bảng trong `pages/*.py`
-
----
-
-### S4-7 · Skeleton Loading & Trạng thái chờ *(Effort: Thấp | Impact: Vừa)*
-
-**Vấn đề:** Khi query dữ liệu lớn, web bị "đứng" hoặc hiện `st.spinner` xoay tròn khá đơn điệu.
-
-**Giải pháp:** Sử dụng `st.status()` để hiển thị các bước đang xử lý chi tiết, thêm placeholder text tránh giật cục UI.
-
-**File cần sửa:** Các `pages/*.py` có fetch data nặng
-
----
-
-### S4-8 · Branding & Xóa rác giao diện (Clean UI) *(Effort: Thấp | Impact: Vừa)*
-
-**Vấn đề:** Dấu ấn Streamlit mặc định (menu góc phải, nút Deploy, footer) làm giảm độ chuyên nghiệp.
-
-**Giải pháp:** Dùng CSS để ẩn UI Streamlit mặc định, chèn Logo Công ty vào sidebar/header.
-
-**File cần sửa:** `dashboard_shared.py` / `.streamlit/config.toml`
-
----
-
-### S4-9 · Hiện đại hóa Desktop UI (CustomTkinter) *(Effort: Vừa | Impact: Cao)*
-
-**Vấn đề:** Giao diện `tkinter` mặc định trông khá lỗi thời.
-
-**Giải pháp:** Áp dụng `customtkinter` hoặc theme `sv-ttk` (Sun Valley Theme) để mang lại giao diện bo góc, dark/light mode chuẩn Windows 11.
-
-**Thêm vào `requirements.txt`:** `customtkinter` hoặc `sv-ttk`  
-**File cần sửa:** `main.py`
-
----
-
-### S4-10 · Vùng kéo-thả File (Drag & Drop Zone) *(Effort: Vừa | Impact: Cao)*
-
-**Vấn đề:** Người dùng phải bấm click để chọn file khá chậm.
-
-**Giải pháp:** Hỗ trợ kéo thả file/folder TDR trực tiếp vào màn hình Desktop app.
-
-**Thêm vào `requirements.txt`:** `tkinterdnd2`  
-**File cần sửa:** `main.py`
-
----
-
-### S4-11 · Thông báo hệ thống (Windows Toast) *(Effort: Thấp | Impact: Vừa)*
-
-**Vấn đề:** Người dùng không biết khi nào xử lý file ngầm xong nếu đang mở tab khác.
-
-**Giải pháp:** Bắn popup notification hệ thống khi hoàn thành tác vụ dài.
-
-**Thêm vào `requirements.txt`:** `win11toast` hoặc `plyer`  
-**File cần sửa:** `main.py`
-
----
-
-## 📊 Ma trận ưu tiên
-
-| ID | Đề xuất | Effort | Impact | Sprint |
-|----|---------|:------:|:------:|:------:|
-| S2-1 | `st.navigation()` API | 🟢 Thấp | 🔴 Cao | 2 |
-| S2-2 | `@st.fragment` sidebar | 🟢 Thấp | 🔴 Cao | 2 |
-| S2-3 | Progress bar thực | 🟡 Vừa | 🟡 Vừa | 2 |
-| S2-4 | Locales fallback | 🟢 Thấp | 🟡 Vừa | 2 |
-| S3-1 | SQLite data source | 🔴 Cao | 🔴 Cao | 3 |
-| S3-2 | `pydantic-settings` | 🟡 Vừa | 🟡 Vừa | 3 |
-| S3-3 | Structured logging | 🟡 Vừa | 🟡 Vừa | 3 |
-| S3-4 | Async processing | 🔴 Cao | 🟡 Vừa | 3 |
-| S4-1 | KPI Card custom CSS | 🟢 Thấp | 🟡 Vừa | 4 |
-| S4-2 | Excel export đẹp | 🟡 Vừa | 🟡 Vừa | 4 |
-| S4-3 | System tray icon | 🟡 Vừa | 🟢 Thấp | 4 |
-| S4-4 | Dark mode toggle | 🟢 Thấp | 🟢 Thấp | 4 |
-| S4-5 | Tối ưu hóa Biểu đồ | 🟡 Vừa | 🔴 Cao | 4 |
-| S4-6 | Nâng cấp Bảng dữ liệu | 🟡 Vừa | 🔴 Cao | 4 |
-| S4-7 | Skeleton Loading | 🟢 Thấp | 🟡 Vừa | 4 |
-| S4-8 | Branding & Clean UI | 🟢 Thấp | 🟡 Vừa | 4 |
-| S4-9 | Hiện đại hóa Desktop UI | 🟡 Vừa | 🔴 Cao | 4 |
-| S4-10 | Vùng kéo-thả File | 🟡 Vừa | 🔴 Cao | 4 |
-| S4-11 | Thông báo hệ thống | 🟢 Thấp | 🟡 Vừa | 4 |
-
----
-
-## 📋 Checklist triển khai theo sprint
-
-```
-Sprint 2 (Quick wins):
-  [x] S2-1: st.navigation() → dashboard.py
-  [x] S2-2: @st.fragment → pages/*.py
-  [x] S2-3: Progress bar → report_processor.py + main.py  (đã có sẵn từ Sprint 1)
-  [x] S2-4: Locales fallback → dashboard_shared.py
-
-Sprint 3 (Architecture):
-  [x] S3-1: SQLite migration → report_processor.py + dashboard_shared.py
-  [x] S3-2: pydantic-settings → config.py + requirements.txt
-  [x] S3-3: JSON logging → logger_setup.py + requirements.txt
-  [ ] S3-4: Async processing → core_processor.py (optional — bỏ qua)
-
-Sprint 4 (Polish):
-  [x] S4-1: KPI card CSS → dashboard_shared.py + dashboard.py
-  [x] S4-2: Excel formatting → dashboard_shared.py (_create_styled_excel)
-  [x] S4-3: System tray → main.py + requirements.txt (pystray + Pillow)
-  [x] S4-4: Dark mode → dashboard_shared.py (inject_global_css)
-  [x] S4-5: Tối ưu đồ thị Plotly → dashboard_shared.py (apply_chart_theme)
-  [x] S4-6: AgGrid Interactive Tables → pages/*.py (render_aggrid_table)
-  [x] S4-7: Loading states (st.status) → pages/*.py + dashboard.py
-  [x] S4-8: Custom Branding & Streamlit cleanup → dashboard_shared.py (inject_global_css)
-  [x] S4-9: Desktop UI hiện đại → ttkbootstrap đã đáp ứng (litera theme)
-  [x] S4-10: Drag & Drop files → main.py + requirements.txt (tkinterdnd2)
-  [x] S4-11: Windows Toast Notifications → main.py + requirements.txt (plyer)
-```
-
----
-
-*Tài liệu này được biên soạn và cập nhật trực tiếp dựa trên mã nguồn thực tế của hệ thống TDR Processor v3.2.0 vào ngày 2026-05-24.*
+Then verify:
+
+- Dashboard loads at `http://127.0.0.1:8503`.
+- Protected dashboard API rejects missing/wrong token.
+- Protected FastAPI endpoints reject missing/wrong token.
+- Dashboard and FastAPI report the same vessel count from the same output data.

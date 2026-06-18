@@ -1,20 +1,51 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_data_files
+
+datas = [
+    ('dashboard_api.py', '.'),
+    ('dashboard.html', '.'),
+    ('locales.json', '.'),
+    ('assets', 'assets'),
+    ('tdr_dashboard.pbix', '.'),
+]
+datas += collect_data_files('tkinterdnd2')
+
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        ('dashboard_api.py', '.'),
-        ('dashboard.html', '.'),
-        ('locales.json', '.'),
+    datas=datas,
+    hiddenimports=[
+        'dashboard_api',
+        'watchdog',
+        'watchdog.events',
+        'watchdog.observers',
+        'utils.watcher',
+        'schedule',
+        'ttkbootstrap',
+        'keyring',
+        'keyring.backends.Windows',
+        'pystray',
+        'PIL',
+        'PIL.Image',
+        'PIL.ImageDraw',
+        'PIL.ImageFont',
+        'tkinterdnd2',
+        'plyer',
+        'plyer.platforms.win.notification',
+        'pythonjsonlogger',
     ],
-    hiddenimports=['watchdog', 'utils.watcher', 'schedule', 'ttkbootstrap', 'keyring'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'matplotlib',
+        'streamlit',
+        'plotly',
+        'scipy',
+    ],
     noarchive=False,
     optimize=0,
 )
@@ -30,7 +61,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,

@@ -5,6 +5,7 @@ Unit tests for DataExtractor class.
 Uses mock openpyxl worksheets to test extraction logic
 without requiring actual Excel files.
 """
+
 import pytest
 from datetime import date, datetime
 from pathlib import Path
@@ -14,6 +15,7 @@ from unittest.mock import MagicMock
 # ============================================================================
 # FIXTURES
 # ============================================================================
+
 
 def make_mock_worksheet(cell_data: dict):
     """
@@ -56,6 +58,7 @@ def mock_worksheet():
 # TEST: DataExtractor initialization
 # ============================================================================
 
+
 class TestDataExtractorInit:
     def test_init_with_valid_file(self, tmp_path):
         """Test DataExtractor initializes correctly with valid file."""
@@ -97,6 +100,7 @@ class TestDataExtractorInit:
 # ============================================================================
 # TEST: Helper methods
 # ============================================================================
+
 
 class TestDataExtractorHelpers:
     def test_parse_moves_hour_value_int(self, tmp_path):
@@ -165,10 +169,12 @@ class TestDataExtractorHelpers:
 # TEST: excel_utils functions
 # ============================================================================
 
+
 class TestExcelUtils:
     def test_col_letter_to_index_single(self):
         """Test column letter to index conversion for single letters."""
         from utils.excel_utils import col_letter_to_index
+
         assert col_letter_to_index("A") == 1
         assert col_letter_to_index("B") == 2
         assert col_letter_to_index("Z") == 26
@@ -176,6 +182,7 @@ class TestExcelUtils:
     def test_col_letter_to_index_double(self):
         """Test column letter to index conversion for double letters."""
         from utils.excel_utils import col_letter_to_index
+
         assert col_letter_to_index("AA") == 27
         assert col_letter_to_index("AB") == 28
         assert col_letter_to_index("AZ") == 52
@@ -183,6 +190,7 @@ class TestExcelUtils:
     def test_col_letter_to_index_invalid(self):
         """Test column letter to index returns None for invalid input."""
         from utils.excel_utils import col_letter_to_index
+
         assert col_letter_to_index("") is None
         assert col_letter_to_index("1") is None
         assert col_letter_to_index(None) is None
@@ -191,6 +199,7 @@ class TestExcelUtils:
         """Test timedelta to hours conversion."""
         from datetime import timedelta
         from utils.excel_utils import timedelta_to_hours
+
         assert timedelta_to_hours(timedelta(hours=2, minutes=30)) == 2.5
         assert timedelta_to_hours(timedelta(hours=1, minutes=15)) == 1.25
         assert timedelta_to_hours(timedelta(0)) == 0.0
@@ -199,6 +208,7 @@ class TestExcelUtils:
     def test_classify_error_code_terminal(self):
         """Test error code classification for terminal convenience."""
         from utils.excel_utils import classify_error_code
+
         code, error_type = classify_error_code("a - crane breakdown")
         assert code == "a"
         assert error_type == "Terminal Convenience"
@@ -206,6 +216,7 @@ class TestExcelUtils:
     def test_classify_error_code_non_terminal(self):
         """Test error code classification for non-terminal convenience."""
         from utils.excel_utils import classify_error_code
+
         code, error_type = classify_error_code("i - vessel delay")
         assert code == "i"
         assert error_type == "Non-Terminal Convenience"
@@ -213,6 +224,7 @@ class TestExcelUtils:
     def test_classify_error_code_none(self):
         """Test error code classification for None input."""
         from utils.excel_utils import classify_error_code
+
         code, error_type = classify_error_code(None)
         assert code is None
         assert error_type == "Unknown"
@@ -220,6 +232,7 @@ class TestExcelUtils:
     def test_parse_time_duration_string(self):
         """Test time duration parsing from string."""
         from utils.excel_utils import parse_time_duration
+
         assert parse_time_duration("2:30") == 2.5
         assert parse_time_duration("1:15") == 1.25
         assert parse_time_duration("0:45") == 0.75
@@ -227,6 +240,7 @@ class TestExcelUtils:
     def test_parse_time_duration_float(self):
         """Test time duration parsing from float (Excel fraction)."""
         from utils.excel_utils import parse_time_duration
+
         # 0.5 = 12 hours in Excel time fraction
         result = parse_time_duration(0.5)
         assert result == 12.0
@@ -234,11 +248,13 @@ class TestExcelUtils:
     def test_parse_excel_datetime_none(self):
         """Test parse_excel_datetime returns None for None input."""
         from utils.excel_utils import parse_excel_datetime
+
         assert parse_excel_datetime(None) is None
 
     def test_parse_excel_datetime_datetime_object(self):
         """Test parse_excel_datetime returns datetime as-is."""
         from utils.excel_utils import parse_excel_datetime
+
         dt = datetime(2023, 7, 15, 14, 30)
         result = parse_excel_datetime(dt)
         assert result == dt
@@ -246,6 +262,7 @@ class TestExcelUtils:
     def test_parse_excel_datetime_date_only(self):
         """Test parse_excel_datetime with is_just_date=True."""
         from utils.excel_utils import parse_excel_datetime
+
         dt = datetime(2023, 7, 15, 14, 30)
         result = parse_excel_datetime(dt, is_just_date=True)
         assert result == date(2023, 7, 15)
@@ -253,6 +270,7 @@ class TestExcelUtils:
     def test_parse_excel_datetime_string_full(self):
         """Test parse_excel_datetime with full datetime string."""
         from utils.excel_utils import parse_excel_datetime
+
         result = parse_excel_datetime("2023-07-15 14:30:00")
         assert isinstance(result, datetime)
         assert result.year == 2023
@@ -262,6 +280,7 @@ class TestExcelUtils:
     def test_parse_excel_datetime_no_debug_prints(self, capsys):
         """Verify no debug print statements are executed."""
         from utils.excel_utils import parse_excel_datetime
+
         # Test with the value that previously triggered debug prints
         parse_excel_datetime(0.75)
         captured = capsys.readouterr()
@@ -273,10 +292,12 @@ class TestExcelUtils:
 # TEST: input_validator
 # ============================================================================
 
+
 class TestInputValidator:
     def test_validate_email_valid(self):
         """Test email validation with valid email."""
         from utils.input_validator import validate_email
+
         is_valid, error = validate_email("user@example.com")
         assert is_valid is True
         assert error == ""
@@ -284,6 +305,7 @@ class TestInputValidator:
     def test_validate_email_invalid(self):
         """Test email validation with invalid email."""
         from utils.input_validator import validate_email
+
         is_valid, error = validate_email("not-an-email")
         assert is_valid is False
         assert error != ""
@@ -291,12 +313,14 @@ class TestInputValidator:
     def test_validate_email_injection(self):
         """Test email validation blocks injection attempts."""
         from utils.input_validator import validate_email
+
         is_valid, error = validate_email("user@evil.com\nBCC: attacker@evil.com")
         assert is_valid is False
 
     def test_validate_smtp_port_valid(self):
         """Test SMTP port validation with valid ports."""
         from utils.input_validator import validate_smtp_port
+
         assert validate_smtp_port(587)[0] is True
         assert validate_smtp_port(465)[0] is True
         assert validate_smtp_port(25)[0] is True
@@ -305,6 +329,7 @@ class TestInputValidator:
     def test_validate_smtp_port_invalid(self):
         """Test SMTP port validation with invalid ports."""
         from utils.input_validator import validate_smtp_port
+
         assert validate_smtp_port(0)[0] is False
         assert validate_smtp_port(65536)[0] is False
         assert validate_smtp_port(-1)[0] is False
@@ -312,6 +337,7 @@ class TestInputValidator:
     def test_validate_file_path_traversal(self):
         """Test file path validation blocks path traversal."""
         from utils.input_validator import validate_file_path
+
         is_valid, error = validate_file_path("../../etc/passwd")
         assert is_valid is False
         assert "traversal" in error.lower()
@@ -319,6 +345,7 @@ class TestInputValidator:
     def test_validate_excel_file_valid(self, tmp_path):
         """Test Excel file validation with valid file."""
         from utils.input_validator import validate_excel_file
+
         excel_path = tmp_path / "test.xlsx"
         # Write valid ZIP/XLSX magic bytes
         excel_path.write_bytes(b"PK\x03\x04" + b"\x00" * 100)
@@ -328,6 +355,7 @@ class TestInputValidator:
     def test_validate_excel_file_wrong_extension(self, tmp_path):
         """Test Excel file validation rejects wrong extension."""
         from utils.input_validator import validate_excel_file
+
         txt_path = tmp_path / "test.txt"
         txt_path.write_text("not excel")
         is_valid, error = validate_excel_file(str(txt_path))
@@ -338,10 +366,12 @@ class TestInputValidator:
 # TEST: file_utils
 # ============================================================================
 
+
 class TestFileUtils:
     def test_setup_project_directories(self, tmp_path):
         """Test project directory creation."""
         from utils.file_utils import setup_project_directories
+
         dirs = ["data_input", "outputs", "backup"]
         result = setup_project_directories(tmp_path, dirs)
         assert result is True
@@ -351,11 +381,13 @@ class TestFileUtils:
     def test_backup_file_creates_backup(self, tmp_path):
         """Test backup_file creates a timestamped backup."""
         from utils.file_utils import backup_file
+
         source = tmp_path / "test_file.xlsx"
         source.write_text("test content")
 
         # Change to tmp_path to use relative backup dir
         import os
+
         original_dir = os.getcwd()
         os.chdir(tmp_path)
         try:
@@ -370,6 +402,7 @@ class TestFileUtils:
     def test_backup_file_nonexistent(self, tmp_path):
         """Test backup_file handles non-existent file gracefully."""
         from utils.file_utils import backup_file
+
         nonexistent = tmp_path / "nonexistent.xlsx"
         # Should not raise any exception
         backup_file(nonexistent)
@@ -379,10 +412,12 @@ class TestFileUtils:
 # TEST: data_schema
 # ============================================================================
 
+
 class TestDataSchema:
     def test_normalize_qc_name_gc1(self):
         """Test QC name normalization GC1 -> GC01."""
         from data_schema import normalize_qc_name
+
         assert normalize_qc_name("GC1") == "GC01"
         assert normalize_qc_name("GW2") == "GW02"
         assert normalize_qc_name("gc1") == "GC01"
@@ -390,18 +425,21 @@ class TestDataSchema:
     def test_normalize_qc_name_already_normalized(self):
         """Test QC name normalization for already-normalized names."""
         from data_schema import normalize_qc_name
+
         assert normalize_qc_name("GC01") == "GC01"
         assert normalize_qc_name("GW10") == "GW10"
 
     def test_normalize_qc_name_empty(self):
         """Test QC name normalization for empty/None input."""
         from data_schema import normalize_qc_name
+
         assert normalize_qc_name("") == ""
         assert normalize_qc_name(None) == ""
 
     def test_calculate_net_working_hours(self):
         """Test net working hours calculation."""
         from data_schema import calculate_net_working_hours
+
         assert calculate_net_working_hours(10.0, 2.0) == 8.0
         assert calculate_net_working_hours(5.0, 6.0) == 0.0  # Never negative
         assert calculate_net_working_hours(None, 2.0) == 0.0
@@ -409,6 +447,7 @@ class TestDataSchema:
     def test_calculate_moves_per_hour(self):
         """Test moves per hour calculation."""
         from data_schema import calculate_moves_per_hour
+
         assert calculate_moves_per_hour(100, 2.0) == 50.0
         assert calculate_moves_per_hour(0, 2.0) == 0.0
         assert calculate_moves_per_hour(100, 0) == 0.0  # No division by zero
@@ -418,11 +457,15 @@ class TestDataSchema:
         import pandas as pd
         from data_schema import validate_dataframe, VESSEL_SUMMARY_SCHEMA
 
-        df = pd.DataFrame([{
-            "Filename": "test.xlsx",
-            "Vessel Name": "TEST VESSEL",
-            "Voyage": "001E",
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "Filename": "test.xlsx",
+                    "Vessel Name": "TEST VESSEL",
+                    "Voyage": "001E",
+                }
+            ]
+        )
         result = validate_dataframe(df, VESSEL_SUMMARY_SCHEMA)
         assert "valid" in result
 
@@ -432,8 +475,14 @@ class TestDataSchema:
         from config import ErrorType as ConfigErrorType
 
         # Values should match
-        assert SchemaErrorType.TERMINAL_CONVENIENCE.value == ConfigErrorType.TERMINAL_CONVENIENCE.value
-        assert SchemaErrorType.NON_TERMINAL_CONVENIENCE.value == ConfigErrorType.NON_TERMINAL_CONVENIENCE.value
+        assert (
+            SchemaErrorType.TERMINAL_CONVENIENCE.value
+            == ConfigErrorType.TERMINAL_CONVENIENCE.value
+        )
+        assert (
+            SchemaErrorType.NON_TERMINAL_CONVENIENCE.value
+            == ConfigErrorType.NON_TERMINAL_CONVENIENCE.value
+        )
         assert SchemaErrorType.UNKNOWN.value == ConfigErrorType.UNKNOWN.value
 
 
@@ -441,10 +490,12 @@ class TestDataSchema:
 # TEST: exceptions
 # ============================================================================
 
+
 class TestExceptions:
     def test_excel_parsing_error(self):
         """Test ExcelParsingError carries context."""
         from exceptions import ExcelParsingError
+
         err = ExcelParsingError("test.xlsx", "Invalid format", sheet_name="Sheet1")
         assert err.filename == "test.xlsx"
         assert err.sheet_name == "Sheet1"
@@ -453,6 +504,7 @@ class TestExceptions:
     def test_vessel_info_missing_error(self):
         """Test VesselInfoMissingError carries missing fields."""
         from exceptions import VesselInfoMissingError
+
         err = VesselInfoMissingError("test.xlsx", ["Vessel Name", "ATB"])
         assert err.filename == "test.xlsx"
         assert "Vessel Name" in err.missing_fields
@@ -461,15 +513,21 @@ class TestExceptions:
     def test_concurrent_processing_error(self):
         """Test ConcurrentProcessingError message."""
         from exceptions import ConcurrentProcessingError
+
         err = ConcurrentProcessingError()
         assert "already in progress" in str(err).lower()
 
     def test_exception_hierarchy(self):
         """Test all exceptions inherit from TDRProcessorError."""
         from exceptions import (
-            TDRProcessorError, ExcelParsingError, VesselInfoMissingError,
-            DatabaseError, ValidationError, ProcessingError
+            TDRProcessorError,
+            ExcelParsingError,
+            VesselInfoMissingError,
+            DatabaseError,
+            ValidationError,
+            ProcessingError,
         )
+
         assert issubclass(ExcelParsingError, TDRProcessorError)
         assert issubclass(VesselInfoMissingError, TDRProcessorError)
         assert issubclass(DatabaseError, TDRProcessorError)

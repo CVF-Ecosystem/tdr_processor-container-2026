@@ -1,11 +1,10 @@
-import os
 from pathlib import Path
 from report_processor import ReportProcessor
 
+
 def reprocess():
     input_dir = Path("data_input")
-    output_dir = Path("outputs")
-    
+
     # Get all excel files in data_input
     files = list(input_dir.glob("*.xlsx")) + list(input_dir.glob("*.xls"))
     if not files:
@@ -18,10 +17,11 @@ def reprocess():
         files,
         update_status_callback=lambda x: print(f"Status: {x}"),
         update_progress_callback=lambda cur, tot: print(f"Progress: {cur}/{tot}"),
-        overwrite=True # Set overwrite to True to refresh all data
+        overwrite=True,  # Set overwrite to True to refresh all data
     )
     print("Reprocessing complete!")
     print(result)
+
 
 if __name__ == "__main__":
     reprocess()
