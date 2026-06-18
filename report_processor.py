@@ -307,6 +307,32 @@ class ReportProcessor:
 
         return df_container_long_filtered, df_container_wide
 
+    def _prepare_df_for_sqlite(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Chuẩn hóa các cột datetime/Timestamp/date/time thành string trước khi ghi vào SQLite."""
+        from datetime import datetime, date, time as datetime_time
+        import pandas as pd
+
+        df = df.copy()
+        for col in df.columns:
+            # Check if the column is datetime64 type
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
+                df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S').where(df[col].notna(), None)
+            else:
+                # Check if any element in the column is a datetime, date, time, or Timestamp
+                try:
+                    has_dt = df[col].apply(lambda x: isinstance(x, (datetime, date, pd.Timestamp, datetime_time))).any()
+                except Exception:
+                    has_dt = False
+
+                if has_dt:
+                    df[col] = df[col].apply(
+                        lambda x: x.strftime('%Y-%m-%d %H:%M:%S') if isinstance(x, (datetime, pd.Timestamp))
+                        else (x.strftime('%H:%M:%S') if isinstance(x, datetime_time)
+                        else (x.strftime('%Y-%m-%d') if isinstance(x, date)
+                        else (None if pd.isna(x) else x)))
+                    )
+        return df
+
     def _save_sqlite(self, final_dataframes: dict) -> None:
         """Ghi tất cả master DataFrames vào SQLite (thay thế toàn bộ — dữ liệu đã được merge đầy đủ)."""
         db_path = self.output_dir / "tdr_master.db"
@@ -328,9 +354,11 @@ class ReportProcessor:
                 ):
                     df = final_dataframes[excel_key]
                     if not df.empty:
-                        df.to_sql(table_name, con, if_exists="replace", index=False)
+                        # Chuẩn hóa datetime/Timestamp thành string cho SQLite (tương thích Python 3.12+)
+                        df_sqlite = self._prepare_df_for_sqlite(df)
+                        df_sqlite.to_sql(table_name, con, if_exists="replace", index=False)
                         logging.info(
-                            f"[SQLite] Đã ghi bảng '{table_name}' — {len(df)} rows."
+                            f"[SQLite] Đã ghi bảng '{table_name}' — {len(df_sqlite)} rows."
                         )
             con.close()
             logging.info(f"[SQLite] Database đã được lưu tại: {db_path}")
