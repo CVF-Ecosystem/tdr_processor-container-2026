@@ -69,8 +69,8 @@ graph LR
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-username/tdr_processor.git
-cd tdr_processor
+git clone https://github.com/CVF-Ecosystem/tdr_processor-container-2026.git
+cd tdr_processor-container-2026
 
 # 2. Tạo môi trường ảo (khuyến khích)
 python -m venv venv
@@ -311,6 +311,9 @@ tdr_processor/
 │   ├── logger_setup.py   # Logging setup
 │   ├── scheduler.py      # Task scheduler
 │   └── watcher.py        # File system watcher
+│
+├── scripts/              # Developer utility scripts   ← NEW v3.1
+│   └── dev/              # check_db.py, clean labels, final clean, etc.
 │
 ├── plugins/              # Custom extractors           ← NEW v3.1
 │   └── README.md
