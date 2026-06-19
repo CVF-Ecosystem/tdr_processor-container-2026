@@ -23,7 +23,7 @@ Usage:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 from enum import Enum
 import pandas as pd
@@ -39,6 +39,22 @@ except ImportError:
 
 # Schema version - increment when changing column names or calculations
 SCHEMA_VERSION = "1.0"
+
+TDR_MIN_REASONABLE_YEAR = 2000
+TDR_MAX_FUTURE_YEARS = 1
+TDR_REFERENCE_YEAR_TOLERANCE = 1
+TDR_OPERATION_DATETIME_FIELDS = (
+    "ETB",
+    "ATB",
+    "ETD",
+    "ATD",
+    "Gangway Secured",
+    "Commenced Discharge",
+    "Completed Discharge",
+    "Commenced Loading",
+    "Completed Loading",
+    "Lashing Finished",
+)
 
 
 class DataType(Enum):
@@ -370,6 +386,68 @@ def normalize_vessel_name(vessel_name: Any) -> str:
     return re.sub(
         r"\s*\(demo\)\s*$", "", str(vessel_name), flags=re.IGNORECASE
     ).strip()
+
+
+def find_tdr_datetime_issues(
+    record: Dict[str, Any], now: Optional[datetime] = None
+) -> List[Dict[str, str]]:
+    """Return implausible TDR datetime fields with user-facing reasons."""
+    current_year = (now or datetime.now()).year
+    max_year = current_year + TDR_MAX_FUTURE_YEARS
+    raw_report_date = record.get("Report Date")
+    if isinstance(raw_report_date, (date, datetime)):
+        reference_year = raw_report_date.year
+    else:
+        report_date = pd.to_datetime(raw_report_date, errors="coerce")
+        reference_year = None if pd.isna(report_date) else int(report_date.year)
+    issues: List[Dict[str, str]] = []
+
+    for field_name in TDR_OPERATION_DATETIME_FIELDS:
+        raw_value = record.get(field_name)
+        if raw_value is None or raw_value == "":
+            continue
+
+        if isinstance(raw_value, (date, datetime)):
+            value_year = raw_value.year
+        else:
+            parsed_value = pd.to_datetime(raw_value, errors="coerce")
+            if pd.isna(parsed_value):
+                issues.append(
+                    {
+                        "field": field_name,
+                        "value": str(raw_value),
+                        "reason": "không thể đọc thành ngày giờ hợp lệ",
+                    }
+                )
+                continue
+            value_year = int(parsed_value.year)
+        if value_year < TDR_MIN_REASONABLE_YEAR or value_year > max_year:
+            issues.append(
+                {
+                    "field": field_name,
+                    "value": str(raw_value),
+                    "reason": (
+                        f"năm {value_year} nằm ngoài khoảng hợp lệ "
+                        f"{TDR_MIN_REASONABLE_YEAR}-{max_year}"
+                    ),
+                }
+            )
+        elif (
+            reference_year is not None
+            and abs(value_year - reference_year) > TDR_REFERENCE_YEAR_TOLERANCE
+        ):
+            issues.append(
+                {
+                    "field": field_name,
+                    "value": str(raw_value),
+                    "reason": (
+                        f"năm {value_year} lệch quá xa Report Date "
+                        f"({reference_year})"
+                    ),
+                }
+            )
+
+    return issues
 
 
 def normalize_qc_name(qc_name: Any) -> str:

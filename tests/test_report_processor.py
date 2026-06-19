@@ -1,3 +1,6 @@
+from datetime import datetime
+
+import report_processor
 from report_processor import ReportProcessor
 
 
@@ -48,6 +51,48 @@ def test_report_processor_process_tdr_files_invalid_file(tmp_path):
     assert "processed_count" in result
     assert "skipped_count" in result
     assert "message" in result
+
+
+def test_implausible_vessel_year_is_reported_and_skipped(tmp_path, monkeypatch):
+    class FakeWorkbook:
+        active = object()
+
+        def close(self):
+            pass
+
+    class FakeExtractor:
+        def __init__(self, worksheet, filepath):
+            self.reference_date_for_events = None
+
+        def extract_vessel_info(self):
+            return {
+                "Filename": "bad-year.xlsx",
+                "Vessel Name": "VIMC PIONEER",
+                "Voyage": "2513 S-N",
+                "Report Date": datetime(2026, 6, 17),
+                "ATB": datetime(2525, 5, 10, 16, 45),
+                "ATD": datetime(2525, 5, 11, 5, 30),
+            }
+
+        def extract_qc_productivity(self):
+            raise AssertionError("QC extraction must not run for invalid vessel dates")
+
+    monkeypatch.setattr(
+        report_processor.openpyxl, "load_workbook", lambda *args, **kwargs: FakeWorkbook()
+    )
+    monkeypatch.setattr(report_processor, "DataExtractor", FakeExtractor)
+
+    output_dir = tmp_path / "outputs"
+    processor = ReportProcessor(output_dir=output_dir)
+    result = processor.process_tdr_files(
+        [tmp_path / "bad-year.xlsx"], overwrite=True
+    )
+
+    assert result["processed_count"] == 0
+    assert result["skipped_count"] == 1
+    assert "ATB" in result["skipped_details"][0]["reason"]
+    assert "2525" in result["skipped_details"][0]["reason"]
+    assert (output_dir / "skipped_files_log.xlsx").exists()
 
 
 def test_required_directories_created(tmp_path):

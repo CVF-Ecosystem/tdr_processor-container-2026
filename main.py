@@ -962,12 +962,27 @@ class App(ttkb.Window):
         time_taken = result.get("time_taken")
         processed_count = result.get("processed_count", 0)
         skipped_count = result.get("skipped_count", 0)
+        skipped_details = result.get("skipped_details", [])
+        processing_errors = [
+            item
+            for item in skipped_details
+            if item.get("reason") != "Đã được xử lý trước đó"
+        ]
 
         final_message = f"{base_message}\n\n"
         final_message += f"- New files processed: {processed_count}\n"
         final_message += f"- Files skipped: {skipped_count}\n"
         if time_taken is not None:
             final_message += f"- Execution time: {time_taken:.2f} seconds."
+        if processing_errors:
+            final_message += "\n\nFiles requiring review:"
+            for item in processing_errors[:10]:
+                final_message += (
+                    f"\n- {item.get('filename', '?')}: "
+                    f"{item.get('reason', 'Unknown error')}"
+                )
+            if len(processing_errors) > 10:
+                final_message += "\n- See skipped_files_log.xlsx for remaining files."
 
         if self.email_enabled_var.get():
             subject = f"[TDR Processor] Processing Complete - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
@@ -1001,7 +1016,11 @@ class App(ttkb.Window):
             except Exception as e:
                 logging.error(f"[Email] Lỗi không xác định khi cố gắng gửi email: {e}")
 
-        if "error" in base_message.lower() or "no data" in base_message.lower():
+        if (
+            "error" in base_message.lower()
+            or "no data" in base_message.lower()
+            or processing_errors
+        ):
             self.status_label.config(
                 text="⚠️ Completed with warnings", bootstyle=WARNING
             )

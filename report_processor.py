@@ -45,6 +45,7 @@ class ReportProcessor:
         self.all_container_long_dfs: List[pd.DataFrame] = []
         self.processed_files_count: int = 0
         self.skipped_files_count: int = 0
+        self.last_processing_error: Optional[str] = None
 
         # Thread safety: prevent concurrent processing runs from corrupting shared state
         self._processing_lock: threading.Lock = threading.Lock()
@@ -85,6 +86,8 @@ class ReportProcessor:
         logging.info(
             f"=== Processing file: {filepath.name} (called from ReportProcessor) ==="
         )
+        self.last_processing_error = None
+        wb = None
         try:
             wb = openpyxl.load_workbook(filepath, data_only=True)
             ws = wb.active
@@ -92,6 +95,22 @@ class ReportProcessor:
 
             # --- BƯỚC 1: TRÍCH XUẤT TẤT CẢ DỮ LIỆU THÔ ---
             vessel_info: Dict[str, Any] = extractor.extract_vessel_info()
+            is_valid, validation_warnings = VesselTransformer.validate_vessel_info(
+                vessel_info
+            )
+            for warning in validation_warnings:
+                logging.warning(f"[{filepath.name}] {warning}")
+            if not is_valid:
+                self.last_processing_error = (
+                    "Dữ liệu TDR không hợp lệ: " + "; ".join(validation_warnings)
+                )
+                logging.error(
+                    f"DATA_VALIDATION_ERROR [{filepath.name}]: "
+                    f"{self.last_processing_error}"
+                )
+                wb.close()
+                return False
+
             initial_qc_list: List[Dict[str, Any]] = extractor.extract_qc_productivity()
             delay_list_detailed: List[Dict[str, Any]] = extractor.extract_delay_details(
                 extractor.reference_date_for_events
@@ -182,9 +201,13 @@ class ReportProcessor:
             logging.info(
                 f"=== Finished processing: {filepath.name} (called from ReportProcessor) ==="
             )
+            wb.close()
             return True
 
         except Exception as e:
+            self.last_processing_error = f"Lỗi xử lý file: {e}"
+            if wb is not None:
+                wb.close()
             logging.error(
                 f"PROCESSOR_ERROR: Error processing {filepath.name}: {e}", exc_info=True
             )
@@ -400,7 +423,17 @@ class ReportProcessor:
             and not self.all_delay_dfs
             and not self.all_container_long_dfs
         ):
+            self._save_skipped_log()
             if self.skipped_files_count > 0 and self.processed_files_count == 0:
+                has_validation_error = any(
+                    entry.get("reason", "").startswith("Dữ liệu TDR không hợp lệ")
+                    for entry in self.skipped_files_log
+                )
+                if has_validation_error:
+                    return (
+                        "Không có dữ liệu hợp lệ để xử lý. "
+                        "Vui lòng kiểm tra skipped_files_log.xlsx."
+                    )
                 return "Tất cả file đã chọn đều đã được xử lý trước đó."
             return "Không có dữ liệu mới hợp lệ nào được trích xuất."
 
@@ -653,7 +686,8 @@ class ReportProcessor:
                 self.skipped_files_log.append(
                     {
                         "filename": filepath_obj.name,
-                        "reason": "Lỗi trong quá trình xử lý (xem tdr_processor.log)",
+                        "reason": self.last_processing_error
+                        or "Lỗi trong quá trình xử lý (xem tdr_processor.log)",
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     }
                 )
@@ -675,6 +709,7 @@ class ReportProcessor:
                 "time_taken": time_taken,
                 "processed_count": self.processed_files_count,
                 "skipped_count": self.skipped_files_count,
+                "skipped_details": self.skipped_files_log.copy(),
             }
 
         except Exception as e_agg:
@@ -690,4 +725,5 @@ class ReportProcessor:
                 "time_taken": time_taken,
                 "processed_count": self.processed_files_count,
                 "skipped_count": self.skipped_files_count,
+                "skipped_details": self.skipped_files_log.copy(),
             }

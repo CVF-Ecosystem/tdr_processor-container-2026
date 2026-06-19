@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 
 from utils.excel_utils import timedelta_to_hours
+from data_schema import find_tdr_datetime_issues
 
 
 # ============================================================================
@@ -196,7 +197,19 @@ class VesselTransformer:
         if grand_total < 0:
             warnings.append(f"Negative container count: {grand_total}")
 
-        is_valid = len([w for w in warnings if "Missing required" in w]) == 0
+        datetime_issues = find_tdr_datetime_issues(vessel_info)
+        warnings.extend(
+            f"Invalid {issue['field']}={issue['value']}: {issue['reason']}"
+            for issue in datetime_issues
+        )
+
+        fatal_warning = any(
+            warning.startswith("Missing required")
+            or warning.startswith("Invalid ")
+            or warning.startswith("ATD (")
+            for warning in warnings
+        )
+        is_valid = not fatal_warning
         return is_valid, warnings
 
 

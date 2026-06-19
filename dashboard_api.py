@@ -24,7 +24,7 @@ import pandas as pd
 from flask import Flask, jsonify, send_from_directory
 
 from config import APP_VERSION
-from data_schema import normalize_vessel_name
+from data_schema import find_tdr_datetime_issues, normalize_vessel_name
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 APP_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
@@ -175,6 +175,33 @@ def _normalize_vessel_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _filter_invalid_vessel_dates(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, list[dict]]:
+    """Exclude implausible vessel dates and return actionable issue details."""
+    if df.empty:
+        return df, []
+
+    valid_indices = []
+    quality_issues = []
+    for index, row in df.iterrows():
+        issues = find_tdr_datetime_issues(row.to_dict())
+        if not issues:
+            valid_indices.append(index)
+            continue
+
+        quality_issues.append(
+            {
+                "filename": _safe(row.get("Filename"), "—"),
+                "vessel": _safe(row.get("Vessel Name"), "—"),
+                "voyage": _safe(row.get("Voyage"), "—"),
+                "issues": issues,
+            }
+        )
+
+    return df.loc[valid_indices].copy(), quality_issues
+
+
 def _safe(v, default=None):
     if v is None:
         return default
@@ -249,6 +276,9 @@ def _sum_qc(df_qc: pd.DataFrame, vessel: str, voyage: str, col: str) -> float:
 
 # ─── Build helpers ────────────────────────────────────────────────────────────
 def _build_vessels(df_vessel: pd.DataFrame, df_qc: pd.DataFrame) -> list:
+    if df_vessel.empty:
+        return []
+    df_vessel, _ = _filter_invalid_vessel_dates(df_vessel)
     if df_vessel.empty:
         return []
     cranes_map: dict = {}
@@ -441,19 +471,11 @@ def _build_berths(df_vessel: pd.DataFrame, cranes_map: dict) -> list:
     if df_vessel.empty or "Berth" not in df_vessel.columns:
         return []
 
-    df = df_vessel.copy()
-
-    # ─── Synchronization & Cleanup ───
-    # 1. Ensure ATB is a datetime object for comparison
-    df["ATB_dt"] = pd.to_datetime(df["ATB"], errors="coerce")
-
-    # 2. FILTER: Exclude futuristic junk data (e.g., Year 2525) that breaks "Live" view
-    # We allow some headroom (e.g., up to year 2030) but block obvious future-mocking
-    max_reasonable_year = 2030
-    df = df[df["ATB_dt"].dt.year <= max_reasonable_year]
-
+    df, _ = _filter_invalid_vessel_dates(df_vessel)
     if df.empty:
         return []
+
+    df["ATB_dt"] = pd.to_datetime(df["ATB"], errors="coerce")
 
     all_berths = sorted(df["Berth"].dropna().unique().tolist())
     berths = []
@@ -474,7 +496,7 @@ def _build_berths(df_vessel: pd.DataFrame, cranes_map: dict) -> list:
                 }
             )
         else:
-            # 3. LOGIC: Take the absolute LATEST vessel that arrived at this berth
+            # Take the latest valid vessel that arrived at this berth.
             row = rows.sort_values("ATB_dt", ascending=False).iloc[0]
             name = _safe(row.get("Vessel Name"), "")
             voyage = _safe(row.get("Voyage"), "")
@@ -649,7 +671,10 @@ def _build_market_stats(df_vessel: pd.DataFrame, df_cont: pd.DataFrame) -> list:
 
 
 def _build_feed(
-    df_vessel: pd.DataFrame, df_delay: pd.DataFrame, df_qc: pd.DataFrame
+    df_vessel: pd.DataFrame,
+    df_delay: pd.DataFrame,
+    df_qc: pd.DataFrame,
+    date_quality_issues: list[dict] | None = None,
 ) -> list:
     now = datetime.now().strftime("%H:%M:%S")
     feed = []
@@ -692,6 +717,21 @@ def _build_feed(
                 "m": "[DB] No data found — run TDR processing first",
             }
         )
+    for item in (date_quality_issues or [])[:10]:
+        details = ", ".join(
+            f"{issue['field']}={issue['value']} ({issue['reason']})"
+            for issue in item["issues"]
+        )
+        feed.append(
+            {
+                "t": now,
+                "lv": "WARN",
+                "m": (
+                    f"[Data Quality] {item['filename']} · {item['vessel']} "
+                    f"· voyage {item['voyage']}: {details}"
+                ),
+            }
+        )
     feed.append(
         {
             "t": now,
@@ -717,6 +757,7 @@ def assets(fn):
 @require_token
 def api_meta():
     df = _load_table("vessel_summary")
+    df, date_quality_issues = _filter_invalid_vessel_dates(df)
     mn = mx = report_date = ""
     vessel_count = 0
     if not df.empty:
@@ -733,6 +774,7 @@ def api_meta():
             "kpiTarget": KPI_TARGET,
             "dbStatus": "healthy" if DB_PATH.exists() else "csv_fallback",
             "vesselCount": vessel_count,
+            "dataQualityIssueCount": len(date_quality_issues),
             "reportDate": report_date,
             "dateRange": {"min": mn, "max": mx},
         }
@@ -763,6 +805,7 @@ def api_data():
         return jsonify(_API_CACHE["data"])
 
     df_vessel = _load_table("vessel_summary")
+    df_vessel, date_quality_issues = _filter_invalid_vessel_dates(df_vessel)
     df_qc = _load_table("qc_productivity")
     df_qc_op = _load_table("qc_operator_productivity")
     df_cont = _load_table("container_details_wide")  # New table
@@ -786,7 +829,7 @@ def api_data():
     delays = _build_delays(df_delay)
     operators = _build_operators(df_vessel)
     spark = _build_sparklines(df_vessel, df_delay)
-    feed = _build_feed(df_vessel, df_delay, df_qc)
+    feed = _build_feed(df_vessel, df_delay, df_qc, date_quality_issues)
     market = _build_market_stats(df_vessel, df_cont)  # New stats
 
     report_date = ""
@@ -806,6 +849,7 @@ def api_data():
         "market": market,  # New data
         "spark": spark,
         "feed": feed,
+        "dataQualityIssues": date_quality_issues,
         "meta": {
             "kpiTarget": KPI_TARGET,
             "version": APP_VERSION,
@@ -815,6 +859,7 @@ def api_data():
             "qcCount": len(qc_data),
             "qcOperatorCount": len(qc_op_data),
             "delayCount": len(delays),
+            "dataQualityIssueCount": len(date_quality_issues),
         },
     }
 

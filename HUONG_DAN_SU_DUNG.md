@@ -241,6 +241,7 @@ tdr_processor/
 | Dashboard hỏi token | Đóng dashboard/server cũ, mở lại từ GUI hoặc file exe. Token chỉ cần khi kỹ thuật chạy thủ công `dashboard_api.py` |
 | Power BI không cập nhật | Refresh dữ liệu và kiểm tra đường dẫn `outputs/data_csv/` |
 | File bị bỏ qua | Mở `outputs/skipped_files_log.xlsx` để xem lý do |
+| ATB/ATD hoặc mốc vận hành sai năm | Ứng dụng sẽ bỏ qua toàn bộ file, hiện cảnh báo và ghi rõ cột/giá trị sai trong `outputs/skipped_files_log.xlsx` |
 | Không gửi được email | Kiểm tra SMTP/port/mạng, dùng **Test Connection** trong Settings |
 
 ---

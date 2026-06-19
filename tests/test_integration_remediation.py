@@ -15,7 +15,12 @@ os.environ["TDR_AUTH_DISABLED"] = "true"
 from utils.database import TDRDatabase  # noqa: E402
 from api import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
-from dashboard_api import _normalize_vessel_columns  # noqa: E402
+from dashboard_api import (  # noqa: E402
+    _build_berths,
+    _build_vessels,
+    _filter_invalid_vessel_dates,
+    _normalize_vessel_columns,
+)
 
 
 def test_database_dynamic_column_resolution(tmp_path):
@@ -134,6 +139,43 @@ def test_dashboard_removes_legacy_demo_vessel_suffix():
     assert cleaned["Vessel Name"].tolist() == ["NEWSUN GREEN 03", "BIEN DONG STAR"]
     assert cleaned["Vessel Operator"].tolist() == ["VMC", "VMC"]
     assert cleaned["Vessel Moves/Net Hour"].tolist() == [42.5, 50.0]
+
+
+def test_dashboard_excludes_and_reports_implausible_vessel_dates():
+    frame = pd.DataFrame(
+        [
+            {
+                "Filename": "bad.xlsx",
+                "Vessel Name": "VIMC PIONEER",
+                "Voyage": "2513 S-N",
+                "Berth": "K12B",
+                "Report Date": "2026-06-17",
+                "ATB": "2525-05-10 16:45",
+                "ATD": "2525-05-11 05:30",
+            },
+            {
+                "Filename": "valid.xlsx",
+                "Vessel Name": "FORTUNE FREIGHTER",
+                "Voyage": "2621S-N",
+                "Berth": "K12",
+                "Report Date": "2026-06-17",
+                "ATB": "2026-06-17 21:40",
+                "ATD": "2026-06-18 09:40",
+            },
+        ]
+    )
+
+    filtered, issues = _filter_invalid_vessel_dates(frame)
+
+    assert filtered["Filename"].tolist() == ["valid.xlsx"]
+    assert issues[0]["filename"] == "bad.xlsx"
+    assert any(issue["field"] == "ATB" for issue in issues[0]["issues"])
+    assert [item["name"] for item in _build_vessels(frame, pd.DataFrame())] == [
+        "FORTUNE FREIGHTER"
+    ]
+    assert [item["vessel"] for item in _build_berths(frame, {})] == [
+        "FORTUNE FREIGHTER"
+    ]
 
 
 def test_empty_db_fallback(tmp_path, monkeypatch):

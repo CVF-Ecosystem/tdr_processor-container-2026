@@ -158,6 +158,34 @@ class TestVesselTransformerValidate:
         _, warnings = VesselTransformer.validate_vessel_info(info)
         assert any("portstay" in w.lower() for w in warnings)
 
+    def test_rejects_implausible_operation_year(self):
+        info = {
+            "Vessel Name": "VIMC PIONEER",
+            "Voyage": "2513 S-N",
+            "Report Date": datetime(2026, 6, 17),
+            "ATB": datetime(2525, 5, 10, 16, 45),
+            "ATD": datetime(2525, 5, 11, 5, 30),
+        }
+
+        is_valid, warnings = VesselTransformer.validate_vessel_info(info)
+
+        assert is_valid is False
+        assert any("Invalid ATB=" in warning and "2525" in warning for warning in warnings)
+
+    def test_accepts_dates_across_adjacent_years(self):
+        info = {
+            "Vessel Name": "VALID VESSEL",
+            "Voyage": "001",
+            "Report Date": datetime(2026, 1, 1),
+            "ATB": datetime(2025, 12, 31, 20, 0),
+            "ATD": datetime(2026, 1, 1, 8, 0),
+        }
+
+        is_valid, warnings = VesselTransformer.validate_vessel_info(info)
+
+        assert is_valid is True
+        assert not any(warning.startswith("Invalid ") for warning in warnings)
+
 
 # ============================================================================
 # QCTransformer
