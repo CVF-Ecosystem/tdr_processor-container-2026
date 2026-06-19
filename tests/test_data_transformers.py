@@ -11,11 +11,25 @@ from data_transformers import (
     DelayTransformer,
     ContainerTransformer,
 )
+from data_schema import normalize_vessel_name
 
 
 # ============================================================================
 # VesselTransformer
 # ============================================================================
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("NEWSUN GREEN 03 (DEMO)", "NEWSUN GREEN 03"),
+        ("VIMC PIONEER(DEMO)", "VIMC PIONEER"),
+        ("BIEN DONG STAR", "BIEN DONG STAR"),
+        (None, ""),
+    ],
+)
+def test_normalize_vessel_name(raw, expected):
+    assert normalize_vessel_name(raw) == expected
 
 
 class TestVesselTransformerCalculateKPIs:

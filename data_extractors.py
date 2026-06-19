@@ -18,6 +18,7 @@ try:
         get_column_letter,  # Đảm bảo get_column_letter được import nếu dùng trong logging của extract
     )
     from utils.input_validator import validate_file_path
+    from data_schema import normalize_vessel_name
 except ImportError as e:
     print(f"LỖI IMPORT trong data_extractors.py: {e}")
 
@@ -115,6 +116,10 @@ class DataExtractor:
                 info[key] = (
                     str(raw_vals[key]).strip() if raw_vals[key] is not None else None
                 )
+
+        # Legacy sample files used a trailing "(DEMO)" marker. Normalize it at
+        # ingestion so every downstream table receives the production name.
+        info["Vessel Name"] = normalize_vessel_name(info.get("Vessel Name"))
 
         init_ref_date = parse_excel_datetime(
             raw_vals.get("Report Date_str"), is_just_date=True, context="ReportDateStr"

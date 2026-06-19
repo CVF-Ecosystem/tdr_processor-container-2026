@@ -1525,6 +1525,34 @@
 
 <body>
   <div id="root"></div>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("tab") === "berth") {
+        params.delete("tab");
+        const query = params.toString();
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname + (query ? `?${query}` : "")
+        );
+      }
+
+      const root = document.getElementById("root");
+      const hideLegacyBerthTab = () => {
+        root.querySelectorAll(".nav-i, .m-nav-i").forEach((item) => {
+          if (item.textContent.includes("Live Berth Status")) {
+            item.style.setProperty("display", "none", "important");
+            item.setAttribute("aria-hidden", "true");
+          }
+        });
+      };
+      new MutationObserver(hideLegacyBerthTab).observe(root, {
+        childList: true,
+        subtree: true
+      });
+    })();
+  </script>
   <script src="/assets/dashboard.js"></script>
 </body>
 

@@ -360,6 +360,18 @@ SCHEMAS: Dict[str, TableSchema] = {
 # ============================================================================
 
 
+def normalize_vessel_name(vessel_name: Any) -> str:
+    """Remove the legacy trailing ``(DEMO)`` marker from a vessel name."""
+    if pd.isna(vessel_name) or not vessel_name:
+        return ""
+
+    import re
+
+    return re.sub(
+        r"\s*\(demo\)\s*$", "", str(vessel_name), flags=re.IGNORECASE
+    ).strip()
+
+
 def normalize_qc_name(qc_name: Any) -> str:
     """
     Normalize QC names to standard format.

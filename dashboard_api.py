@@ -24,6 +24,7 @@ import pandas as pd
 from flask import Flask, jsonify, send_from_directory
 
 from config import APP_VERSION
+from data_schema import normalize_vessel_name
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 APP_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
@@ -147,7 +148,7 @@ def _load_table(table: str) -> pd.DataFrame:
             df = pd.read_sql(f"SELECT * FROM {table}", con)  # nosec B608 # noqa: S608
             con.close()
             if not df.empty:
-                return df
+                return _normalize_vessel_columns(df)
         except Exception as e:
             print(f"[DB] {table}: {e}")
     # CSV fallback
@@ -156,10 +157,22 @@ def _load_table(table: str) -> pd.DataFrame:
         csv_path = CSV_DIR / csv_name
         if csv_path.exists():
             try:
-                return pd.read_csv(csv_path)
+                return _normalize_vessel_columns(pd.read_csv(csv_path))
             except Exception as e:
                 print(f"[CSV] {csv_path.name}: {e}")
     return pd.DataFrame()
+
+
+def _normalize_vessel_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Sanitize legacy vessel labels read from existing databases and CSVs."""
+    vessel_columns = [
+        col
+        for col in df.columns
+        if str(col).strip().lower() in {"vessel", "vessel name"}
+    ]
+    for column in vessel_columns:
+        df[column] = df[column].map(normalize_vessel_name)
+    return df
 
 
 def _safe(v, default=None):

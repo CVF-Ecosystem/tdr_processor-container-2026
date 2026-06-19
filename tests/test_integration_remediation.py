@@ -2,6 +2,8 @@ import os
 import sqlite3
 from pathlib import Path
 
+import pandas as pd
+
 # Insert root folder to path
 import sys
 
@@ -13,6 +15,7 @@ os.environ["TDR_AUTH_DISABLED"] = "true"
 from utils.database import TDRDatabase  # noqa: E402
 from api import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from dashboard_api import _normalize_vessel_columns  # noqa: E402
 
 
 def test_database_dynamic_column_resolution(tmp_path):
@@ -117,6 +120,22 @@ def test_frontend_compiled_bundle_exists():
         ), "compiled bundle contains dev dependencies (jsx-dev-runtime) instead of classic React runtime!"
 
 
+def test_dashboard_removes_legacy_demo_vessel_suffix():
+    frame = pd.DataFrame(
+        {
+            "Vessel Name": ["NEWSUN GREEN 03 (DEMO)", "BIEN DONG STAR"],
+            "Vessel Operator": ["VMC", "VMC"],
+            "Vessel Moves/Net Hour": [42.5, 50.0],
+        }
+    )
+
+    cleaned = _normalize_vessel_columns(frame)
+
+    assert cleaned["Vessel Name"].tolist() == ["NEWSUN GREEN 03", "BIEN DONG STAR"]
+    assert cleaned["Vessel Operator"].tolist() == ["VMC", "VMC"]
+    assert cleaned["Vessel Moves/Net Hour"].tolist() == [42.5, 50.0]
+
+
 def test_empty_db_fallback(tmp_path, monkeypatch):
     """Verify that when the database exists but has empty tables, api.py falls back to CSV."""
     monkeypatch.setenv("TDR_AUTH_DISABLED", "true")
@@ -144,4 +163,3 @@ def test_empty_db_fallback(tmp_path, monkeypatch):
     res_vessels = response.json()
     assert res_vessels["count"] > 0
     assert len(res_vessels["data"]) > 0
-
