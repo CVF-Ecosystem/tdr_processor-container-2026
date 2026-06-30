@@ -164,7 +164,7 @@ def _normalize_vessel_columns(df: pd.DataFrame) -> pd.DataFrame:
     vessel_columns = [
         col
         for col in df.columns
-        if str(col).strip().lower() in {"vessel", "vessel name"}
+        if isinstance(col, str) and col.strip().lower() in {"vessel", "vessel name"}
     ]
     for column in vessel_columns:
         df[column] = df[column].map(normalize_vessel_name)
@@ -735,7 +735,7 @@ def api_meta():
     )
 
 
-_API_CACHE = {"timestamp": 0.0, "data": None}
+_API_CACHE: dict[str, object] = {"timestamp": 0.0, "data": None}
 
 
 @app.route("/api/cache/clear")

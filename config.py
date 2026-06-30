@@ -330,8 +330,8 @@ class DelayErrorConfig:
 
     ERROR_CODE_CLASSIFICATION: Dict[str, List[str]] = field(
         default_factory=lambda: {
-            "Terminal Convenience": list("abcdefgh"),
-            "Non-Terminal Convenience": list("ijklmn"),
+            "Terminal Convenience": [c for c in "abcdefgh"],
+            "Non-Terminal Convenience": [c for c in "ijklmn"],
         }
     )
     FORCE_MAJEURE_KEYWORDS: List[str] = field(
