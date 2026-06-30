@@ -16,6 +16,7 @@ import hmac
 import os
 import sqlite3
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -63,25 +64,20 @@ _CSV_MAP = {
 
 app = Flask(__name__, static_url_path="")
 
+_auth_disabled = os.environ.get("TDR_AUTH_DISABLED", "false").lower() == "true"
+_api_token = os.environ.get("TDR_API_TOKEN", "")
+if not _auth_disabled and not _api_token:
+    import warnings
+    warnings.warn(
+        "[TDR Dashboard] TDR_API_TOKEN not set. API endpoints will reject all requests.",
+        stacklevel=1,
+    )
+
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 IP_LIMITS = {}  # {ip: [timestamps]} for lightweight rate limiting
+_IP_LIMITS_LOCK = threading.Lock()
 
-_AUTH_CHECK_DONE = False
 
-
-@app.before_request
-def check_auth_config():
-    global _AUTH_CHECK_DONE
-    # Skip check for static frontend files if any, but since it's a small app we check all endpoints
-    if not _AUTH_CHECK_DONE:
-        auth_disabled = os.environ.get("TDR_AUTH_DISABLED", "false").lower() == "true"
-        api_token_raw = os.environ.get("TDR_API_TOKEN", "")
-        if not auth_disabled and not api_token_raw:
-            raise RuntimeError(
-                "[TDR Dashboard] TDR_API_TOKEN environment variable is not set. "
-                "Set it before starting the server, or set TDR_AUTH_DISABLED=true for local dev."
-            )
-        _AUTH_CHECK_DONE = True
 
 
 def require_token(f):
@@ -112,17 +108,17 @@ def rate_limit():
 
     ip = request.remote_addr
     now = time.time()
-    # clean up old timestamps (> 60 seconds)
-    timestamps = [t for t in IP_LIMITS.get(ip, []) if now - t < 60]
-    if len(timestamps) >= 60:  # limit to 60 requests per minute
-        return jsonify(
-            {
-                "error": "Too Many Requests",
-                "message": "Rate limit exceeded. Max 60 requests per minute.",
-            }
-        ), 429
-    timestamps.append(now)
-    IP_LIMITS[ip] = timestamps
+    with _IP_LIMITS_LOCK:
+        timestamps = [t for t in IP_LIMITS.get(ip, []) if now - t < 60]
+        if len(timestamps) >= 60:
+            return jsonify(
+                {
+                    "error": "Too Many Requests",
+                    "message": "Rate limit exceeded. Max 60 requests per minute.",
+                }
+            ), 429
+        timestamps.append(now)
+        IP_LIMITS[ip] = timestamps
     return None
 
 
@@ -324,31 +320,30 @@ def _build_vessels(df_vessel: pd.DataFrame, df_qc: pd.DataFrame) -> list:
     return vessels
 
 
-def _build_qc(df_qc: pd.DataFrame) -> list:
+def _build_qc_data(df: pd.DataFrame, delay_col: str) -> list:
     """Aggregate QC productivity per (QC No., Vessel Name) pair."""
     result = []
-    if df_qc.empty:
+    if df.empty:
         return result
 
     group_cols = ["QC No.", "Vessel Name"]
     sum_cols = {
         "Gross working (hrs)": "gH",
         "Net working (hrs)": "nH",
-        "Delay times (hrs)": "dH",
+        delay_col: "dH",
         "Discharge Conts": "dis",
         "Load Conts": "load",
         "Shifting Conts": "sh",
         "Total Conts": "tot",
     }
-    # Only aggregate existing columns
-    agg_map = {col: "sum" for col in sum_cols if col in df_qc.columns}
+    agg_map = {col: "sum" for col in sum_cols if col in df.columns}
     if not agg_map:
         return result
 
     try:
-        grp = df_qc.groupby(group_cols, as_index=False).agg(agg_map)
+        grp = df.groupby(group_cols, as_index=False).agg(agg_map)
     except Exception:
-        grp = df_qc  # fallback to raw rows
+        grp = df
 
     for _, row in grp.iterrows():
         gH = _to_float(row.get("Gross working (hrs)"))
@@ -362,7 +357,7 @@ def _build_qc(df_qc: pd.DataFrame) -> list:
                 "vessel": _safe(row.get("Vessel Name"), "—"),
                 "gH": round(gH, 2),
                 "nH": round(nH, 2),
-                "dH": round(_to_float(row.get("Delay times (hrs)")), 2),
+                "dH": round(_to_float(row.get(delay_col)), 2),
                 "dis": _to_int(row.get("Discharge Conts")),
                 "load": _to_int(row.get("Load Conts")),
                 "sh": _to_int(row.get("Shifting Conts")),
@@ -372,55 +367,14 @@ def _build_qc(df_qc: pd.DataFrame) -> list:
             }
         )
     return result
+
+
+def _build_qc(df_qc: pd.DataFrame) -> list:
+    return _build_qc_data(df_qc, "Delay times (hrs)")
 
 
 def _build_qc_operator(df_qc_op: pd.DataFrame) -> list:
-    """Aggregate QC operator-adjusted productivity per (QC No., Vessel Name) pair."""
-    result = []
-    if df_qc_op.empty:
-        return result
-
-    group_cols = ["QC No.", "Vessel Name"]
-    sum_cols = {
-        "Gross working (hrs)": "gH",
-        "Net working (hrs)": "nH",
-        "Total Stop Time (hrs)": "dH",
-        "Discharge Conts": "dis",
-        "Load Conts": "load",
-        "Shifting Conts": "sh",
-        "Total Conts": "tot",
-    }
-    agg_map = {col: "sum" for col in sum_cols if col in df_qc_op.columns}
-    if not agg_map:
-        return result
-
-    try:
-        grp = df_qc_op.groupby(group_cols, as_index=False).agg(agg_map)
-    except Exception:
-        grp = df_qc_op
-
-    for _, row in grp.iterrows():
-        gH = _to_float(row.get("Gross working (hrs)"))
-        nH = _to_float(row.get("Net working (hrs)"))
-        tot = _to_int(row.get("Total Conts"))
-        gmh = round(tot / gH, 1) if gH > 0 else 0.0
-        nmh = round(tot / nH, 1) if nH > 0 else 0.0
-        result.append(
-            {
-                "qc": _safe(row.get("QC No."), "—"),
-                "vessel": _safe(row.get("Vessel Name"), "—"),
-                "gH": round(gH, 2),
-                "nH": round(nH, 2),
-                "dH": round(_to_float(row.get("Total Stop Time (hrs)")), 2),
-                "dis": _to_int(row.get("Discharge Conts")),
-                "load": _to_int(row.get("Load Conts")),
-                "sh": _to_int(row.get("Shifting Conts")),
-                "tot": tot,
-                "gmh": gmh,
-                "nmh": nmh,
-            }
-        )
-    return result
+    return _build_qc_data(df_qc_op, "Total Stop Time (hrs)")
 
 
 def _build_qc_timeline(df_qc: pd.DataFrame) -> list:
@@ -870,6 +824,11 @@ def api_data():
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    if not _auth_disabled and not _api_token:
+        raise RuntimeError(
+            "[TDR Dashboard] TDR_API_TOKEN environment variable is not set. "
+            "Set it before starting the server, or set TDR_AUTH_DISABLED=true for local dev."
+        )
     print(f"[TDR Dashboard] http://{DASH_HOST}:{PORT}")
     if not DB_PATH.exists():
         print(f"[WARN] Database not found: {DB_PATH}")

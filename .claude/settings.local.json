@@ -12,7 +12,9 @@
       "Bash(python -c \"from plyer import notification; print\\('plyer OK'\\)\")",
       "Bash(python -c \"from st_aggrid import AgGrid; print\\('aggrid OK'\\)\")",
       "Bash(python -m pip install \"tkinterdnd2>=0.3.0\" -q)",
-      "Bash(python -c \"from tkinterdnd2 import DND_FILES; print\\('tkdnd OK'\\)\")"
+      "Bash(python -c \"from tkinterdnd2 import DND_FILES; print\\('tkdnd OK'\\)\")",
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(python -c \"import config; print\\('config OK:', config.APP_VERSION\\)\")"
     ]
   }
 }

@@ -5,7 +5,7 @@ const {
   useMemo,
   useCallback
 } = React;
-const C = {
+const COLORS = {
   blue: "#3B82F6",
   green: "#10B981",
   amber: "#F59E0B",
@@ -17,7 +17,7 @@ const C = {
   orange: "#F97316"
 };
 let KPI_TARGET = 45;
-const SP0 = {
+const EMPTY_SPARKLINES = {
   v: [0, 0, 0, 0, 0, 0, 0, 0],
   t: [0, 0, 0, 0, 0, 0, 0, 0],
   ps: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -27,7 +27,7 @@ const SP0 = {
   de: [0, 0, 0, 0, 0, 0, 0, 0],
   dh: [0, 0, 0, 0, 0, 0, 0, 0]
 };
-function Spark({
+function SparkLine({
   data,
   color = "#3B82F6",
   w = 56,
@@ -94,12 +94,12 @@ function KpiCard({
     className: "kc-bot"
   }, /*#__PURE__*/React.createElement("div", {
     className: `kc-dl ${dlt}`
-  }, dlt === "pos" ? "↑" : dlt === "neg" ? "↓" : "→", " ", dl), /*#__PURE__*/React.createElement(Spark, {
+  }, dlt === "pos" ? "↑" : dlt === "neg" ? "↓" : "→", " ", dl), /*#__PURE__*/React.createElement(SparkLine, {
     data: spark,
     color: ic
   })));
 }
-function Sbadge({
+function StatusBadge({
   s
 }) {
   const m = {
@@ -112,7 +112,7 @@ function Sbadge({
     className: `bx ${m[s] || "bs_"}`
   }, s);
 }
-function Ebadge({
+function ErrorTypeBadge({
   t
 }) {
   if (t === "Terminal Convenience") return /*#__PURE__*/React.createElement("span", {
@@ -125,7 +125,7 @@ function Ebadge({
     className: "bx bp_"
   }, "Force Majeure");
 }
-function CCbadge({
+function StopCategoryBadge({
   cat
 }) {
   if (!cat) return null;
@@ -305,7 +305,7 @@ function VesselTable({
       width: 6,
       height: 6,
       borderRadius: "50%",
-      background: v.nmph >= KPI_TARGET ? C.green : C.red
+      background: v.nmph >= KPI_TARGET ? COLORS.green : COLORS.red
     }
   })), /*#__PURE__*/React.createElement("td", {
     className: "tb"
@@ -317,7 +317,7 @@ function VesselTable({
   }, v.voyage), /*#__PURE__*/React.createElement("td", null, v.op), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
     className: "tm",
     style: {
-      color: C.blue
+      color: COLORS.blue
     }
   }, v.berth)), /*#__PURE__*/React.createElement("td", {
     className: "tr tm"
@@ -346,11 +346,11 @@ function VesselTable({
   }, /*#__PURE__*/React.createElement("div", {
     className: "kd-dot",
     style: {
-      background: v.nmph >= KPI_TARGET ? C.green : C.red
+      background: v.nmph >= KPI_TARGET ? COLORS.green : COLORS.red
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: v.nmph >= KPI_TARGET ? C.green : C.red,
+      color: v.nmph >= KPI_TARGET ? COLORS.green : COLORS.red,
       fontWeight: 700
     }
   }, v.nmph.toFixed(1)))), /*#__PURE__*/React.createElement("td", {
@@ -370,11 +370,11 @@ function VesselTable({
     className: "pgi"
   }, pg * perPage + 1, "–", Math.min((pg + 1) * perPage, data.length), " of ", data.length, " · ", /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.green
+      color: COLORS.green
     }
   }, data.filter(v => v.nmph >= KPI_TARGET).length, " above KPI"), " · ", /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.red
+      color: COLORS.red
     }
   }, data.filter(v => v.nmph < KPI_TARGET).length, " below")), /*#__PURE__*/React.createElement("button", {
     className: "pb",
@@ -455,7 +455,7 @@ function DelayTable({
     style: {
       fontFamily: "var(--mono)"
     }
-  }, d.qc)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(CCbadge, {
+  }, d.qc)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(StopCategoryBadge, {
     cat: d.cat
   })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(ErrCodeBadge, {
     code: d.code
@@ -467,10 +467,10 @@ function DelayTable({
     className: "tr"
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: d.dur >= 1 ? C.red : C.amber,
+      color: d.dur >= 1 ? COLORS.red : COLORS.amber,
       fontWeight: 700
     }
-  }, d.dur.toFixed(2), "h")), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(Ebadge, {
+  }, d.dur.toFixed(2), "h")), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(ErrorTypeBadge, {
     t: d.type
   }))))))), /*#__PURE__*/React.createElement("div", {
     className: "pgr"
@@ -478,11 +478,11 @@ function DelayTable({
     className: "pgi"
   }, pg * perPage + 1, "–", Math.min((pg + 1) * perPage, data.length), " of ", data.length, " · ", /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.red
+      color: COLORS.red
     }
   }, data.filter(d => d.dur >= 1).length, " critical"), " · ", /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.amber
+      color: COLORS.amber
     }
   }, data.filter(d => d.dur < 1).length, " minor")), /*#__PURE__*/React.createElement("button", {
     className: "pb",
@@ -577,9 +577,9 @@ function DelayGantt({
     return m;
   }, [data]);
   const ec = {
-    d: C.red,
-    i: C.amber,
-    m: C.purple
+    d: COLORS.red,
+    i: COLORS.amber,
+    m: COLORS.purple
   };
   const toP = t => {
     if (!t || t === "—") return 0;
@@ -627,14 +627,14 @@ function DelayGantt({
       style: {
         left: `${l}%`,
         width: `${w}%`,
-        background: `${ec[ev.code] || C.red}CC`,
-        borderLeft: `2px solid ${ec[ev.code] || C.red}`
+        background: `${ec[ev.code] || COLORS.red}CC`,
+        borderLeft: `2px solid ${ec[ev.code] || COLORS.red}`
       },
       title: `${ev.rmk} ${ev.dur.toFixed(2)}h`
     }, w > 5 ? ev.rmk.substring(0, 12) : "");
   })))), /*#__PURE__*/React.createElement("div", {
     className: "gnt-legs"
-  }, [["d", C.red, "Terminal Conv."], ["i", C.amber, "Non-Terminal Conv."], ["m", C.purple, "Force Majeure"]].map(([c, col, lbl]) => /*#__PURE__*/React.createElement("div", {
+  }, [["d", COLORS.red, "Terminal Conv."], ["i", COLORS.amber, "Non-Terminal Conv."], ["m", COLORS.purple, "Force Majeure"]].map(([c, col, lbl]) => /*#__PURE__*/React.createElement("div", {
     key: c,
     className: "gnt-leg"
   }, /*#__PURE__*/React.createElement("div", {
@@ -648,14 +648,14 @@ function BerthMap({
   berths
 }) {
   const sc = {
-    Berthed: C.blue,
+    Berthed: COLORS.blue,
     Available: "#1E293B",
-    Anchored: C.amber
+    Anchored: COLORS.amber
   };
   const sb = {
-    Berthed: C.blue,
+    Berthed: COLORS.blue,
     Available: "#243048",
-    Anchored: C.amber
+    Anchored: COLORS.amber
   };
 
   // Better wave/water visualization
@@ -822,11 +822,11 @@ function BerthMap({
     length: b.cranes || 1
   }).map((_, i) => /*#__PURE__*/React.createElement(QCIcon, {
     key: i,
-    color: C.cyan
+    color: COLORS.cyan
   }))), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 9.5,
-      color: C.cyan,
+      color: COLORS.cyan,
       fontWeight: 700,
       marginLeft: 2
     }
@@ -882,7 +882,7 @@ function BerthMap({
     style: {
       height: "100%",
       width: `${b.pct}%`,
-      background: `linear-gradient(90deg, ${sc[b.status]}, ${C.cyan})`,
+      background: `linear-gradient(90deg, ${sc[b.status]}, ${COLORS.cyan})`,
       borderRadius: 3.5,
       transition: "width .5s ease-out"
     }
@@ -950,10 +950,10 @@ function SystemFeed({
     if (open && bodyRef.current) bodyRef.current.scrollTop = 0;
   }, [open]);
   const lc = {
-    INFO: C.blue,
-    WARN: C.amber,
-    ERROR: C.red,
-    SUCCESS: C.green
+    INFO: COLORS.blue,
+    WARN: COLORS.amber,
+    ERROR: COLORS.red,
+    SUCCESS: COLORS.green
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "feed",
@@ -967,7 +967,7 @@ function SystemFeed({
     className: "feed-title"
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.green,
+      color: COLORS.green,
       fontSize: 8
     }
   }, "●"), "System & Processing Feed", /*#__PURE__*/React.createElement("span", {
@@ -988,11 +988,11 @@ function SystemFeed({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.amber
+      color: COLORS.amber
     }
   }, lines.filter(l => l.lv === "WARN").length, " warn"), " · ", /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.red
+      color: COLORS.red
     }
   }, lines.filter(l => l.lv === "ERROR").length, " err"))), open && /*#__PURE__*/React.createElement("div", {
     className: "feed-body",
@@ -1014,7 +1014,7 @@ function SystemFeed({
 function LoadBar({
   value = 0,
   max = 1,
-  color = C.blue,
+  color = COLORS.blue,
   height = 4
 }) {
   const pct = Math.max(0, Math.min(100, max ? value / max * 100 : 0));
@@ -1071,9 +1071,9 @@ function OpBarChart({
       return redGrad;
     });
     const borderColors = data.map(d => {
-      if (d.nmh >= kt) return C.green;
-      if (d.nmh >= kt - 5) return C.amber;
-      return C.red;
+      if (d.nmh >= kt) return COLORS.green;
+      if (d.nmh >= kt - 5) return COLORS.amber;
+      return COLORS.red;
     });
     ch.current = new Chart(ctx, {
       type: "bar",
@@ -1091,7 +1091,7 @@ function OpBarChart({
           label: `KPI (${kt})`,
           data: data.map(() => kt),
           type: "line",
-          borderColor: C.blue,
+          borderColor: COLORS.blue,
           borderWidth: 2,
           borderDash: [6, 4],
           pointRadius: 0,
@@ -1171,14 +1171,14 @@ function MarketBarChart({
         datasets: [{
           label: "Discharge",
           data: data.map(d => d.dis),
-          backgroundColor: C.blue + "CC",
+          backgroundColor: COLORS.blue + "CC",
           borderRadius: 4,
           barThickness: 18,
           maxBarThickness: 28
         }, {
           label: "Load",
           data: data.map(d => d.load),
-          backgroundColor: C.green + "CC",
+          backgroundColor: COLORS.green + "CC",
           borderRadius: 4,
           barThickness: 18,
           maxBarThickness: 28
@@ -1261,7 +1261,7 @@ function ContainerBarChart({
         datasets: [{
           label: "Full (Laden)",
           data: data.map(d => d.full),
-          backgroundColor: (overrideColors?.full || C.blue) + "CC",
+          backgroundColor: (overrideColors?.full || COLORS.blue) + "CC",
           borderRadius: 4,
           barThickness: 18,
           maxBarThickness: 28
@@ -1348,12 +1348,12 @@ function MarketTrendChart({
         datasets: [{
           label: "Total Volume (Conts)",
           data: data.map(d => d.volume),
-          borderColor: C.blue,
+          borderColor: COLORS.blue,
           backgroundColor: "rgba(59,130,246,.08)",
           fill: true,
           tension: 0.4,
           pointRadius: 3,
-          pointBackgroundColor: C.blue,
+          pointBackgroundColor: COLORS.blue,
           borderWidth: 2
         }]
       },
@@ -1416,22 +1416,22 @@ function ForecastTrendChart({
           type: "bar",
           label: "Import",
           data: data.map(d => d.import),
-          backgroundColor: C.blue + "CC",
+          backgroundColor: COLORS.blue + "CC",
           borderRadius: 4,
           stack: "flow"
         }, {
           type: "bar",
           label: "Export",
           data: data.map(d => d.export),
-          backgroundColor: C.green + "CC",
+          backgroundColor: COLORS.green + "CC",
           borderRadius: 4,
           stack: "flow"
         }, {
           type: "line",
           label: "Total",
           data: data.map(d => d.total),
-          borderColor: C.amber,
-          backgroundColor: C.amber,
+          borderColor: COLORS.amber,
+          backgroundColor: COLORS.amber,
           fill: false,
           tension: 0.35,
           pointRadius: 3,
@@ -1507,21 +1507,21 @@ function SizeMixBarChart({
         datasets: [{
           label: "20'",
           data: data.map(d => d.s20),
-          backgroundColor: C.cyan + "CC",
+          backgroundColor: COLORS.cyan + "CC",
           borderRadius: 3,
           barThickness: 14,
           maxBarThickness: 20
         }, {
           label: "40'",
           data: data.map(d => d.s40),
-          backgroundColor: C.blue + "CC",
+          backgroundColor: COLORS.blue + "CC",
           borderRadius: 3,
           barThickness: 14,
           maxBarThickness: 20
         }, {
           label: "45'",
           data: data.map(d => d.s45),
-          backgroundColor: C.teal + "CC",
+          backgroundColor: COLORS.teal + "CC",
           borderRadius: 3,
           barThickness: 14,
           maxBarThickness: 20
@@ -1609,14 +1609,14 @@ function QCBarChart({
           label: "Gross M/h",
           data: data.map(d => d.gmh),
           backgroundColor: "rgba(59,130,246,.5)",
-          borderColor: C.blue,
+          borderColor: COLORS.blue,
           borderWidth: 1,
           borderRadius: 3
         }, {
           label: "Net M/h",
           data: data.map(d => d.nmh),
           backgroundColor: "rgba(16,185,129,.5)",
-          borderColor: C.green,
+          borderColor: COLORS.green,
           borderWidth: 1,
           borderRadius: 3
         }]
@@ -1711,9 +1711,9 @@ function DonutChart({
     }
   }, [data]);
   const clrs = customColors || {
-    "Terminal Convenience": C.red,
-    "Non-Terminal Convenience": C.amber,
-    "Other/Force Majeure": C.purple
+    "Terminal Convenience": COLORS.red,
+    "Non-Terminal Convenience": COLORS.amber,
+    "Other/Force Majeure": COLORS.purple
   };
   const total = groups.reduce((s, g) => s + g.h, 0);
   useEffect(() => {
@@ -1728,8 +1728,8 @@ function DonutChart({
         labels: groups.map(g => g.t),
         datasets: [{
           data: groups.map(g => g.h),
-          backgroundColor: groups.map(g => (clrs[g.t] || C.blue) + "BB"),
-          borderColor: groups.map(g => clrs[g.t] || C.blue),
+          backgroundColor: groups.map(g => (clrs[g.t] || COLORS.blue) + "BB"),
+          borderColor: groups.map(g => clrs[g.t] || COLORS.blue),
           borderWidth: 2
         }]
       },
@@ -1806,7 +1806,7 @@ function DonutChart({
   }, /*#__PURE__*/React.createElement("div", {
     className: "dl-dot",
     style: {
-      background: clrs[g.t] || C.blue,
+      background: clrs[g.t] || COLORS.blue,
       width: 7,
       height: 7
     }
@@ -1875,7 +1875,7 @@ function VesselAccordion({
       height: 8,
       borderRadius: '50%',
       flexShrink: 0,
-      background: v.nmph >= kt ? C.green : C.red
+      background: v.nmph >= kt ? COLORS.green : COLORS.red
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1902,11 +1902,11 @@ function VesselAccordion({
       gap: 8,
       flexShrink: 0
     }
-  }, /*#__PURE__*/React.createElement(Sbadge, {
+  }, /*#__PURE__*/React.createElement(StatusBadge, {
     s: v.st
   }), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: v.nmph >= kt ? C.green : C.red,
+      color: v.nmph >= kt ? COLORS.green : COLORS.red,
       fontWeight: 700,
       fontSize: 13,
       fontFamily: 'var(--mono)'
@@ -1928,7 +1928,7 @@ function VesselAccordion({
   }, k), /*#__PURE__*/React.createElement("div", {
     className: "acc-cv",
     style: {
-      color: k === 'NMPH' ? v.nmph >= kt ? C.green : C.red : 'var(--t1)'
+      color: k === 'NMPH' ? v.nmph >= kt ? COLORS.green : COLORS.red : 'var(--t1)'
     }
   }, val))))))));
 }
@@ -1959,7 +1959,7 @@ function QCAccordion({
       height: 8,
       borderRadius: '50%',
       flexShrink: 0,
-      background: C.blue
+      background: COLORS.blue
     }
   }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1969,7 +1969,7 @@ function QCAccordion({
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: 'var(--mono)',
-      color: C.cyan
+      color: COLORS.cyan
     }
   }, q.qc), " · ", q.vessel.split(' ')[0]), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2012,13 +2012,13 @@ function DelayAccordion({
   data
 }) {
   const [open, setOpen] = useState(null);
-  const sorted = [...data].sort((a, b) => b.dur - a.dur);
+  const sorted = useMemo(() => [...data].sort((a, b) => b.dur - a.dur), [data]);
   const ec = {
-    d: C.red,
-    i: C.amber,
-    m: C.purple,
-    n: C.amber,
-    a: C.red
+    d: COLORS.red,
+    i: COLORS.amber,
+    m: COLORS.purple,
+    n: COLORS.amber,
+    a: COLORS.red
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2044,7 +2044,7 @@ function DelayAccordion({
       height: 8,
       borderRadius: '50%',
       flexShrink: 0,
-      background: ec[d.code] || C.red
+      background: ec[d.code] || COLORS.red
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2073,7 +2073,7 @@ function DelayAccordion({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: d.dur >= 1 ? C.red : C.amber,
+      color: d.dur >= 1 ? COLORS.red : COLORS.amber,
       fontWeight: 700,
       fontSize: 13
     }
@@ -2094,7 +2094,7 @@ function DelayAccordion({
       marginBottom: 6,
       fontSize: 11
     }
-  }, /*#__PURE__*/React.createElement(Ebadge, {
+  }, /*#__PURE__*/React.createElement(ErrorTypeBadge, {
     t: d.type
   })), /*#__PURE__*/React.createElement("div", {
     className: "acc-grid"
@@ -2111,10 +2111,6 @@ const NAV = [{
   id: "overview",
   icon: "📊",
   lbl: "Operational Overview"
-}, {
-  id: "berth",
-  icon: "🛳️",
-  lbl: "Live Berth Status"
 }, {
   id: "vessels",
   icon: "🚢",
@@ -2154,7 +2150,6 @@ const NAV = [{
 }];
 const PT = {
   overview: "Operational Overview",
-  berth: "Live Berth Status",
   vessels: "Vessel Performance",
   market: "Market Trend & Cargo Analysis",
   containers: "Container Status & Size Mix",
@@ -2177,7 +2172,7 @@ function MobileBottomNav({
     className: "m-nav-i",
     onClick: () => setNav(n.id),
     style: {
-      color: nav === n.id ? C.blue : 'var(--t4)',
+      color: nav === n.id ? COLORS.blue : 'var(--t4)',
       background: nav === n.id ? 'rgba(59,130,246,.09)' : 'transparent'
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -2195,7 +2190,7 @@ function MobileBottomNav({
       position: 'absolute',
       top: 4,
       right: 'calc(50% - 16px)',
-      background: C.red,
+      background: COLORS.red,
       color: '#fff',
       fontSize: 7,
       fontWeight: 700,
@@ -2217,7 +2212,7 @@ function MobilePages({
   theme = "dark"
 }) {
   const delta = kpi.avgNmph - kt;
-  const sp = kpi.spark || SP0;
+  const sp = kpi.spark || EMPTY_SPARKLINES;
   const sec = (color, lbl) => /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '8px 10px 4px',
@@ -2249,7 +2244,7 @@ function MobilePages({
     items: [{
       lbl: "Vessels",
       val: kpi.tvs,
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "⛵",
       dl: `${vessels.length} total`,
       dlt: "pos",
@@ -2257,7 +2252,7 @@ function MobilePages({
     }, {
       lbl: "TEUs",
       val: kpi.tteus.toLocaleString(),
-      ic: C.purple,
+      ic: COLORS.purple,
       icon: "📦",
       dl: "total",
       dlt: "pos",
@@ -2265,7 +2260,7 @@ function MobilePages({
     }, {
       lbl: "Net M/h",
       val: kpi.avgNmph.toFixed(1),
-      ic: delta >= 0 ? C.green : C.red,
+      ic: delta >= 0 ? COLORS.green : COLORS.red,
       icon: "📈",
       dl: `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} KPI`,
       dlt: delta >= 0 ? "pos" : "neg",
@@ -2274,7 +2269,7 @@ function MobilePages({
       lbl: "Avg Delay",
       val: kpi.avgDly.toFixed(1),
       unit: "h",
-      ic: C.red,
+      ic: COLORS.red,
       icon: "⚠",
       dl: "per vessel",
       dlt: "neg",
@@ -2283,7 +2278,7 @@ function MobilePages({
       lbl: "Portstay",
       val: kpi.avgPs.toFixed(1),
       unit: "h",
-      ic: C.cyan,
+      ic: COLORS.cyan,
       icon: "⚓",
       dl: "avg",
       dlt: "neu",
@@ -2292,13 +2287,13 @@ function MobilePages({
       lbl: "Net Wk",
       val: kpi.avgNet.toFixed(1),
       unit: "h",
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "⏱",
       dl: "avg",
       dlt: "neu",
       spark: sp.nw
     }]
-  }), sec(C.cyan, "Live Berth Status"), /*#__PURE__*/React.createElement("div", {
+  }), sec(COLORS.cyan, "Live Berth Status"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2311,14 +2306,14 @@ function MobilePages({
     }
   }, /*#__PURE__*/React.createElement(BerthMap, {
     berths: berthStatus
-  }))), sec(C.amber, "Vessel Operations — tap to expand"), /*#__PURE__*/React.createElement(VesselAccordion, {
+  }))), sec(COLORS.amber, "Vessel Operations — tap to expand"), /*#__PURE__*/React.createElement(VesselAccordion, {
     data: vessels,
     kt: kt
   })), nav === "vessels" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(KpiStrip, {
     items: [{
       lbl: "Total",
       val: vessels.length,
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "⛵",
       dl: "vessels",
       dlt: "pos",
@@ -2326,7 +2321,7 @@ function MobilePages({
     }, {
       lbl: "Berthed",
       val: vessels.filter(v => v.st === "Berthed").length,
-      ic: C.green,
+      ic: COLORS.green,
       icon: "⚓",
       dl: "Active",
       dlt: "neu",
@@ -2334,7 +2329,7 @@ function MobilePages({
     }, {
       lbl: "Completed",
       val: vessels.filter(v => v.st === "Completed").length,
-      ic: C.cyan,
+      ic: COLORS.cyan,
       icon: "✓",
       dl: "Today",
       dlt: "pos",
@@ -2342,7 +2337,7 @@ function MobilePages({
     }, {
       lbl: "TEUs",
       val: kpi.tteus.toLocaleString(),
-      ic: C.purple,
+      ic: COLORS.purple,
       icon: "📦",
       dl: "total",
       dlt: "pos",
@@ -2355,7 +2350,7 @@ function MobilePages({
     items: [{
       lbl: "Active QC",
       val: qcTimeline.length,
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "⚙",
       dl: "cranes",
       dlt: "neu",
@@ -2363,7 +2358,7 @@ function MobilePages({
     }, {
       lbl: "Avg Net M/h",
       val: qcData.length ? (qcData.reduce((s, q) => s + q.nmh, 0) / qcData.length).toFixed(1) : "—",
-      ic: C.green,
+      ic: COLORS.green,
       icon: "📈",
       dl: "vs KPI",
       dlt: "pos",
@@ -2371,7 +2366,7 @@ function MobilePages({
     }, {
       lbl: "Above KPI",
       val: `${qcData.filter(q => q.nmh >= kt).length}/${qcData.length}`,
-      ic: C.green,
+      ic: COLORS.green,
       icon: "✓",
       dl: "passing",
       dlt: "pos",
@@ -2380,13 +2375,13 @@ function MobilePages({
       lbl: "Avg Delay",
       val: qcData.length ? (qcData.reduce((s, q) => s + q.dH, 0) / qcData.length).toFixed(1) : "—",
       unit: "h",
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "⏱",
       dl: "per crane",
       dlt: "neg",
       spark: sp.dl
     }]
-  }), sec(C.cyan, "Crane Assignment Timeline"), /*#__PURE__*/React.createElement("div", {
+  }), sec(COLORS.cyan, "Crane Assignment Timeline"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2400,14 +2395,14 @@ function MobilePages({
     }
   }, /*#__PURE__*/React.createElement(QCGantt, {
     timeline: qcTimeline
-  }))), sec(C.green, "QC Detail Records"), /*#__PURE__*/React.createElement(QCAccordion, {
+  }))), sec(COLORS.green, "QC Detail Records"), /*#__PURE__*/React.createElement(QCAccordion, {
     data: qcData,
     kt: kt
   })), nav === "operators" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(KpiStrip, {
     items: [{
       lbl: "Active QC",
       val: new Set(qcOpData.map(q => q.qc)).size,
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "⚙",
       dl: "cranes",
       dlt: "neu",
@@ -2415,7 +2410,7 @@ function MobilePages({
     }, {
       lbl: "Avg Net M/h",
       val: qcOpData.length ? (qcOpData.reduce((s, q) => s + q.nmh, 0) / qcOpData.length).toFixed(1) : "—",
-      ic: C.green,
+      ic: COLORS.green,
       icon: "📈",
       dl: "vs KPI",
       dlt: "pos",
@@ -2423,7 +2418,7 @@ function MobilePages({
     }, {
       lbl: "Above KPI",
       val: `${qcOpData.filter(q => q.nmh >= kt).length}/${qcOpData.length}`,
-      ic: C.green,
+      ic: COLORS.green,
       icon: "✓",
       dl: "passing",
       dlt: "pos",
@@ -2432,20 +2427,20 @@ function MobilePages({
       lbl: "Avg Delay",
       val: qcOpData.length ? (qcOpData.reduce((s, q) => s + q.dH, 0) / qcOpData.length).toFixed(1) : "—",
       unit: "h",
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "⏱",
       dl: "per crane",
       dlt: "neg",
       spark: sp.dl
     }]
-  }), sec(C.green, "QC Operator Detail Records (Adjusted)"), /*#__PURE__*/React.createElement(QCAccordion, {
+  }), sec(COLORS.green, "QC Operator Detail Records (Adjusted)"), /*#__PURE__*/React.createElement(QCAccordion, {
     data: qcOpData,
     kt: kt
   })), nav === "delays" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(KpiStrip, {
     items: [{
       lbl: "Events",
       val: delays.length,
-      ic: C.red,
+      ic: COLORS.red,
       icon: "⚠",
       dl: "total",
       dlt: "neg",
@@ -2454,7 +2449,7 @@ function MobilePages({
       lbl: "Total Hrs",
       val: kpi.tdHrs.toFixed(1),
       unit: "h",
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "⏱",
       dl: "total",
       dlt: "neg",
@@ -2462,7 +2457,7 @@ function MobilePages({
     }, {
       lbl: "Terminal %",
       val: `${kpi.tcPct}%`,
-      ic: C.purple,
+      ic: COLORS.purple,
       icon: "⚡",
       dl: "of delays",
       dlt: "pos",
@@ -2471,13 +2466,13 @@ function MobilePages({
       lbl: "Avg/Vessel",
       val: kpi.avgDly.toFixed(1),
       unit: "h",
-      ic: C.green,
+      ic: COLORS.green,
       icon: "📉",
       dl: "per vessel",
       dlt: "pos",
       spark: sp.dl
     }]
-  }), sec(C.red, "Delay Breakdown"), /*#__PURE__*/React.createElement("div", {
+  }), sec(COLORS.red, "Delay Breakdown"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2491,7 +2486,7 @@ function MobilePages({
   }, /*#__PURE__*/React.createElement(DonutChart, {
     data: delays,
     theme: theme
-  }))), sec(C.amber, "Delay Timeline"), /*#__PURE__*/React.createElement("div", {
+  }))), sec(COLORS.amber, "Delay Timeline"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2505,13 +2500,13 @@ function MobilePages({
     }
   }, /*#__PURE__*/React.createElement(DelayGantt, {
     data: delays
-  }))), sec(C.red, "Delay Events"), /*#__PURE__*/React.createElement(DelayAccordion, {
+  }))), sec(COLORS.red, "Delay Events"), /*#__PURE__*/React.createElement(DelayAccordion, {
     data: delays
   })), nav === "market" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(KpiStrip, {
     items: [{
       lbl: "Total Moves",
       val: Object.values(marketStats.cargo).reduce((a, b) => a + b, 0),
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "📦",
       dl: "filtered",
       dlt: "pos",
@@ -2519,13 +2514,13 @@ function MobilePages({
     }, {
       lbl: "Imp Ratio",
       val: `${Math.round((marketStats.cargo.Discharge || 0) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`,
-      ic: C.cyan,
+      ic: COLORS.cyan,
       icon: "📉",
       dl: "discharge",
       dlt: "pos",
       spark: sp.t
     }]
-  }), sec(C.blue, "Cargo Mix (Discharge/Load)"), /*#__PURE__*/React.createElement("div", {
+  }), sec(COLORS.blue, "Cargo Mix (Discharge/Load)"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2540,12 +2535,12 @@ function MobilePages({
     data: marketStats.cargo,
     theme: theme,
     customColors: {
-      "Discharge": C.blue,
-      "Load": C.green,
-      "Shifting": C.purple
+      "Discharge": COLORS.blue,
+      "Load": COLORS.green,
+      "Shifting": COLORS.purple
     },
     label: "Moves"
-  }))), sec(C.cyan, "Market Volume Trend"), /*#__PURE__*/React.createElement("div", {
+  }))), sec(COLORS.cyan, "Market Volume Trend"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2564,7 +2559,7 @@ function MobilePages({
     items: [{
       lbl: "Full %",
       val: `${Math.round(marketStats.status.Full / (marketStats.status.Full + marketStats.status.Empty || 1) * 100)}%`,
-      ic: C.purple,
+      ic: COLORS.purple,
       icon: "⚡",
       dl: "laden",
       dlt: "pos",
@@ -2572,13 +2567,13 @@ function MobilePages({
     }, {
       lbl: "40' Ratio",
       val: `${Math.round(marketStats.size["40'"] / (Object.values(marketStats.size).reduce((a, b) => a + b, 0) || 1) * 100)}%`,
-      ic: C.green,
+      ic: COLORS.green,
       icon: "📏",
       dl: "large units",
       dlt: "pos",
       spark: sp.t
     }]
-  }), sec(C.purple, "Full vs Empty Status"), /*#__PURE__*/React.createElement("div", {
+  }), sec(COLORS.purple, "Full vs Empty Status"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2593,11 +2588,11 @@ function MobilePages({
     data: marketStats.status,
     theme: theme,
     customColors: {
-      "Full": C.purple,
+      "Full": COLORS.purple,
       "Empty": "#3D556E"
     },
     label: "Total"
-  }))), sec(C.cyan, "Container Size Distribution"), /*#__PURE__*/React.createElement("div", {
+  }))), sec(COLORS.cyan, "Container Size Distribution"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 10px 8px'
     }
@@ -2616,7 +2611,7 @@ function MobilePages({
     items: [{
       lbl: "API",
       val: "OK",
-      ic: C.green,
+      ic: COLORS.green,
       icon: "✓",
       dl: "Healthy",
       dlt: "pos",
@@ -2625,7 +2620,7 @@ function MobilePages({
       lbl: "KPI Target",
       val: kt,
       unit: "M/h",
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "🎯",
       dl: "target",
       dlt: "neu",
@@ -2633,7 +2628,7 @@ function MobilePages({
     }, {
       lbl: "Records",
       val: `${vessels.length}·${qcData.length}`,
-      ic: C.purple,
+      ic: COLORS.purple,
       icon: "🗄",
       dl: "v·qc",
       dlt: "neu",
@@ -2644,7 +2639,7 @@ function MobilePages({
         hour: '2-digit',
         minute: '2-digit'
       }),
-      ic: C.cyan,
+      ic: COLORS.cyan,
       icon: "⏱",
       dl: "success",
       dlt: "pos",
@@ -2715,7 +2710,7 @@ function BerthPlanPage({
   const summaryCards = [h(KpiCard, {
     lbl: "Peak Day Vessels",
     val: peak?.vesselCount || 0,
-    ic: C.blue,
+    ic: COLORS.blue,
     icon: "📅",
     dl: peak?.date || "no data",
     dlt: "neu",
@@ -2723,7 +2718,7 @@ function BerthPlanPage({
   }), h(KpiCard, {
     lbl: "Peak Gang Slots",
     val: stats.peakCranes,
-    ic: C.cyan,
+    ic: COLORS.cyan,
     icon: "🏗️",
     dl: "slot demand, not physical QC count",
     dlt: "neu",
@@ -2731,7 +2726,7 @@ function BerthPlanPage({
   }), h(KpiCard, {
     lbl: "Avg Daily Vessels",
     val: stats.avgDailyVessels.toFixed(1),
-    ic: C.green,
+    ic: COLORS.green,
     icon: "⚓",
     dl: "ATB-ATD overlap",
     dlt: "pos",
@@ -2739,7 +2734,7 @@ function BerthPlanPage({
   }), h(KpiCard, {
     lbl: "Operating Months",
     val: stats.monthRows.length,
-    ic: C.amber,
+    ic: COLORS.amber,
     icon: "📊",
     dl: `${stats.dayRows.length} days`,
     dlt: "neu",
@@ -2765,7 +2760,7 @@ function BerthPlanPage({
     }, h(LoadBar, {
       value: r.vesselCount,
       max: peakVessels,
-      color: r.vesselCount >= 3 ? C.red : C.amber
+      color: r.vesselCount >= 3 ? COLORS.red : COLORS.amber
     }), h("span", {
       style: {
         fontSize: 10,
@@ -2781,7 +2776,7 @@ function BerthPlanPage({
     }, r.vesselCount), h("td", {
       className: "tr",
       style: {
-        color: C.cyan,
+        color: COLORS.cyan,
         fontWeight: 700
       }
     }, r.cranes), h("td", {
@@ -2799,7 +2794,7 @@ function BerthPlanPage({
     }, r.berthCount), h("td", {
       className: "tr",
       style: {
-        color: C.cyan,
+        color: COLORS.cyan,
         fontWeight: 700
       }
     }, r.cranes), h("td", {
@@ -2897,7 +2892,7 @@ function BerthPlanPage({
       gap: 8,
       borderBottom: "1px solid var(--br)"
     }
-  }, [[period === "month" ? "Busiest period" : "Busiest date", topRow?.period || "—", C.blue], ["Main pressure berth", peakBerth?.berth || "—", C.cyan], ["Gang-slot demand", `${stats.peakCranes} slots · base 7 QCs`, C.amber]].map(([label, val, color]) => h("div", {
+  }, [[period === "month" ? "Busiest period" : "Busiest date", topRow?.period || "—", COLORS.blue], ["Main pressure berth", peakBerth?.berth || "—", COLORS.cyan], ["Gang-slot demand", `${stats.peakCranes} slots · base 7 QCs`, COLORS.amber]].map(([label, val, color]) => h("div", {
     key: label,
     style: {
       background: "var(--bg3)",
@@ -2945,12 +2940,12 @@ function BerthPlanPage({
   }, h("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), mainTitle), h("span", {
     className: "bx bb_"
   }, "top ", sortedRows.length, " rows")), filterBar, summaryGrid, tableView);
-  const sideCards = [["Busiest Weekdays", stats.weekdayRows.slice(0, 7), "label", C.green], ["Peak Months", stats.monthRows.slice(0, 6), "month", C.amber], ["Berth Load Share", stats.berthRows.slice(0, 6), "berth", C.cyan]].map(([title, rows, labelKey, color]) => h("div", {
+  const sideCards = [["Busiest Weekdays", stats.weekdayRows.slice(0, 7), "label", COLORS.green], ["Peak Months", stats.monthRows.slice(0, 6), "month", COLORS.amber], ["Berth Load Share", stats.berthRows.slice(0, 6), "berth", COLORS.cyan]].map(([title, rows, labelKey, color]) => h("div", {
     key: title,
     className: "card"
   }, h("div", {
@@ -3004,13 +2999,13 @@ function CargoForecastPage({
     period: "no data"
   };
   const fmtPct = v => v == null ? "n/a" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
-  const chartRows = rows.slice(-12);
+  const chartRows = useMemo(() => rows.slice(-12), [rows]);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "kg k4"
   }, /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Latest Month Total",
     val: latest.total.toLocaleString(),
-    ic: C.blue,
+    ic: COLORS.blue,
     icon: "📦",
     dl: latest.period,
     dlt: "neu",
@@ -3018,7 +3013,7 @@ function CargoForecastPage({
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Import Ratio",
     val: `${Math.round(latest.import / (latest.total || 1) * 100)}%`,
-    ic: C.cyan,
+    ic: COLORS.cyan,
     icon: "↓",
     dl: "discharge",
     dlt: "neu",
@@ -3026,7 +3021,7 @@ function CargoForecastPage({
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Export Ratio",
     val: `${Math.round(latest.export / (latest.total || 1) * 100)}%`,
-    ic: C.green,
+    ic: COLORS.green,
     icon: "↑",
     dl: "loading",
     dlt: "pos",
@@ -3034,7 +3029,7 @@ function CargoForecastPage({
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Next Forecast",
     val: stats.forecastNext.toLocaleString(),
-    ic: C.amber,
+    ic: COLORS.amber,
     icon: "📈",
     dl: "3-month avg",
     dlt: "neu",
@@ -3061,7 +3056,7 @@ function CargoForecastPage({
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Import / Export Movement"), /*#__PURE__*/React.createElement("div", {
     className: "tabs"
@@ -3083,24 +3078,24 @@ function CargoForecastPage({
   }, r.period), /*#__PURE__*/React.createElement("td", {
     className: "tr",
     style: {
-      color: C.blue
+      color: COLORS.blue
     }
   }, r.import.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     className: "tr",
     style: {
-      color: C.green
+      color: COLORS.green
     }
   }, r.export.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     className: "tr tb"
   }, r.total.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     className: "tr",
     style: {
-      color: r.prevPct == null ? "var(--t4)" : r.prevPct >= 0 ? C.green : C.red
+      color: r.prevPct == null ? "var(--t4)" : r.prevPct >= 0 ? COLORS.green : COLORS.red
     }
   }, fmtPct(r.prevPct)), /*#__PURE__*/React.createElement("td", {
     className: "tr",
     style: {
-      color: r.balance >= 0 ? C.green : C.amber
+      color: r.balance >= 0 ? COLORS.green : COLORS.amber
     }
   }, r.balance.toLocaleString()))))))), /*#__PURE__*/React.createElement("div", {
     className: "gcol",
@@ -3119,14 +3114,14 @@ function CargoForecastPage({
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.green
+      background: COLORS.green
     }
   }), "Market Signal")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
     style: {
       gap: 8
     }
-  }, [["Latest period", latest.period, C.blue], ["Import volume", latest.import.toLocaleString(), C.cyan], ["Export volume", latest.export.toLocaleString(), C.green], ["Trade balance", (latest.export - latest.import).toLocaleString(), latest.export >= latest.import ? C.green : C.amber], ["Next forecast", stats.forecastNext.toLocaleString(), C.amber]].map(([k, v, color]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Latest period", latest.period, COLORS.blue], ["Import volume", latest.import.toLocaleString(), COLORS.cyan], ["Export volume", latest.export.toLocaleString(), COLORS.green], ["Trade balance", (latest.export - latest.import).toLocaleString(), latest.export >= latest.import ? COLORS.green : COLORS.amber], ["Next forecast", stats.forecastNext.toLocaleString(), COLORS.amber]].map(([k, v, color]) => /*#__PURE__*/React.createElement("div", {
     key: k,
     className: "ms"
   }, /*#__PURE__*/React.createElement("span", {
@@ -3148,7 +3143,7 @@ function CargoForecastPage({
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Trend Outlook"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -3172,14 +3167,14 @@ function CargoForecastPage({
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.cyan
+      background: COLORS.cyan
     }
   }), "Latest Cargo Split")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
     style: {
       gap: 12
     }
-  }, [["Import", latest.import, C.cyan], ["Export", latest.export, C.green]].map(([label, value, color]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Import", latest.import, COLORS.cyan], ["Export", latest.export, COLORS.green]].map(([label, value, color]) => /*#__PURE__*/React.createElement("div", {
     key: label,
     style: {
       display: "grid",
@@ -3208,14 +3203,14 @@ function CargoForecastPage({
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.amber
+      background: COLORS.amber
     }
   }), "Period Coverage")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
     style: {
       padding: "6px 12px"
     }
-  }, [["Monthly", stats.monthly.length, C.blue], ["Quarterly", stats.quarterly.length, C.green], ["Yearly", stats.yearly.length, C.amber]].map(([label, value, color]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Monthly", stats.monthly.length, COLORS.blue], ["Quarterly", stats.quarterly.length, COLORS.green], ["Yearly", stats.yearly.length, COLORS.amber]].map(([label, value, color]) => /*#__PURE__*/React.createElement("div", {
     key: label,
     className: "ms"
   }, /*#__PURE__*/React.createElement("span", {
@@ -3232,7 +3227,7 @@ function CargoForecastPage({
 function App() {
   const isMobile = useMobile();
   const getUrlParam = key => new URLSearchParams(window.location.search).get(key) || "";
-  const [nav, setNavState] = useState(() => getUrlParam("tab") || "overview");
+  const [nav, setNavState] = useState(() => { const t = getUrlParam("tab"); return (t && t !== "berth") ? t : "overview"; });
   const [col, setCol] = useState(false);
   const [notif, setNotif] = useState(false);
   const [uprof, setUprof] = useState(false);
@@ -3763,7 +3758,7 @@ function App() {
     };
   }, [marketData]);
   const operators = apiData?.operators ?? [];
-  const sp = apiData?.spark ?? SP0;
+  const sp = apiData?.spark ?? EMPTY_SPARKLINES;
   const feedLines = apiData?.feed ?? [];
   const kt = customKt !== null ? customKt : apiData?.meta?.kpiTarget ?? 45;
   const reportDate = apiData?.meta?.reportDate ?? "";
@@ -3814,7 +3809,7 @@ function App() {
   const NOTIFS = vessels.filter(v => (v.nmph || 0) < kt).slice(0, 5).map(v => ({
     t: `KPI Alert — ${v.name}`,
     s: `Net M/h: ${(v.nmph || 0).toFixed(1)} vs target ${kt}`,
-    c: (v.nmph || 0) < kt - 1 ? C.red : C.amber
+    c: (v.nmph || 0) < kt - 1 ? COLORS.red : COLORS.amber
   }));
 
   /* Delay tab: per-vessel summary */
@@ -4061,7 +4056,7 @@ function App() {
     className: "logo",
     style: {
       background: "rgba(59,130,246,.2)",
-      color: C.blue
+      color: COLORS.blue
     }
   }, "🔑"), /*#__PURE__*/React.createElement("div", {
     className: "hdr-t"
@@ -4156,7 +4151,7 @@ function App() {
     className: "logo",
     style: {
       background: "rgba(239,68,68,.2)",
-      color: C.red
+      color: COLORS.red
     }
   }, "!"), /*#__PURE__*/React.createElement("div", {
     className: "hdr-t"
@@ -4165,7 +4160,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: C.red,
+      color: COLORS.red,
       fontWeight: 600
     }
   }, "⚠ ", apiError), /*#__PURE__*/React.createElement("div", {
@@ -4177,7 +4172,7 @@ function App() {
   }, "Make sure ", /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
-      color: C.cyan
+      color: COLORS.cyan
     }
   }, "dashboard_api.py"), " is running on port 8503"), /*#__PURE__*/React.createElement("button", {
     className: "btn bp",
@@ -4748,7 +4743,7 @@ function App() {
   }, /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Active Vessels",
     val: kpi.tvs,
-    ic: C.blue,
+    ic: COLORS.blue,
     icon: "⛵",
     dl: `${kpi.above} above KPI`,
     dlt: "pos",
@@ -4756,7 +4751,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Total TEUs",
     val: kpi.tteus.toLocaleString(),
-    ic: C.purple,
+    ic: COLORS.purple,
     icon: "📦",
     dl: "all vessels",
     dlt: "pos",
@@ -4764,7 +4759,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Avg Net M/h",
     val: kpi.avgNmph.toFixed(1),
-    ic: moveDelta >= 0 ? C.green : C.red,
+    ic: moveDelta >= 0 ? COLORS.green : COLORS.red,
     icon: "📈",
     dl: `${moveDelta >= 0 ? "+" : ""}${moveDelta.toFixed(1)} vs KPI`,
     dlt: moveDelta >= 0 ? "pos" : "neg",
@@ -4773,7 +4768,7 @@ function App() {
     lbl: "Avg Portstay",
     val: kpi.avgPs.toFixed(1),
     unit: "h",
-    ic: C.cyan,
+    ic: COLORS.cyan,
     icon: "⚓",
     dl: "per vessel",
     dlt: "neu",
@@ -4782,7 +4777,7 @@ function App() {
     lbl: "Total Delay Hrs",
     val: kpi.tdHrs.toFixed(1),
     unit: "h",
-    ic: C.amber,
+    ic: COLORS.amber,
     icon: "⏱",
     dl: `${delays.length} events`,
     dlt: "neg",
@@ -4790,7 +4785,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Terminal Conv. %",
     val: `${kpi.tcPct}%`,
-    ic: C.red,
+    ic: COLORS.red,
     icon: "⚠",
     dl: "of total delay",
     dlt: "neg",
@@ -4806,7 +4801,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.purple
+      background: COLORS.purple
     }
   }), "Operator Performance"), /*#__PURE__*/React.createElement("div", {
     className: "tabs"
@@ -4832,7 +4827,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.cyan
+      background: COLORS.cyan
     }
   }), "Live Berth Status"), /*#__PURE__*/React.createElement("span", {
     className: "bx bc_"
@@ -4852,7 +4847,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Vessel Operations — Dense View"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -4867,7 +4862,7 @@ function App() {
   }, /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Total Vessels",
     val: vessels.length,
-    ic: C.blue,
+    ic: COLORS.blue,
     icon: "⛵",
     dl: "all records",
     dlt: "pos",
@@ -4875,7 +4870,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Total TEUs",
     val: kpi.tteus.toLocaleString(),
-    ic: C.purple,
+    ic: COLORS.purple,
     icon: "📦",
     dl: "total",
     dlt: "pos",
@@ -4884,7 +4879,7 @@ function App() {
     lbl: "Avg Portstay",
     val: kpi.avgPs.toFixed(1),
     unit: "h",
-    ic: C.cyan,
+    ic: COLORS.cyan,
     icon: "⚓",
     dl: "average",
     dlt: "neu",
@@ -4893,7 +4888,7 @@ function App() {
     lbl: "Avg Net Wk",
     val: kpi.avgNet.toFixed(1),
     unit: "h",
-    ic: C.amber,
+    ic: COLORS.amber,
     icon: "⏱",
     dl: "average",
     dlt: "neu",
@@ -4901,7 +4896,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Avg Net M/h",
     val: kpi.avgNmph.toFixed(1),
-    ic: moveDelta >= 0 ? C.green : C.red,
+    ic: moveDelta >= 0 ? COLORS.green : COLORS.red,
     icon: "📈",
     dl: `${moveDelta >= 0 ? "+" : ""}${moveDelta.toFixed(1)} KPI`,
     dlt: moveDelta >= 0 ? "pos" : "neg",
@@ -4909,7 +4904,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Above KPI",
     val: `${kpi.above}/${kpi.tvs}`,
-    ic: C.green,
+    ic: COLORS.green,
     icon: "✓",
     dl: "passing",
     dlt: "pos",
@@ -4926,7 +4921,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "All Vessel Records"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -4944,7 +4939,7 @@ function App() {
   }, /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Total Market Moves",
     val: Object.values(marketStats.cargo).reduce((a, b) => a + b, 0).toLocaleString(),
-    ic: C.blue,
+    ic: COLORS.blue,
     icon: "📦",
     dl: "Total volume",
     dlt: "pos",
@@ -4952,7 +4947,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Import Ratio (Discharge)",
     val: `${Math.round((marketStats.cargo.Discharge || 0) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`,
-    ic: C.cyan,
+    ic: COLORS.cyan,
     icon: "📉",
     dl: "Market share",
     dlt: "pos",
@@ -4960,7 +4955,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Export Ratio (Load)",
     val: `${Math.round((marketStats.cargo.Load || 0 || marketStats.cargo.Loading) / (Object.values(marketStats.cargo).reduce((a, b) => a + b, 0) || 1) * 100)}%`,
-    ic: C.green,
+    ic: COLORS.green,
     icon: "📈",
     dl: "Market share",
     dlt: "pos",
@@ -4985,7 +4980,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Cargo Mix Dist.")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
@@ -5000,10 +4995,10 @@ function App() {
     data: marketStats.cargo,
     theme: theme,
     customColors: {
-      "Discharge": C.blue,
-      "Loading": C.green,
-      "Load": C.green,
-      "Shifting": C.purple
+      "Discharge": COLORS.blue,
+      "Loading": COLORS.green,
+      "Load": COLORS.green,
+      "Shifting": COLORS.purple
     },
     label: "Moves"
   }))), /*#__PURE__*/React.createElement("div", {
@@ -5015,7 +5010,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Market Volume Trends"), /*#__PURE__*/React.createElement("div", {
     className: "tabs"
@@ -5042,7 +5037,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.green
+      background: COLORS.green
     }
   }), "Carrier Volume Share")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
@@ -5061,7 +5056,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Operational Performance by Carrier (Summary)"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -5107,12 +5102,12 @@ function App() {
   }, o.total.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     style: {
       textAlign: "right",
-      color: C.blue
+      color: COLORS.blue
     }
   }, o.dis.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     style: {
       textAlign: "right",
-      color: C.green
+      color: COLORS.green
     }
   }, o.load.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     style: {
@@ -5137,7 +5132,7 @@ function App() {
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.blue
+      color: COLORS.blue
     }
   }, Math.round(o.dis / o.total * 100), "%"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -5145,7 +5140,7 @@ function App() {
     }
   }, "/"), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: C.green
+      color: COLORS.green
     }
   }, Math.round(o.load / o.total * 100), "%")))))))))), nav === "containers" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "kg k3",
@@ -5155,7 +5150,7 @@ function App() {
   }, /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "Full Container Ratio",
     val: `${Math.round(marketStats.status.Full / (marketStats.status.Full + marketStats.status.Empty || 1) * 100)}%`,
-    ic: C.blue,
+    ic: COLORS.blue,
     icon: "⚡",
     dl: "Laden units",
     dlt: "pos",
@@ -5163,7 +5158,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "20' (Small) Ratio",
     val: `${Math.round(marketStats.size["20'"] / (Object.values(marketStats.size).reduce((a, b) => a + b, 0) || 1) * 100)}%`,
-    ic: C.cyan,
+    ic: COLORS.cyan,
     icon: "📏",
     dl: "Standard short",
     dlt: "neu",
@@ -5171,7 +5166,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(KpiCard, {
     lbl: "40/45' (Large) Ratio",
     val: `${Math.round((marketStats.size["40'"] + marketStats.size["45'"]) / (Object.values(marketStats.size).reduce((a, b) => a + b, 0) || 1) * 100)}%`,
-    ic: C.teal,
+    ic: COLORS.teal,
     icon: "📐",
     dl: "Standard long",
     dlt: "pos",
@@ -5196,7 +5191,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Status Mix (Full/Empty)")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
@@ -5211,7 +5206,7 @@ function App() {
     data: marketStats.status,
     theme: theme,
     customColors: {
-      "Full": C.blue,
+      "Full": COLORS.blue,
       "Empty": "#3D556E"
     },
     label: "Total"
@@ -5224,7 +5219,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.cyan
+      background: COLORS.cyan
     }
   }), "Carrier Status Distribution")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
@@ -5247,7 +5242,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.teal
+      background: COLORS.teal
     }
   }), "Carrier Size Mix Distribution")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
@@ -5278,7 +5273,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "Container Inventory Breakdown by Carrier"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -5320,7 +5315,7 @@ function App() {
   }, o.total.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     style: {
       textAlign: "right",
-      color: C.blue,
+      color: COLORS.blue,
       fontWeight: 500
     }
   }, o.full.toLocaleString()), /*#__PURE__*/React.createElement("td", {
@@ -5331,12 +5326,12 @@ function App() {
   }, o.empty.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     style: {
       textAlign: "right",
-      color: C.cyan
+      color: COLORS.cyan
     }
   }, o.s20.toLocaleString()), /*#__PURE__*/React.createElement("td", {
     style: {
       textAlign: "right",
-      color: C.teal
+      color: COLORS.teal
     }
   }, (o.s40 + o.s45).toLocaleString()))))))), /*#__PURE__*/React.createElement("div", {
     className: "card",
@@ -5351,7 +5346,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.cyan
+      background: COLORS.cyan
     }
   }), "Global Size Distribution")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
@@ -5366,9 +5361,9 @@ function App() {
     data: marketStats.size,
     theme: theme,
     customColors: {
-      "20'": C.cyan,
-      "40'": C.teal,
-      "45'": C.blue
+      "20'": COLORS.cyan,
+      "40'": COLORS.teal,
+      "45'": COLORS.blue
     },
     label: "Size"
   }))))), nav === "berthplan" && /*#__PURE__*/React.createElement(BerthPlanPage, {
@@ -5394,7 +5389,7 @@ function App() {
     }, /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Active Cranes",
       val: qcTimeline.length,
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "⚙",
       dl: "assigned",
       dlt: "neu",
@@ -5402,7 +5397,7 @@ function App() {
     }), /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Avg Gross M/h",
       val: avgGmh.toFixed(1),
-      ic: C.blue,
+      ic: COLORS.blue,
       icon: "📊",
       dl: "gross productivity",
       dlt: "neu",
@@ -5410,7 +5405,7 @@ function App() {
     }), /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Avg Net M/h",
       val: avgNmh.toFixed(1),
-      ic: C.green,
+      ic: COLORS.green,
       icon: "📈",
       dl: "net productivity",
       dlt: "pos",
@@ -5419,7 +5414,7 @@ function App() {
       lbl: "Total Delay",
       val: totalDelayH.toFixed(1),
       unit: "h",
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "⏱",
       dl: "delay hours",
       dlt: "neg",
@@ -5436,7 +5431,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.blue
+        background: COLORS.blue
       }
     }), "Crane Activity & Allocation Summary"), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -5525,7 +5520,7 @@ function App() {
       }, r.nH.toFixed(1), "h"), /*#__PURE__*/React.createElement("td", {
         className: "tr",
         style: {
-          color: r.dH > 10 ? C.amber : 'inherit'
+          color: r.dH > 10 ? COLORS.amber : 'inherit'
         }
       }, r.dH.toFixed(1), "h"), /*#__PURE__*/React.createElement("td", {
         className: "tr tb"
@@ -5535,7 +5530,7 @@ function App() {
         className: "tr",
         style: {
           fontWeight: 700,
-          color: C.green
+          color: COLORS.green
         }
       }, r.nmh.toFixed(1))));
     })())))), /*#__PURE__*/React.createElement("div", {
@@ -5555,7 +5550,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.green
+        background: COLORS.green
       }
     }), "Gross vs Net M/h — by ", craneGroupBy === 'day' ? 'Day' : craneGroupBy === 'week' ? 'Week' : craneGroupBy === 'month' ? 'Month' : 'Quarter'), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -5625,7 +5620,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.purple
+        background: COLORS.purple
       }
     }), "QC Detail Records"), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -5679,7 +5674,7 @@ function App() {
     }, q.nH.toFixed(1)), /*#__PURE__*/React.createElement("td", {
       className: "tr",
       style: {
-        color: C.amber
+        color: COLORS.amber
       }
     }, q.dH.toFixed(1)), /*#__PURE__*/React.createElement("td", {
       className: "tr tb"
@@ -5742,22 +5737,22 @@ function App() {
       }
     }, /*#__PURE__*/React.createElement("strong", {
       style: {
-        color: C.amber
+        color: COLORS.amber
       }
     }, "Điều chỉnh theo Operator"), " — Tab này chỉ tính thời gian dừng do ", /*#__PURE__*/React.createElement("strong", null, "người lái cần trục"), " kiểm soát (Stop Time). Các nguyên nhân ngoài tầm kiểm soát (sự cố thiết bị, chờ tàu, thời tiết…) ", /*#__PURE__*/React.createElement("strong", null, "đã được loại trừ"), ".", (nmhDelta > 0 || gmhDelta > 0) && /*#__PURE__*/React.createElement("span", {
       style: {
-        color: C.green
+        color: COLORS.green
       }
     }, " ▲ Net M/h cao hơn Crane tab ", nmhDelta >= 0 ? "+" : "", nmhDelta.toFixed(1), " M/h."), nmhDelta <= 0 && gmhDelta <= 0 && nmhDelta !== 0 && /*#__PURE__*/React.createElement("span", {
       style: {
-        color: C.amber
+        color: COLORS.amber
       }
     }, " Net M/h thấp hơn Crane tab ", nmhDelta.toFixed(1), " M/h — kiểm tra dữ liệu Stop Time."))), /*#__PURE__*/React.createElement("div", {
       className: "kg k4"
     }, /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Active Cranes",
       val: activeCranesCount,
-      ic: C.cyan,
+      ic: COLORS.cyan,
       icon: "⚙",
       dl: "cần trục hoạt động",
       dlt: "neu",
@@ -5765,7 +5760,7 @@ function App() {
     }), /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Avg Gross M/h ★",
       val: avgGmh.toFixed(1),
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "📊",
       dl: `${gmhDelta >= 0 ? "+" : ""}${gmhDelta.toFixed(1)} vs Crane tab`,
       dlt: gmhDelta >= 0 ? "pos" : "neg",
@@ -5773,7 +5768,7 @@ function App() {
     }), /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Avg Net M/h ★",
       val: avgNmh.toFixed(1),
-      ic: C.green,
+      ic: COLORS.green,
       icon: "📈",
       dl: `${nmhDelta >= 0 ? "+" : ""}${nmhDelta.toFixed(1)} vs Crane tab`,
       dlt: nmhDelta >= 0 ? "pos" : "neg",
@@ -5782,7 +5777,7 @@ function App() {
       lbl: "Total Stop Time",
       val: totalDelayH.toFixed(1),
       unit: "h",
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "⏱",
       dl: "do Operator kiểm soát",
       dlt: "neg",
@@ -5800,7 +5795,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.amber
+        background: COLORS.amber
       }
     }), "Hiệu suất theo Cần trục — Điều chỉnh Operator ", /*#__PURE__*/React.createElement("span", {
       style: {
@@ -5830,7 +5825,7 @@ function App() {
     }, "Net Wk (h)"), /*#__PURE__*/React.createElement("th", {
       style: {
         textAlign: "right",
-        color: C.amber
+        color: COLORS.amber
       }
     }, "Stop Time (h)"), /*#__PURE__*/React.createElement("th", {
       style: {
@@ -5843,7 +5838,7 @@ function App() {
     }, "Gross M/h"), /*#__PURE__*/React.createElement("th", {
       style: {
         textAlign: "right",
-        color: C.green
+        color: COLORS.green
       }
     }, "Net M/h ★"))), /*#__PURE__*/React.createElement("tbody", null, (() => {
       const summaryMap = {};
@@ -5900,7 +5895,7 @@ function App() {
       }, r.nH.toFixed(1)), /*#__PURE__*/React.createElement("td", {
         className: "tr",
         style: {
-          color: r.dH > 10 ? C.red : C.amber,
+          color: r.dH > 10 ? COLORS.red : COLORS.amber,
           fontWeight: r.dH > 10 ? 700 : 400
         }
       }, r.dH.toFixed(1)), /*#__PURE__*/React.createElement("td", {
@@ -5911,7 +5906,7 @@ function App() {
         className: "tr",
         style: {
           fontWeight: 700,
-          color: r.nmh >= kt ? C.green : C.amber
+          color: r.nmh >= kt ? COLORS.green : COLORS.amber
         }
       }, r.nmh.toFixed(1))));
     })())))), /*#__PURE__*/React.createElement("div", {
@@ -5932,7 +5927,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.amber
+        background: COLORS.amber
       }
     }), "Net M/h Operator — by ", craneGroupBy === 'day' ? 'Day' : craneGroupBy === 'week' ? 'Week' : craneGroupBy === 'month' ? 'Month' : 'Quarter'), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -6002,7 +5997,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.amber
+        background: COLORS.amber
       }
     }), "Chi tiết từng ca — Điều chỉnh Operator"), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -6022,7 +6017,7 @@ function App() {
     }, "Net h"), /*#__PURE__*/React.createElement("th", {
       style: {
         textAlign: "right",
-        color: C.amber
+        color: COLORS.amber
       }
     }, "Stop h"), /*#__PURE__*/React.createElement("th", {
       style: {
@@ -6035,7 +6030,7 @@ function App() {
     }, "G M/h"), /*#__PURE__*/React.createElement("th", {
       style: {
         textAlign: "right",
-        color: C.green
+        color: COLORS.green
       }
     }, "N M/h ★"))), /*#__PURE__*/React.createElement("tbody", null, activeQcPageRows.map((q, i) => /*#__PURE__*/React.createElement("tr", {
       key: i
@@ -6058,7 +6053,7 @@ function App() {
     }, q.nH.toFixed(1)), /*#__PURE__*/React.createElement("td", {
       className: "tr",
       style: {
-        color: C.amber,
+        color: COLORS.amber,
         fontWeight: 600
       }
     }, q.dH.toFixed(1)), /*#__PURE__*/React.createElement("td", {
@@ -6069,7 +6064,7 @@ function App() {
       className: "tr",
       style: {
         fontWeight: 700,
-        color: q.nmh >= kt ? C.green : C.amber
+        color: q.nmh >= kt ? COLORS.green : COLORS.amber
       }
     }, q.nmh.toFixed(1))))))), totalPages > 1 && /*#__PURE__*/React.createElement("div", {
       className: "pgr"
@@ -6091,7 +6086,7 @@ function App() {
     }, /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Total Events",
       val: delays.length,
-      ic: C.red,
+      ic: COLORS.red,
       icon: "⚠",
       dl: "events",
       dlt: "neg",
@@ -6100,7 +6095,7 @@ function App() {
       lbl: "Total Hours",
       val: kpi.tdHrs.toFixed(1),
       unit: "h",
-      ic: C.amber,
+      ic: COLORS.amber,
       icon: "⏱",
       dl: "total",
       dlt: "neg",
@@ -6108,7 +6103,7 @@ function App() {
     }), /*#__PURE__*/React.createElement(KpiCard, {
       lbl: "Terminal %",
       val: `${kpi.tcPct}%`,
-      ic: C.purple,
+      ic: COLORS.purple,
       icon: "⚡",
       dl: "of all delays",
       dlt: "pos",
@@ -6117,7 +6112,7 @@ function App() {
       lbl: "Avg/Vessel",
       val: kpi.avgDly.toFixed(1),
       unit: "h",
-      ic: C.green,
+      ic: COLORS.green,
       icon: "📉",
       dl: "per vessel",
       dlt: "pos",
@@ -6139,7 +6134,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.red
+        background: COLORS.red
       }
     }), "Delay Summary by Vessel"), /*#__PURE__*/React.createElement("span", {
       style: {
@@ -6188,7 +6183,7 @@ function App() {
       className: "tr"
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        color: r.critical > 0 ? C.red : C.amber,
+        color: r.critical > 0 ? COLORS.red : COLORS.amber,
         fontWeight: r.critical > 0 ? 700 : 400
       }
     }, r.critical)), /*#__PURE__*/React.createElement("td", {
@@ -6196,22 +6191,22 @@ function App() {
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontWeight: 700,
-        color: r.total >= 2 ? C.red : C.amber
+        color: r.total >= 2 ? COLORS.red : COLORS.amber
       }
     }, r.total.toFixed(1))), /*#__PURE__*/React.createElement("td", {
       className: "tr",
       style: {
-        color: C.red
+        color: COLORS.red
       }
     }, r.terminal.toFixed(1)), /*#__PURE__*/React.createElement("td", {
       className: "tr",
       style: {
-        color: C.amber
+        color: COLORS.amber
       }
     }, r.nonTerminal.toFixed(1)), /*#__PURE__*/React.createElement("td", {
       className: "tr",
       style: {
-        color: C.purple
+        color: COLORS.purple
       }
     }, r.force.toFixed(1)))))))), /*#__PURE__*/React.createElement("div", {
       className: "gcol",
@@ -6228,7 +6223,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.amber
+        background: COLORS.amber
       }
     }), "Breakdown by Type")), /*#__PURE__*/React.createElement("div", {
       className: "cb",
@@ -6261,7 +6256,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "cdot",
       style: {
-        background: C.purple
+        background: COLORS.purple
       }
     }), "Top Delay Reasons")), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -6310,7 +6305,7 @@ function App() {
         style: {
           fontSize: 10.5,
           fontWeight: 700,
-          color: h >= 1 ? C.red : C.amber,
+          color: h >= 1 ? COLORS.red : COLORS.amber,
           flexShrink: 0,
           marginLeft: 6
         }
@@ -6324,7 +6319,7 @@ function App() {
         style: {
           height: '100%',
           width: pct + '%',
-          background: h >= 1 ? C.red : C.amber,
+          background: h >= 1 ? COLORS.red : COLORS.amber,
           borderRadius: 2,
           transition: 'width .3s'
         }
@@ -6482,23 +6477,23 @@ function App() {
   }, [{
     lbl: "API Status",
     val: dbStatus === "healthy" ? "Healthy" : "CSV Fallback",
-    ic: dbStatus === "healthy" ? C.green : C.amber,
+    ic: dbStatus === "healthy" ? COLORS.green : COLORS.amber,
     icon: "✓"
   }, {
     lbl: "Total Records",
     val: `${vessels.length} vessels · ${qcData.length} QC`,
-    ic: C.blue,
+    ic: COLORS.blue,
     icon: "🗄"
   }, {
     lbl: "Report Date",
     val: reportDate || "—",
-    ic: C.cyan,
+    ic: COLORS.cyan,
     icon: "⏱"
   }, {
     lbl: "KPI Target",
     val: kt,
     unit: "M/h",
-    ic: C.purple,
+    ic: COLORS.purple,
     icon: "🎯"
   }].map(k => /*#__PURE__*/React.createElement("div", {
     key: k.lbl,
@@ -6540,7 +6535,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.green
+      background: COLORS.green
     }
   }), "System Status"), /*#__PURE__*/React.createElement("span", {
     className: "bx bg_"
@@ -6549,7 +6544,7 @@ function App() {
     style: {
       padding: "4px 12px"
     }
-  }, [["API Status", dbStatus === "healthy" ? "Healthy" : "CSV Fallback", dbStatus === "healthy" ? C.green : C.amber], ["Version", metaVer, "var(--t1)"], ["Database", dbStatus === "healthy" ? "SQLite connected" : "CSV fallback", dbStatus === "healthy" ? C.green : C.amber], ["KPI Target", `${kt} moves/h`, C.blue], ["Input Dir", "./data_input/", "var(--t2)"], ["Output Dir", "./outputs/", "var(--t2)"], ["Report Date", reportDate || "—", "var(--t2)"], ["Vessels", `${vessels.length} loaded`, "var(--t2)"], ["QC Records", `${qcData.length} loaded`, "var(--t2)"], ["Delay Events", `${delays.length} loaded`, delays.length > 0 ? C.amber : "var(--t2)"]].map(([k, v, c]) => /*#__PURE__*/React.createElement("div", {
+  }, [["API Status", dbStatus === "healthy" ? "Healthy" : "CSV Fallback", dbStatus === "healthy" ? COLORS.green : COLORS.amber], ["Version", metaVer, "var(--t1)"], ["Database", dbStatus === "healthy" ? "SQLite connected" : "CSV fallback", dbStatus === "healthy" ? COLORS.green : COLORS.amber], ["KPI Target", `${kt} moves/h`, COLORS.blue], ["Input Dir", "./data_input/", "var(--t2)"], ["Output Dir", "./outputs/", "var(--t2)"], ["Report Date", reportDate || "—", "var(--t2)"], ["Vessels", `${vessels.length} loaded`, "var(--t2)"], ["QC Records", `${qcData.length} loaded`, "var(--t2)"], ["Delay Events", `${delays.length} loaded`, delays.length > 0 ? COLORS.amber : "var(--t2)"]].map(([k, v, c]) => /*#__PURE__*/React.createElement("div", {
     key: k,
     className: "ms"
   }, /*#__PURE__*/React.createElement("div", {
@@ -6570,7 +6565,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "cdot",
     style: {
-      background: C.blue
+      background: COLORS.blue
     }
   }), "REST API Endpoints")), /*#__PURE__*/React.createElement("div", {
     className: "cb",
@@ -6593,14 +6588,14 @@ function App() {
       padding: "1px 5px",
       borderRadius: 3,
       background: "rgba(16,185,129,.12)",
-      color: C.green,
+      color: COLORS.green,
       fontFamily: "var(--mono)"
     }
   }, m), /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 10,
-      color: C.cyan
+      color: COLORS.cyan
     }
   }, ep)), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -6694,10 +6689,10 @@ function App() {
     className: "fl-lv",
     style: {
       color: {
-        INFO: C.blue,
-        WARN: C.amber,
-        ERROR: C.red,
-        SUCCESS: C.green
+        INFO: COLORS.blue,
+        WARN: COLORS.amber,
+        ERROR: COLORS.red,
+        SUCCESS: COLORS.green
       }[l.lv] || "var(--t3)"
     }
   }, "[", l.lv, "]"), /*#__PURE__*/React.createElement("span", {
