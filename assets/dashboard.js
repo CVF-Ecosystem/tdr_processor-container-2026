@@ -1371,6 +1371,95 @@ function MarketTrendChart({
     ref: ref
   });
 }
+function ForecastTrendChart({
+  data,
+  theme = "dark"
+}) {
+  const ref = useRef(null);
+  const ch = useRef(null);
+  useEffect(() => {
+    if (!ref.current || !data?.length) return;
+    ch.current?.destroy();
+    const isLight = theme === "light";
+    const tickColor = isLight ? "#64748B" : "#94A3B8";
+    const gridColor = isLight ? "rgba(226, 232, 240, 0.8)" : "rgba(20,36,56,.9)";
+    ch.current = new Chart(ref.current.getContext("2d"), {
+      data: {
+        labels: data.map(d => d.period),
+        datasets: [{
+          type: "bar",
+          label: "Import",
+          data: data.map(d => d.import),
+          backgroundColor: C.blue + "CC",
+          borderRadius: 4,
+          stack: "flow"
+        }, {
+          type: "bar",
+          label: "Export",
+          data: data.map(d => d.export),
+          backgroundColor: C.green + "CC",
+          borderRadius: 4,
+          stack: "flow"
+        }, {
+          type: "line",
+          label: "Total",
+          data: data.map(d => d.total),
+          borderColor: C.amber,
+          backgroundColor: C.amber,
+          fill: false,
+          tension: 0.35,
+          pointRadius: 3,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              color: tickColor,
+              boxWidth: 10,
+              boxHeight: 10,
+              usePointStyle: true,
+              pointStyle: "circle"
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              color: tickColor,
+              font: {
+                size: 9
+              }
+            }
+          },
+          y: {
+            stacked: true,
+            grid: {
+              color: gridColor
+            },
+            ticks: {
+              color: tickColor,
+              font: {
+                size: 9
+              }
+            }
+          }
+        }
+      }
+    });
+    return () => ch.current?.destroy();
+  }, [data, theme]);
+  return /*#__PURE__*/React.createElement("canvas", {
+    ref: ref
+  });
+}
 function SizeMixBarChart({
   data,
   theme = "dark"
@@ -2541,11 +2630,63 @@ function BerthPlanPage({
   stats,
   sp
 }) {
+  const h = React.createElement;
+  const [period, setPeriod] = useState("day");
+  const [year, setYear] = useState("all");
+  const [sortKey, setSortKey] = useState("period");
+  const [sortDir, setSortDir] = useState("desc");
+  const years = useMemo(() => [...new Set(stats.dayRows.map(r => r.date.slice(0, 4)))].sort((a, b) => b.localeCompare(a)), [stats.dayRows]);
+  const dayRows = useMemo(() => stats.dayRows.map(r => ({
+    ...r,
+    period: r.date,
+    kind: "day"
+  })), [stats.dayRows]);
+  const monthRows = useMemo(() => stats.monthRows.map(r => ({
+    period: r.month,
+    vesselCount: r.vessels,
+    berthCount: null,
+    cranes: r.cranes,
+    conts: r.conts,
+    teus: null,
+    kind: "month"
+  })), [stats.monthRows]);
+  const rowsBase = period === "month" ? monthRows : dayRows;
+  const rowsByYear = year === "all" ? rowsBase : rowsBase.filter(r => r.period.startsWith(year));
+  const sortedRows = [...rowsByYear].sort((a, b) => {
+    const av = a[sortKey];
+    const bv = b[sortKey];
+    if (typeof av === "string" && typeof bv === "string") return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    return sortDir === "asc" ? (av || 0) - (bv || 0) : (bv || 0) - (av || 0);
+  }).slice(0, 18);
   const peak = stats.busiestDay;
-  const rowSignal = r => r.vesselCount >= 3 || r.cranes >= 8 ? "High Load" : "Watch";
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "kg k4"
-  }, /*#__PURE__*/React.createElement(KpiCard, {
+  const topRow = sortedRows[0] || peak;
+  const peakBerth = stats.berthRows[0];
+  const peakVessels = Math.max(1, ...sortedRows.map(r => r.vesselCount || 0));
+  const peakSlots = Math.max(1, ...sortedRows.map(r => r.cranes || 0));
+  const signalClass = r => period === "month" ? (r.vesselCount >= Math.max(3, Math.round(peakVessels * .7)) || r.cranes >= Math.max(8, Math.round(peakSlots * .7)) ? "br_" : "ba_") : (r.vesselCount >= 3 || r.cranes >= 8 ? "br_" : "ba_");
+  const sortBy = key => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+  const sortMark = key => sortKey === key ? sortDir === "asc" ? " ↑" : " ↓" : "";
+  const applyQuick = mode => {
+    if (mode === "newest") {
+      setSortKey("period");
+      setSortDir("desc");
+    } else if (mode === "peak") {
+      setSortKey("vesselCount");
+      setSortDir("desc");
+    } else if (mode === "slots") {
+      setSortKey("cranes");
+      setSortDir("desc");
+    }
+  };
+  const quickMode = sortKey === "period" && sortDir === "desc" ? "newest" : sortKey === "vesselCount" && sortDir === "desc" ? "peak" : sortKey === "cranes" && sortDir === "desc" ? "slots" : "custom";
+  const tableHeaders = period === "month" ? ["Period", "Load", "Vessels", "Gang Slots", "Conts", "Signal"] : ["Date", "Load", "Vessels", "Berths", "Gang Slots", "Conts", "TEUs", "Signal"];
+  const mainTitle = period === "month" ? "Peak Berth Workload by Month" : "Peak Berth Workload Calendar";
+  const summaryCards = [h(KpiCard, {
     lbl: "Peak Day Vessels",
     val: peak?.vesselCount || 0,
     ic: C.blue,
@@ -2553,15 +2694,15 @@ function BerthPlanPage({
     dl: peak?.date || "no data",
     dlt: "neu",
     spark: stats.dayRows.slice(0, 8).map(r => r.vesselCount)
-  }), /*#__PURE__*/React.createElement(KpiCard, {
-    lbl: "Peak QC Demand",
+  }), h(KpiCard, {
+    lbl: "Peak Gang Slots",
     val: stats.peakCranes,
     ic: C.cyan,
     icon: "🏗️",
-    dl: "estimated crane slots",
+    dl: "slot demand, not physical QC count",
     dlt: "neu",
     spark: stats.dayRows.slice(0, 8).map(r => r.cranes)
-  }), /*#__PURE__*/React.createElement(KpiCard, {
+  }), h(KpiCard, {
     lbl: "Avg Daily Vessels",
     val: stats.avgDailyVessels.toFixed(1),
     ic: C.green,
@@ -2569,7 +2710,7 @@ function BerthPlanPage({
     dl: "ATB-ATD overlap",
     dlt: "pos",
     spark: sp.v
-  }), /*#__PURE__*/React.createElement(KpiCard, {
+  }), h(KpiCard, {
     lbl: "Operating Months",
     val: stats.monthRows.length,
     ic: C.amber,
@@ -2577,93 +2718,257 @@ function BerthPlanPage({
     dl: `${stats.dayRows.length} days`,
     dlt: "neu",
     spark: sp.t
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "g32",
+  })];
+  const periodTabs = [["day", "Day"], ["month", "Month"]].map(([key, label]) => h("div", {
+    key,
+    className: `tab${period === key ? " ac" : ""}`,
+    onClick: () => setPeriod(key)
+  }, label));
+  const quickTabs = [["newest", "Newest"], ["peak", "Peak"], ["slots", "Slots"]].map(([key, label]) => h("div", {
+    key,
+    className: `tab${quickMode === key ? " ac" : ""}`,
+    onClick: () => applyQuick(key)
+  }, label));
+  const renderRow = r => {
+    const loadCell = h("td", null, h("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, h(LoadBar, {
+      value: r.vesselCount,
+      max: peakVessels,
+      color: r.vesselCount >= 3 ? C.red : C.amber
+    }), h("span", {
+      style: {
+        fontSize: 10,
+        color: "var(--t3)"
+      }
+    }, `${Math.round(r.vesselCount / peakVessels * 100)}%`)));
+    return period === "month" ? h("tr", {
+      key: r.period
+    }, h("td", {
+      className: "tm tb"
+    }, r.period), loadCell, h("td", {
+      className: "tr tb"
+    }, r.vesselCount), h("td", {
+      className: "tr",
+      style: {
+        color: C.cyan,
+        fontWeight: 700
+      }
+    }, r.cranes), h("td", {
+      className: "tr"
+    }, r.conts.toLocaleString()), h("td", null, h("span", {
+      className: `bx ${signalClass(r)}`
+    }, signalClass(r) === "br_" ? "High Load" : "Watch"))) : h("tr", {
+      key: r.period
+    }, h("td", {
+      className: "tm tb"
+    }, r.period), loadCell, h("td", {
+      className: "tr tb"
+    }, r.vesselCount), h("td", {
+      className: "tr"
+    }, r.berthCount), h("td", {
+      className: "tr",
+      style: {
+        color: C.cyan,
+        fontWeight: 700
+      }
+    }, r.cranes), h("td", {
+      className: "tr"
+    }, r.conts.toLocaleString()), h("td", {
+      className: "tr"
+    }, r.teus.toLocaleString()), h("td", null, h("span", {
+      className: `bx ${signalClass(r)}`
+    }, signalClass(r) === "br_" ? "High Load" : "Watch")));
+  };
+  const filterBar = h("div", {
     style: {
-      flex: 1
+      padding: "8px 12px",
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 8,
+      borderBottom: "1px solid var(--br)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, h("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap"
+    }
+  }, h("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 600,
+      letterSpacing: .8,
+      textTransform: "uppercase",
+      color: "var(--t4)"
+    }
+  }, "Period"), h("div", {
+    className: "tabs"
+  }, periodTabs)), h("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap"
+    }
+  }, h("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 600,
+      letterSpacing: .8,
+      textTransform: "uppercase",
+      color: "var(--t4)"
+    }
+  }, "Year"), h("select", {
+    value: year,
+    onChange: e => setYear(e.target.value),
+    style: {
+      minWidth: 92,
+      height: 24,
+      padding: "0 8px",
+      borderRadius: 6,
+      border: "1px solid var(--br2)",
+      background: "var(--bg3)",
+      color: "var(--t1)",
+      fontSize: 10.5,
+      outline: "none",
+      fontFamily: "inherit"
+    }
+  }, h("option", {
+    value: "all"
+  }, "All years"), years.map(y => h("option", {
+    key: y,
+    value: y
+  }, y))), h("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap"
+    }
+  }, h("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 600,
+      letterSpacing: .8,
+      textTransform: "uppercase",
+      color: "var(--t4)"
+    }
+  }, "Quick"), h("div", {
+    className: "tabs"
+  }, quickTabs))));
+  const summaryGrid = h("div", {
+    style: {
+      padding: "10px 12px 8px",
+      display: "grid",
+      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+      gap: 8,
+      borderBottom: "1px solid var(--br)"
+    }
+  }, [[period === "month" ? "Busiest period" : "Busiest date", topRow?.period || "—", C.blue], ["Main pressure berth", peakBerth?.berth || "—", C.cyan], ["Gang-slot demand", `${stats.peakCranes} slots · base 7 QCs`, C.amber]].map(([label, val, color]) => h("div", {
+    key: label,
+    style: {
+      background: "var(--bg3)",
+      border: "1px solid var(--br2)",
+      borderRadius: 7,
+      padding: "8px 10px"
+    }
+  }, h("div", {
+    style: {
+      fontSize: 9,
+      color: "var(--t4)",
+      textTransform: "uppercase",
+      letterSpacing: .6,
+      marginBottom: 4
+    }
+  }, label), h("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color
+    }
+  }, val))));
+  const tableView = h("div", {
+    className: "tw"
+  }, h("table", null, h("thead", null, h("tr", null, tableHeaders.map((label, i) => h("th", {
+    key: label,
+    onClick: i === 0 ? () => sortBy("period") : undefined,
+    style: {
+      cursor: i === 0 ? "pointer" : "default",
+      userSelect: "none",
+      ...i > 1 && (period === "month" ? i < 5 : i < 7) ? {
+        textAlign: "right"
+      } : {}
+    }
+  }, label + (i === 0 ? sortMark("period") : "")))), h("tbody", null, sortedRows.map(renderRow)))));
+  const tableCard = h("div", {
     className: "card",
     style: {
       flex: 1
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, h("div", {
     className: "ch"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, h("div", {
     className: "ct"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, h("div", {
     className: "cdot",
     style: {
       background: C.blue
     }
-  }), "Peak Vessel Overlap by Day"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9.5,
-      color: "var(--t3)"
-    }
-  }, "top ", Math.min(18, stats.dayRows.length), " days")), /*#__PURE__*/React.createElement("div", {
-    className: "tw"
-  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ["Date", "Vessels", "Berths", "QC", "Conts", "TEUs", "Signal"].map((h, i) => /*#__PURE__*/React.createElement("th", {
-    key: h,
-    style: i > 0 && i < 6 ? {
-      textAlign: "right"
-    } : {}
-  }, h)))), /*#__PURE__*/React.createElement("tbody", null, stats.dayRows.slice(0, 18).map(r => /*#__PURE__*/React.createElement("tr", {
-    key: r.date
-  }, /*#__PURE__*/React.createElement("td", {
-    className: "tm tb"
-  }, r.date), /*#__PURE__*/React.createElement("td", {
-    className: "tr tb"
-  }, r.vesselCount), /*#__PURE__*/React.createElement("td", {
-    className: "tr"
-  }, r.berthCount), /*#__PURE__*/React.createElement("td", {
-    className: "tr",
-    style: {
-      color: C.cyan,
-      fontWeight: 700
-    }
-  }, r.cranes), /*#__PURE__*/React.createElement("td", {
-    className: "tr"
-  }, r.conts.toLocaleString()), /*#__PURE__*/React.createElement("td", {
-    className: "tr"
-  }, r.teus.toLocaleString()), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-    className: `bx ${rowSignal(r) === "High Load" ? "br_" : "ba_"}`
-  }, rowSignal(r)))))))), /*#__PURE__*/React.createElement("div", {
-    className: "gcol"
-  }, [["Busiest Weekdays", stats.weekdayRows.slice(0, 7), "label", C.green], ["Peak Months", stats.monthRows.slice(0, 6), "month", C.amber], ["Berth Load Share", stats.berthRows.slice(0, 6), "berth", C.cyan]].map(([title, rows, labelKey, color]) => /*#__PURE__*/React.createElement("div", {
+  }), mainTitle), h("span", {
+    className: "bx bb_"
+  }, "top ", sortedRows.length, " rows")), filterBar, summaryGrid, tableView);
+  const sideCards = [["Busiest Weekdays", stats.weekdayRows.slice(0, 7), "label", C.green], ["Peak Months", stats.monthRows.slice(0, 6), "month", C.amber], ["Berth Load Share", stats.berthRows.slice(0, 6), "berth", C.cyan]].map(([title, rows, labelKey, color]) => h("div", {
     key: title,
     className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, h("div", {
     className: "ch"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, h("div", {
     className: "ct"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, h("div", {
     className: "cdot",
     style: {
       background: color
     }
-  }), title)), /*#__PURE__*/React.createElement("div", {
+  }), title)), h("div", {
     className: "cb",
     style: {
       padding: "6px 12px"
     }
-  }, rows.map(r => /*#__PURE__*/React.createElement("div", {
+  }, rows.map(r => h("div", {
     key: r[labelKey],
     className: "ms"
-  }, /*#__PURE__*/React.createElement("span", {
+  }, h("span", {
     className: "ms-l"
-  }, r[labelKey]), /*#__PURE__*/React.createElement("span", {
+  }, r[labelKey]), h("span", {
     className: "ms-v",
     style: {
       color
     }
-  }, labelKey === "berth" ? `${r.vessels} calls · ${r.avgCranes.toFixed(1)} QC` : labelKey === "month" ? `${r.vessels} vessels · ${r.cranes} QC` : `${r.vessels} calls`))))))))));
+  }, labelKey === "berth" ? `${r.vessels} calls · ${r.avgCranes.toFixed(1)} slots` : labelKey === "month" ? `${r.vessels} vessels · ${r.cranes} slots` : `${r.vessels} calls`))))));
+  return h(React.Fragment, null, h("div", {
+    className: "kg k4"
+  }, ...summaryCards), h("div", {
+    className: "g32",
+    style: {
+      flex: 1
+    }
+  }, tableCard, h("div", {
+    className: "gcol"
+  }, ...sideCards)));
 }
 function CargoForecastPage({
   stats,
   mode,
   setMode,
-  sp
+  sp,
+  theme
 }) {
   const rows = mode === "Monthly" ? stats.monthly : mode === "Quarterly" ? stats.quarterly : stats.yearly;
   const latest = stats.latest || {
@@ -2673,6 +2978,7 @@ function CargoForecastPage({
     period: "no data"
   };
   const fmtPct = v => v == null ? "n/a" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+  const chartRows = rows.slice(-12);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "kg k4"
   }, /*#__PURE__*/React.createElement(KpiCard, {
@@ -2708,9 +3014,19 @@ function CargoForecastPage({
     dlt: "neu",
     spark: stats.monthly.slice(-8).map(r => r.total)
   })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 1.55fr) minmax(340px, .75fr)",
+      gap: 8,
+      flex: 1,
+      minHeight: 0,
+      alignItems: "start"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
-      flex: 1
+      minHeight: 0,
+      overflow: "hidden"
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "ch"
@@ -2760,7 +3076,130 @@ function CargoForecastPage({
     style: {
       color: r.balance >= 0 ? C.green : C.amber
     }
-  }, r.balance.toLocaleString()))))))));
+  }, r.balance.toLocaleString()))))))), /*#__PURE__*/React.createElement("div", {
+    className: "gcol",
+    style: {
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      borderColor: "rgba(16,185,129,.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cdot",
+    style: {
+      background: C.green
+    }
+  }), "Market Signal")), /*#__PURE__*/React.createElement("div", {
+    className: "cb",
+    style: {
+      gap: 8
+    }
+  }, [["Latest period", latest.period, C.blue], ["Import volume", latest.import.toLocaleString(), C.cyan], ["Export volume", latest.export.toLocaleString(), C.green], ["Trade balance", (latest.export - latest.import).toLocaleString(), latest.export >= latest.import ? C.green : C.amber], ["Next forecast", stats.forecastNext.toLocaleString(), C.amber]].map(([k, v, color]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    className: "ms"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "ms-l"
+  }, k), /*#__PURE__*/React.createElement("span", {
+    className: "ms-v",
+    style: {
+      color
+    }
+  }, v))))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      borderColor: "rgba(59,130,246,.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cdot",
+    style: {
+      background: C.blue
+    }
+  }), "Trend Outlook"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      color: "var(--t3)"
+    }
+  }, chartRows.length, " periods")), /*#__PURE__*/React.createElement("div", {
+    className: "cb",
+    style: {
+      height: 220
+    }
+  }, /*#__PURE__*/React.createElement(ForecastTrendChart, {
+    data: chartRows,
+    theme: theme
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cdot",
+    style: {
+      background: C.cyan
+    }
+  }), "Latest Cargo Split")), /*#__PURE__*/React.createElement("div", {
+    className: "cb",
+    style: {
+      gap: 12
+    }
+  }, [["Import", latest.import, C.cyan], ["Export", latest.export, C.green]].map(([label, value, color]) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      display: "grid",
+      gridTemplateColumns: "58px 1fr 52px",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "ms-l"
+  }, label), /*#__PURE__*/React.createElement(LoadBar, {
+    value,
+    max: latest.total || 1,
+    color
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "ms-v",
+    style: {
+      color,
+      fontSize: 11
+    }
+  }, `${Math.round(value / (latest.total || 1) * 100)}%`))))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cdot",
+    style: {
+      background: C.amber
+    }
+  }), "Period Coverage")), /*#__PURE__*/React.createElement("div", {
+    className: "cb",
+    style: {
+      padding: "6px 12px"
+    }
+  }, [["Monthly", stats.monthly.length, C.blue], ["Quarterly", stats.quarterly.length, C.green], ["Yearly", stats.yearly.length, C.amber]].map(([label, value, color]) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    className: "ms"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "ms-l"
+  }, label), /*#__PURE__*/React.createElement("span", {
+    className: "ms-v",
+    style: {
+      color
+    }
+  }, value, " periods"))))))));
 }
 
 /* ═══════════ App ═══════════════════════════════════════════════════════════ */
@@ -3520,7 +3959,7 @@ function App() {
       case "operators":
         return `${filteredQcOp.length} records · ${activeCranesCount} cranes · Adjusted Net M/h`;
       case "berthplan":
-        return `${berthPlanStats.dayRows.length} operating days · peak ${berthPlanStats.busiestDay?.vesselCount || 0} vessels/day · ${berthPlanStats.peakCranes} QC required`;
+        return `${berthPlanStats.dayRows.length} operating days · peak ${berthPlanStats.busiestDay?.vesselCount || 0} vessels/day · ${berthPlanStats.peakCranes} gang slots required`;
       case "forecast":
         return `${cargoForecastStats.monthly.length} months · next forecast ${cargoForecastStats.forecastNext.toLocaleString()} conts`;
       case "delays":
@@ -4913,7 +5352,8 @@ function App() {
     stats: cargoForecastStats,
     mode: forecastMode,
     setMode: setForecastMode,
-    sp: sp
+    sp: sp,
+    theme: theme
   }), nav === "cranes" && (() => {
     const craneIds = ["ALL", ...Array.from(new Set(qcData.map(q => q.qc))).sort()];
     const qcPerPage = 12;
