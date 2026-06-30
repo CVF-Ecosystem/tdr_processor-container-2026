@@ -2013,6 +2013,14 @@ const NAV = [{
   icon: "📦",
   lbl: "Container Analysis"
 }, {
+  id: "berthplan",
+  icon: "📅",
+  lbl: "Berth Planning"
+}, {
+  id: "forecast",
+  icon: "📊",
+  lbl: "Cargo Forecast"
+}, {
   id: "cranes",
   icon: "🏗️",
   lbl: "QC Productivity"
@@ -2035,6 +2043,8 @@ const PT = {
   vessels: "Vessel Performance",
   market: "Market Trend & Cargo Analysis",
   containers: "Container Status & Size Mix",
+  berthplan: "Berth Planning & Crane Allocation",
+  forecast: "Cargo Market Forecast",
   cranes: "QC Productivity Analysis",
   operators: "QC Operator Productivity",
   delays: "Delay & Downtime Analysis",
@@ -2527,6 +2537,231 @@ function MobilePages({
     }]
   })));
 }
+function BerthPlanPage({
+  stats,
+  sp
+}) {
+  const peak = stats.busiestDay;
+  const rowSignal = r => r.vesselCount >= 3 || r.cranes >= 8 ? "High Load" : "Watch";
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "kg k4"
+  }, /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Peak Day Vessels",
+    val: peak?.vesselCount || 0,
+    ic: C.blue,
+    icon: "📅",
+    dl: peak?.date || "no data",
+    dlt: "neu",
+    spark: stats.dayRows.slice(0, 8).map(r => r.vesselCount)
+  }), /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Peak QC Demand",
+    val: stats.peakCranes,
+    ic: C.cyan,
+    icon: "🏗️",
+    dl: "estimated crane slots",
+    dlt: "neu",
+    spark: stats.dayRows.slice(0, 8).map(r => r.cranes)
+  }), /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Avg Daily Vessels",
+    val: stats.avgDailyVessels.toFixed(1),
+    ic: C.green,
+    icon: "⚓",
+    dl: "ATB-ATD overlap",
+    dlt: "pos",
+    spark: sp.v
+  }), /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Operating Months",
+    val: stats.monthRows.length,
+    ic: C.amber,
+    icon: "📊",
+    dl: `${stats.dayRows.length} days`,
+    dlt: "neu",
+    spark: sp.t
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "g32",
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cdot",
+    style: {
+      background: C.blue
+    }
+  }), "Peak Vessel Overlap by Day"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      color: "var(--t3)"
+    }
+  }, "top ", Math.min(18, stats.dayRows.length), " days")), /*#__PURE__*/React.createElement("div", {
+    className: "tw"
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ["Date", "Vessels", "Berths", "QC", "Conts", "TEUs", "Signal"].map((h, i) => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: i > 0 && i < 6 ? {
+      textAlign: "right"
+    } : {}
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, stats.dayRows.slice(0, 18).map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.date
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "tm tb"
+  }, r.date), /*#__PURE__*/React.createElement("td", {
+    className: "tr tb"
+  }, r.vesselCount), /*#__PURE__*/React.createElement("td", {
+    className: "tr"
+  }, r.berthCount), /*#__PURE__*/React.createElement("td", {
+    className: "tr",
+    style: {
+      color: C.cyan,
+      fontWeight: 700
+    }
+  }, r.cranes), /*#__PURE__*/React.createElement("td", {
+    className: "tr"
+  }, r.conts.toLocaleString()), /*#__PURE__*/React.createElement("td", {
+    className: "tr"
+  }, r.teus.toLocaleString()), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    className: `bx ${rowSignal(r) === "High Load" ? "br_" : "ba_"}`
+  }, rowSignal(r)))))))), /*#__PURE__*/React.createElement("div", {
+    className: "gcol"
+  }, [["Busiest Weekdays", stats.weekdayRows.slice(0, 7), "label", C.green], ["Peak Months", stats.monthRows.slice(0, 6), "month", C.amber], ["Berth Load Share", stats.berthRows.slice(0, 6), "berth", C.cyan]].map(([title, rows, labelKey, color]) => /*#__PURE__*/React.createElement("div", {
+    key: title,
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cdot",
+    style: {
+      background: color
+    }
+  }), title)), /*#__PURE__*/React.createElement("div", {
+    className: "cb",
+    style: {
+      padding: "6px 12px"
+    }
+  }, rows.map(r => /*#__PURE__*/React.createElement("div", {
+    key: r[labelKey],
+    className: "ms"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "ms-l"
+  }, r[labelKey]), /*#__PURE__*/React.createElement("span", {
+    className: "ms-v",
+    style: {
+      color
+    }
+  }, labelKey === "berth" ? `${r.vessels} calls · ${r.avgCranes.toFixed(1)} QC` : labelKey === "month" ? `${r.vessels} vessels · ${r.cranes} QC` : `${r.vessels} calls`))))))))));
+}
+function CargoForecastPage({
+  stats,
+  mode,
+  setMode,
+  sp
+}) {
+  const rows = mode === "Monthly" ? stats.monthly : mode === "Quarterly" ? stats.quarterly : stats.yearly;
+  const latest = stats.latest || {
+    import: 0,
+    export: 0,
+    total: 0,
+    period: "no data"
+  };
+  const fmtPct = v => v == null ? "n/a" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "kg k4"
+  }, /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Latest Month Total",
+    val: latest.total.toLocaleString(),
+    ic: C.blue,
+    icon: "📦",
+    dl: latest.period,
+    dlt: "neu",
+    spark: stats.monthly.slice(-8).map(r => r.total)
+  }), /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Import Ratio",
+    val: `${Math.round(latest.import / (latest.total || 1) * 100)}%`,
+    ic: C.cyan,
+    icon: "↓",
+    dl: "discharge",
+    dlt: "neu",
+    spark: sp.t
+  }), /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Export Ratio",
+    val: `${Math.round(latest.export / (latest.total || 1) * 100)}%`,
+    ic: C.green,
+    icon: "↑",
+    dl: "loading",
+    dlt: "pos",
+    spark: sp.t
+  }), /*#__PURE__*/React.createElement(KpiCard, {
+    lbl: "Next Forecast",
+    val: stats.forecastNext.toLocaleString(),
+    ic: C.amber,
+    icon: "📈",
+    dl: "3-month avg",
+    dlt: "neu",
+    spark: stats.monthly.slice(-8).map(r => r.total)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ch"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cdot",
+    style: {
+      background: C.blue
+    }
+  }), "Import / Export Movement"), /*#__PURE__*/React.createElement("div", {
+    className: "tabs"
+  }, ["Monthly", "Quarterly", "Yearly"].map(t => /*#__PURE__*/React.createElement("div", {
+    key: t,
+    className: `tab${mode === t ? " ac" : ""}`,
+    onClick: () => setMode(t)
+  }, t)))), /*#__PURE__*/React.createElement("div", {
+    className: "tw"
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ["Period", "Import", "Export", "Total", "Prev %", "Balance"].map((h, i) => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: i ? {
+      textAlign: "right"
+    } : {}
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, rows.slice().reverse().slice(0, 24).map(r => /*#__PURE__*/React.createElement("tr", {
+    key: r.period
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "tm tb"
+  }, r.period), /*#__PURE__*/React.createElement("td", {
+    className: "tr",
+    style: {
+      color: C.blue
+    }
+  }, r.import.toLocaleString()), /*#__PURE__*/React.createElement("td", {
+    className: "tr",
+    style: {
+      color: C.green
+    }
+  }, r.export.toLocaleString()), /*#__PURE__*/React.createElement("td", {
+    className: "tr tb"
+  }, r.total.toLocaleString()), /*#__PURE__*/React.createElement("td", {
+    className: "tr",
+    style: {
+      color: r.prevPct == null ? "var(--t4)" : r.prevPct >= 0 ? C.green : C.red
+    }
+  }, fmtPct(r.prevPct)), /*#__PURE__*/React.createElement("td", {
+    className: "tr",
+    style: {
+      color: r.balance >= 0 ? C.green : C.amber
+    }
+  }, r.balance.toLocaleString()))))))));
+}
 
 /* ═══════════ App ═══════════════════════════════════════════════════════════ */
 function App() {
@@ -2567,6 +2802,7 @@ function App() {
   const [fBerth, setFBerthState] = useState(() => getUrlParam("berth") || "");
   const [fVessel, setFVesselState] = useState(() => getUrlParam("vessel") || "");
   const [trendMode, setTrendMode] = useState("Weekly");
+  const [forecastMode, setForecastMode] = useState("Monthly");
   const setNav = v => {
     setNavState(v);
     setQcPg(0);
@@ -2928,6 +3164,139 @@ function App() {
       byVessel
     };
   }, [marketData]);
+  const berthPlanStats = useMemo(() => {
+    const days = {};
+    const months = {};
+    const weekdays = {};
+    const berths = {};
+    const parseDt = v => {
+      if (!v) return null;
+      const d = new Date(String(v).replace(" ", "T"));
+      return isNaN(d) ? null : d;
+    };
+    const dateKey = d => d.toISOString().slice(0, 10);
+    vessels.forEach(v => {
+      const start = parseDt(v.ata);
+      if (!start) return;
+      const atd = parseDt(v.atd);
+      const end = atd && atd >= start ? atd : new Date(start.getTime() + Math.max(v.portstay || 24, 6) * 3600000);
+      const vesselKey = `${v.name || "Unknown"}-${v.voyage || ""}`;
+      for (let cur = new Date(start); cur <= end; cur.setDate(cur.getDate() + 1)) {
+        const k = dateKey(cur);
+        if (!days[k]) days[k] = {
+          date: k,
+          vessels: new Set(),
+          berths: new Set(),
+          cranes: 0,
+          conts: 0,
+          teus: 0
+        };
+        if (!days[k].vessels.has(vesselKey)) {
+          days[k].vessels.add(vesselKey);
+          if (v.berth) days[k].berths.add(v.berth);
+          days[k].cranes += v.cranes || 0;
+          days[k].conts += v.conts || 0;
+          days[k].teus += v.teus || 0;
+        }
+      }
+      const mk = dateKey(start).slice(0, 7);
+      if (!months[mk]) months[mk] = {
+        month: mk,
+        vessels: 0,
+        cranes: 0,
+        conts: 0
+      };
+      months[mk].vessels += 1;
+      months[mk].cranes += v.cranes || 0;
+      months[mk].conts += v.conts || 0;
+      const wd = start.getDay();
+      weekdays[wd] = (weekdays[wd] || 0) + 1;
+      const b = v.berth || "Unknown";
+      if (!berths[b]) berths[b] = {
+        berth: b,
+        vessels: 0,
+        cranes: 0
+      };
+      berths[b].vessels += 1;
+      berths[b].cranes += v.cranes || 0;
+    });
+    const dayRows = Object.values(days).map(r => ({
+      date: r.date,
+      vesselCount: r.vessels.size,
+      berthCount: r.berths.size,
+      cranes: r.cranes,
+      conts: r.conts,
+      teus: r.teus
+    })).sort((a, b) => b.vesselCount - a.vesselCount || b.cranes - a.cranes || a.date.localeCompare(b.date));
+    const weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return {
+      dayRows,
+      busiestDay: dayRows[0] || null,
+      peakCranes: dayRows.reduce((m, r) => Math.max(m, r.cranes), 0),
+      avgDailyVessels: dayRows.length ? dayRows.reduce((s, r) => s + r.vesselCount, 0) / dayRows.length : 0,
+      monthRows: Object.values(months).sort((a, b) => b.vessels - a.vessels),
+      weekdayRows: weekdayNames.map((label, day) => ({
+        label,
+        day,
+        vessels: weekdays[day] || 0
+      })).sort((a, b) => b.vessels - a.vessels),
+      berthRows: Object.values(berths).map(r => ({
+        ...r,
+        avgCranes: r.vessels ? r.cranes / r.vessels : 0
+      })).sort((a, b) => b.vessels - a.vessels)
+    };
+  }, [vessels]);
+  const cargoForecastStats = useMemo(() => {
+    const buckets = {
+      month: {},
+      quarter: {},
+      year: {}
+    };
+    const ensure = (store, period) => store[period] || (store[period] = {
+      period,
+      import: 0,
+      export: 0,
+      total: 0,
+      balance: 0
+    });
+    marketData.forEach(m => {
+      const dt = m["Report Date"];
+      if (!dt || dt.length < 7) return;
+      const total = Number(m["Total Conts"] || 0);
+      const op = String(m.OperationType || "").toLowerCase();
+      const isImport = op.includes("discharge") || op.includes("import");
+      const isExport = op === "load" || op === "loading" || op.includes("export");
+      if (!isImport && !isExport) return;
+      const y = dt.slice(0, 4);
+      const mo = dt.slice(5, 7);
+      const q = `${y}-Q${Math.ceil(parseInt(mo, 10) / 3)}`;
+      [[buckets.month, `${y}-${mo}`], [buckets.quarter, q], [buckets.year, y]].forEach(([store, period]) => {
+        const r = ensure(store, period);
+        if (isImport) r.import += total;
+        if (isExport) r.export += total;
+        r.total += total;
+        r.balance = r.export - r.import;
+      });
+    });
+    const enrich = rows => rows.sort((a, b) => a.period.localeCompare(b.period)).map((r, i, arr) => {
+      const prev = arr[i - 1];
+      return {
+        ...r,
+        prevPct: prev && prev.total ? (r.total - prev.total) / prev.total * 100 : null
+      };
+    });
+    const monthly = enrich(Object.values(buckets.month));
+    const quarterly = enrich(Object.values(buckets.quarter));
+    const yearly = enrich(Object.values(buckets.year));
+    const latest = monthly[monthly.length - 1] || null;
+    return {
+      monthly,
+      quarterly,
+      yearly,
+      latest,
+      forecastNext: monthly.length >= 3 ? Math.round(monthly.slice(-3).reduce((s, r) => s + r.total, 0) / 3) : latest?.total || 0
+    };
+  }, [marketData]);
   const operators = apiData?.operators ?? [];
   const sp = apiData?.spark ?? SP0;
   const feedLines = apiData?.feed ?? [];
@@ -3150,6 +3519,10 @@ function App() {
         return `${filteredQc.length} records · ${qcTimeline.length} active cranes`;
       case "operators":
         return `${filteredQcOp.length} records · ${activeCranesCount} cranes · Adjusted Net M/h`;
+      case "berthplan":
+        return `${berthPlanStats.dayRows.length} operating days · peak ${berthPlanStats.busiestDay?.vesselCount || 0} vessels/day · ${berthPlanStats.peakCranes} QC required`;
+      case "forecast":
+        return `${cargoForecastStats.monthly.length} months · next forecast ${cargoForecastStats.forecastNext.toLocaleString()} conts`;
       case "delays":
         return `${delays.length} events · ${new Set(delays.map(d => d.vessel)).size} vessels · ${critCount} critical (≥1h)`;
       case "config":
@@ -3637,6 +4010,12 @@ function App() {
   }, "↓ Export"), nav === "delays" && /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(delays, "delay_details")
+  }, "↓ Export"), nav === "berthplan" && /*#__PURE__*/React.createElement("button", {
+    className: "btn bg",
+    onClick: () => exportToCSV(berthPlanStats.dayRows, "berth_planning_peak_days")
+  }, "↓ Export"), nav === "forecast" && /*#__PURE__*/React.createElement("button", {
+    className: "btn bg",
+    onClick: () => exportToCSV(cargoForecastStats.monthly, "cargo_forecast_monthly")
   }, "↓ Export"), nav === "config" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(vessels, "system_logs")
@@ -4527,7 +4906,15 @@ function App() {
       "45'": C.blue
     },
     label: "Size"
-  }))))), nav === "cranes" && (() => {
+  }))))), nav === "berthplan" && /*#__PURE__*/React.createElement(BerthPlanPage, {
+    stats: berthPlanStats,
+    sp: sp
+  }), nav === "forecast" && /*#__PURE__*/React.createElement(CargoForecastPage, {
+    stats: cargoForecastStats,
+    mode: forecastMode,
+    setMode: setForecastMode,
+    sp: sp
+  }), nav === "cranes" && (() => {
     const craneIds = ["ALL", ...Array.from(new Set(qcData.map(q => q.qc))).sort()];
     const qcPerPage = 12;
     const sortedQc = [...filteredQc].sort((a, b) => a.qc.localeCompare(b.qc) || (a.vessel || '').localeCompare(b.vessel || ''));
