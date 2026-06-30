@@ -27,6 +27,66 @@ const EMPTY_SPARKLINES = {
   de: [0, 0, 0, 0, 0, 0, 0, 0],
   dh: [0, 0, 0, 0, 0, 0, 0, 0]
 };
+const LANGS = {
+  en: {
+    nav_overview: "Operational Overview", nav_vessels: "Vessel Summary", nav_market: "Market Analysis",
+    nav_containers: "Container Analysis", nav_berthplan: "Berth Planning", nav_forecast: "Cargo Forecast",
+    nav_cranes: "QC Productivity", nav_operators: "QC Operator Productivity",
+    nav_delays: "Delay & Downtime", nav_config: "Config & Logs",
+    nav_sec_main: "MAIN", nav_sec_data: "DATA",
+    pt_overview: "Operational Overview", pt_vessels: "Vessel Performance",
+    pt_market: "Market Trend & Cargo Analysis", pt_containers: "Container Status & Size Mix",
+    pt_berthplan: "Berth Planning & Crane Allocation", pt_forecast: "Cargo Market Forecast",
+    pt_cranes: "QC Productivity Analysis", pt_operators: "QC Operator Productivity",
+    pt_delays: "Delay & Downtime Analysis", pt_config: "Configuration & System Logs",
+    filter_title: "FILTERS", filter_clear: "Clear", filter_date_range: "Date Range (ATB)",
+    filter_from: "From", filter_to: "To",
+    filter_operator: "Operator (Hãng tàu)", filter_berth: "Berth (Cầu bến)", filter_vessel: "Vessel (Tàu)",
+    filter_all_operators: "All Operators", filter_all_berths: "All Berths", filter_all_vessels: "All Vessels",
+    db_connected: "Connected", db_csv_fallback: "CSV Fallback",
+    feed_title: "System & Processing Feed",
+    status_completed: "Completed", status_berthed: "Berthed", status_anchored: "Anchored", status_departed: "Departed",
+    btn_export: "↓ Export", btn_export_logs: "↓ Export Logs", btn_refresh: "⚡ Refresh",
+    btn_process: "⚡ Process TDR Files", btn_below_kpi: "Below KPI", kpi_target: "Target KPI:",
+    th_vessel: "Vessel", th_voyage: "Voyage", th_operator: "Operator", th_berth: "Berth",
+    th_atb: "ATB", th_atd: "ATD", th_portstay: "Portstay h", th_net_wk: "Net Wk h",
+    th_cranes: "Cranes", th_vmph: "VMPH", th_gmph: "GMPH", th_nmph: "NMPH",
+    th_discharge: "Disch.", th_load: "Load", th_conts: "Conts", th_teus: "TEUs",
+    th_qc: "QC", th_stop: "Stop", th_code: "Code", th_from: "From", th_to_time: "To",
+    th_duration: "Dur h", th_type: "Type",
+    above_kpi: "above KPI", below_kpi: "below"
+  },
+  vi: {
+    nav_overview: "Tổng quan khai thác", nav_vessels: "Tóm tắt tàu", nav_market: "Phân tích thị trường",
+    nav_containers: "Phân tích Container", nav_berthplan: "Kế hoạch cầu tàu", nav_forecast: "Dự báo hàng hóa",
+    nav_cranes: "Năng suất cẩu", nav_operators: "Năng suất vận hành cẩu",
+    nav_delays: "Delay & Dừng máy", nav_config: "Cấu hình & Nhật ký",
+    nav_sec_main: "CHÍNH", nav_sec_data: "DỮ LIỆU",
+    pt_overview: "Tổng quan khai thác", pt_vessels: "Hiệu suất tàu",
+    pt_market: "Xu hướng thị trường & Phân tích hàng hóa", pt_containers: "Trạng thái & Mix kích cỡ Container",
+    pt_berthplan: "Kế hoạch cầu tàu & Phân bổ cẩu", pt_forecast: "Dự báo thị trường hàng hóa",
+    pt_cranes: "Phân tích năng suất cẩu", pt_operators: "Năng suất vận hành cẩu",
+    pt_delays: "Phân tích Delay & Dừng máy", pt_config: "Cấu hình & Nhật ký hệ thống",
+    filter_title: "BỘ LỌC", filter_clear: "Xoá", filter_date_range: "Khoảng ngày (ATB)",
+    filter_from: "Từ", filter_to: "Đến",
+    filter_operator: "Hãng tàu", filter_berth: "Cầu bến", filter_vessel: "Tàu",
+    filter_all_operators: "Tất cả hãng tàu", filter_all_berths: "Tất cả cầu bến", filter_all_vessels: "Tất cả tàu",
+    db_connected: "Đã kết nối", db_csv_fallback: "Dự phòng CSV",
+    feed_title: "Feed hệ thống & xử lý",
+    status_completed: "Hoàn thành", status_berthed: "Đang làm hàng", status_anchored: "Đang neo đợi", status_departed: "Đã rời cầu",
+    btn_export: "↓ Xuất", btn_export_logs: "↓ Xuất nhật ký", btn_refresh: "⚡ Làm mới",
+    btn_process: "⚡ Xử lý file TDR", btn_below_kpi: "Dưới KPI", kpi_target: "KPI mục tiêu:",
+    th_vessel: "Tàu", th_voyage: "Chuyến", th_operator: "Hãng tàu", th_berth: "Cầu",
+    th_atb: "ATB", th_atd: "ATD", th_portstay: "Portstay g", th_net_wk: "Net Wk g",
+    th_cranes: "Cẩu", th_vmph: "VMPH", th_gmph: "GMPH", th_nmph: "NMPH",
+    th_discharge: "Dỡ hàng", th_load: "Xếp hàng", th_conts: "Công", th_teus: "TEUs",
+    th_qc: "Cẩu", th_stop: "Dừng", th_code: "Mã", th_from: "Từ", th_to_time: "Đến",
+    th_duration: "T.gian g", th_type: "Loại",
+    above_kpi: "đạt KPI", below_kpi: "dưới KPI"
+  }
+};
+const LangCtx = React.createContext({t: k => k, lang: 'en', setLang: () => {}});
+function useLang() { return React.useContext(LangCtx); }
 function SparkLine({
   data,
   color = "#3B82F6",
@@ -102,6 +162,7 @@ function KpiCard({
 function StatusBadge({
   s
 }) {
+  const { t } = useLang();
   const m = {
     Completed: "bg_",
     Berthed: "bb_",
@@ -110,7 +171,7 @@ function StatusBadge({
   };
   return /*#__PURE__*/React.createElement("span", {
     className: `bx ${m[s] || "bs_"}`
-  }, s);
+  }, t("status_" + s.toLowerCase(), s));
 }
 function ErrorTypeBadge({
   t
@@ -198,6 +259,7 @@ function VesselTable({
   data,
   perPage = 20
 }) {
+  const { t } = useLang();
   const [col, setCol] = useState("ata");
   const [dir, setDir] = useState("desc");
   const [pg, setPg] = useState(0);
@@ -236,63 +298,63 @@ function VesselTable({
     }
   }), /*#__PURE__*/React.createElement(Th, {
     c: "name",
-    l: "Vessel"
+    l: t("th_vessel", "Vessel")
   }), /*#__PURE__*/React.createElement(Th, {
     c: "voyage",
-    l: "Voyage"
+    l: t("th_voyage", "Voyage")
   }), /*#__PURE__*/React.createElement(Th, {
     c: "op",
-    l: "Operator"
+    l: t("th_operator", "Operator")
   }), /*#__PURE__*/React.createElement(Th, {
     c: "berth",
-    l: "Berth"
+    l: t("th_berth", "Berth")
   }), /*#__PURE__*/React.createElement(Th, {
     c: "ata",
-    l: "ATB",
+    l: t("th_atb", "ATB"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "atd",
-    l: "ATD",
+    l: t("th_atd", "ATD"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "portstay",
-    l: "Portstay h",
+    l: t("th_portstay", "Portstay h"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "net",
-    l: "Net Wk h",
+    l: t("th_net_wk", "Net Wk h"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "cranes",
-    l: "Cranes",
+    l: t("th_cranes", "Cranes"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "ci",
-    l: "VMPH",
+    l: t("th_vmph", "VMPH"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "gmph",
-    l: "GMPH",
+    l: t("th_gmph", "GMPH"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "nmph",
-    l: "NMPH",
+    l: t("th_nmph", "NMPH"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "dis",
-    l: "Disch.",
+    l: t("th_discharge", "Disch."),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "load",
-    l: "Load",
+    l: t("th_load", "Load"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "conts",
-    l: "Conts",
+    l: t("th_conts", "Conts"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "teus",
-    l: "TEUs",
+    l: t("th_teus", "TEUs"),
     r: true
   }))), /*#__PURE__*/React.createElement("tbody", null, rows.map(v => /*#__PURE__*/React.createElement("tr", {
     key: v.id
@@ -372,11 +434,11 @@ function VesselTable({
     style: {
       color: COLORS.green
     }
-  }, data.filter(v => v.nmph >= KPI_TARGET).length, " above KPI"), " · ", /*#__PURE__*/React.createElement("span", {
+  }, data.filter(v => v.nmph >= KPI_TARGET).length, " ", t("above_kpi", "above KPI")), " · ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: COLORS.red
     }
-  }, data.filter(v => v.nmph < KPI_TARGET).length, " below")), /*#__PURE__*/React.createElement("button", {
+  }, data.filter(v => v.nmph < KPI_TARGET).length, " ", t("below_kpi", "below"))), /*#__PURE__*/React.createElement("button", {
     className: "pb",
     onClick: () => setPg(p => p - 1),
     disabled: pg === 0
@@ -390,6 +452,7 @@ function DelayTable({
   data,
   perPage = 12
 }) {
+  const { t } = useLang();
   const [col, setCol] = useState("dur");
   const [dir, setDir] = useState("desc");
   const [pg, setPg] = useState(0);
@@ -424,23 +487,23 @@ function DelayTable({
     className: "tw"
   }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement(Th, {
     c: "vessel",
-    l: "Vessel"
+    l: t("th_vessel", "Vessel")
   }), /*#__PURE__*/React.createElement(Th, {
     c: "qc",
-    l: "QC"
-  }), /*#__PURE__*/React.createElement("th", null, "Stop"), /*#__PURE__*/React.createElement("th", null, "Code"), /*#__PURE__*/React.createElement(Th, {
+    l: t("th_qc", "QC")
+  }), /*#__PURE__*/React.createElement("th", null, t("th_stop", "Stop")), /*#__PURE__*/React.createElement("th", null, t("th_code", "Code")), /*#__PURE__*/React.createElement(Th, {
     c: "from",
-    l: "From"
+    l: t("th_from", "From")
   }), /*#__PURE__*/React.createElement(Th, {
     c: "to",
-    l: "To"
+    l: t("th_to_time", "To")
   }), /*#__PURE__*/React.createElement(Th, {
     c: "dur",
-    l: "Dur h",
+    l: t("th_duration", "Dur h"),
     r: true
   }), /*#__PURE__*/React.createElement(Th, {
     c: "type",
-    l: "Type"
+    l: t("th_type", "Type")
   }))), /*#__PURE__*/React.createElement("tbody", null, rows.map(d => /*#__PURE__*/React.createElement("tr", {
     key: d.id
   }, /*#__PURE__*/React.createElement("td", {
@@ -941,6 +1004,7 @@ function SystemFeed({
   onToggle,
   initLines = []
 }) {
+  const { t } = useLang();
   const [lines, setLines] = useState(initLines);
   const bodyRef = useRef(null);
   useEffect(() => {
@@ -970,7 +1034,7 @@ function SystemFeed({
       color: COLORS.green,
       fontSize: 8
     }
-  }, "●"), "System & Processing Feed", /*#__PURE__*/React.createElement("span", {
+  }, "●"), t("feed_title", "System & Processing Feed"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 9,
       color: "var(--t4)"
@@ -3248,6 +3312,9 @@ function App() {
     return userName.slice(0, 2).toUpperCase();
   }, [userName]);
   const [feed, setFeed] = useState(false);
+  const [lang, setLangState] = useState(() => localStorage.getItem('tdr_lang') || 'en');
+  const setLang = v => { setLangState(v); localStorage.setItem('tdr_lang', v); };
+  const t = useCallback((key, fb) => LANGS[lang]?.[key] ?? LANGS.en?.[key] ?? fb ?? key, [lang]);
   const [opTab, setOpTab] = useState("MTD");
   const [qcPg, setQcPg] = useState(0);
   const [selectedCrane, setSelectedCrane] = useState("ALL");
@@ -4181,7 +4248,7 @@ function App() {
     },
     onClick: reloadData
   }, "↺ Retry")));
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(LangCtx.Provider, {value: {t, lang, setLang}}, /*#__PURE__*/React.createElement("div", {
     style: {
       width: "100%",
       height: "100vh",
@@ -4221,7 +4288,7 @@ function App() {
     className: "sb-nav"
   }, /*#__PURE__*/React.createElement("div", {
     className: "nav-sec"
-  }, col ? "" : "MAIN"), NAV.map(n => /*#__PURE__*/React.createElement("div", {
+  }, col ? "" : t("nav_sec_main", "MAIN")), NAV.map(n => /*#__PURE__*/React.createElement("div", {
     key: n.id,
     className: `nav-i${nav === n.id ? " act" : ""}`,
     onClick: () => setNav(n.id)
@@ -4229,17 +4296,17 @@ function App() {
     className: "ni"
   }, n.icon), !col && /*#__PURE__*/React.createElement("span", {
     className: "nl"
-  }, n.lbl), !col && n.id === "delays" && delays.length > 0 && /*#__PURE__*/React.createElement("span", {
+  }, t("nav_" + n.id, n.lbl)), !col && n.id === "delays" && delays.length > 0 && /*#__PURE__*/React.createElement("span", {
     className: "nb"
   }, delays.length))), !col && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "nav-sec"
-  }, "DATA"), /*#__PURE__*/React.createElement("div", {
+  }, t("nav_sec_data", "DATA")), /*#__PURE__*/React.createElement("div", {
     className: "nav-i"
   }, /*#__PURE__*/React.createElement("span", {
     className: "ni"
   }, "🗄"), /*#__PURE__*/React.createElement("span", {
     className: "nl"
-  }, "SQLite · ", dbStatus === "healthy" ? "Connected" : "CSV Fallback")), /*#__PURE__*/React.createElement("div", {
+  }, "SQLite · ", dbStatus === "healthy" ? t("db_connected", "Connected") : t("db_csv_fallback", "CSV Fallback"))), /*#__PURE__*/React.createElement("div", {
     className: "nav-i"
   }, /*#__PURE__*/React.createElement("span", {
     className: "ni"
@@ -4250,7 +4317,7 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "sb-filt-title",
     onClick: () => setFiltOpen(o => !o)
-  }, /*#__PURE__*/React.createElement("span", null, "🔍 FILTERS", activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""), activeFiltersCount > 0 && /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", null, "🔍 ", t("filter_title", "FILTERS"), activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""), activeFiltersCount > 0 && /*#__PURE__*/React.createElement("button", {
     className: "sb-filt-clr",
     onClick: e => {
       e.stopPropagation();
@@ -4260,7 +4327,7 @@ function App() {
       setFBerth("");
       setFVessel("");
     }
-  }, "✕ Clear")), filtOpen && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, "✕ ", t("filter_clear", "Clear"))), filtOpen && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "sb-filt-field",
     style: {
       marginBottom: 8
@@ -4271,7 +4338,7 @@ function App() {
       display: 'block',
       marginBottom: 4
     }
-  }, "📅 Date Range (ATB)"), /*#__PURE__*/React.createElement("div", {
+  }, "📅 ", t("filter_date_range", "Date Range (ATB)")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
@@ -4290,7 +4357,7 @@ function App() {
       width: 28,
       fontWeight: 600
     }
-  }, "From"), /*#__PURE__*/React.createElement("input", {
+  }, t("filter_from", "From")), /*#__PURE__*/React.createElement("input", {
     type: "date",
     className: "sb-filt-inp",
     value: fDateFrom,
@@ -4324,7 +4391,7 @@ function App() {
       width: 28,
       fontWeight: 600
     }
-  }, "To"), /*#__PURE__*/React.createElement("input", {
+  }, t("filter_to", "To")), /*#__PURE__*/React.createElement("input", {
     type: "date",
     className: "sb-filt-inp",
     value: fDateTo,
@@ -4349,39 +4416,39 @@ function App() {
     className: "sb-filt-field"
   }, /*#__PURE__*/React.createElement("label", {
     className: "sb-filt-lbl"
-  }, "🏢 Operator (Hãng tàu)"), /*#__PURE__*/React.createElement("select", {
+  }, "🏢 ", t("filter_operator", "Operator (Hãng tàu)")), /*#__PURE__*/React.createElement("select", {
     className: "sb-filt-inp",
     value: fOp,
     onChange: e => setFOp(e.target.value)
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "All Operators"), allOps.map(o => /*#__PURE__*/React.createElement("option", {
+  }, t("filter_all_operators", "All Operators")), allOps.map(o => /*#__PURE__*/React.createElement("option", {
     key: o,
     value: o
   }, o)))), /*#__PURE__*/React.createElement("div", {
     className: "sb-filt-field"
   }, /*#__PURE__*/React.createElement("label", {
     className: "sb-filt-lbl"
-  }, "⚓ Berth (Cầu bến)"), /*#__PURE__*/React.createElement("select", {
+  }, "⚓ ", t("filter_berth", "Berth (Cầu bến)")), /*#__PURE__*/React.createElement("select", {
     className: "sb-filt-inp",
     value: fBerth,
     onChange: e => setFBerth(e.target.value)
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "All Berths"), allBerths.map(b => /*#__PURE__*/React.createElement("option", {
+  }, t("filter_all_berths", "All Berths")), allBerths.map(b => /*#__PURE__*/React.createElement("option", {
     key: b,
     value: b
   }, b)))), /*#__PURE__*/React.createElement("div", {
     className: "sb-filt-field"
   }, /*#__PURE__*/React.createElement("label", {
     className: "sb-filt-lbl"
-  }, "🚢 Vessel (Tàu)"), /*#__PURE__*/React.createElement("select", {
+  }, "🚢 ", t("filter_vessel", "Vessel (Tàu)")), /*#__PURE__*/React.createElement("select", {
     className: "sb-filt-inp",
     value: fVessel,
     onChange: e => setFVessel(e.target.value)
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "All Vessels"), allVessels.map(v => /*#__PURE__*/React.createElement("option", {
+  }, t("filter_all_vessels", "All Vessels")), allVessels.map(v => /*#__PURE__*/React.createElement("option", {
     key: v,
     value: v
   }, v)))))), /*#__PURE__*/React.createElement("div", {
@@ -4402,7 +4469,7 @@ function App() {
     onClick: () => setCol(c => !c)
   }, col ? "→" : "←"), /*#__PURE__*/React.createElement("div", {
     className: "hdr-t"
-  }, /*#__PURE__*/React.createElement("h2", null, PT[nav]), /*#__PURE__*/React.createElement("p", null, getHeaderSubtitle(), activeFiltersCount > 0 ? ` · 🔍 ${activeFiltersCount} filter${activeFiltersCount > 1 ? "s" : ""} active` : "")), !isMobile && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("h2", null, t("pt_" + nav, PT[nav])), /*#__PURE__*/React.createElement("p", null, getHeaderSubtitle(), activeFiltersCount > 0 ? ` · 🔍 ${activeFiltersCount} filter${activeFiltersCount > 1 ? "s" : ""} active` : "")), !isMobile && /*#__PURE__*/React.createElement("div", {
     className: "hdr-filt",
     style: {
       display: "flex",
@@ -4418,7 +4485,7 @@ function App() {
     style: {
       fontSize: 11
     }
-  }, "🎯 Target KPI:"), /*#__PURE__*/React.createElement("input", {
+  }, "🎯 ", t("kpi_target", "Target KPI:")), /*#__PURE__*/React.createElement("input", {
     type: "number",
     value: kt,
     onChange: e => {
@@ -4453,35 +4520,35 @@ function App() {
   }, nav === "overview" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(vessels, "vessel_summary")
-  }, "↓ Export"), /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export", "↓ Export")), /*#__PURE__*/React.createElement("button", {
     className: "btn bp",
     onClick: reloadData
-  }, "⚡ Refresh")), nav === "vessels" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+  }, t("btn_refresh", "⚡ Refresh"))), nav === "vessels" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(vessels, "vessel_summary")
-  }, "↓ Export"), /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export", "↓ Export")), /*#__PURE__*/React.createElement("button", {
     className: "btn br2x"
-  }, "⚠ ", vessels.filter(v => (v.nmph || 0) < kt).length, " Below KPI")), nav === "cranes" && /*#__PURE__*/React.createElement("button", {
+  }, "⚠ ", vessels.filter(v => (v.nmph || 0) < kt).length, " ", t("btn_below_kpi", "Below KPI"))), nav === "cranes" && /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(filteredQc, "qc_productivity")
-  }, "↓ Export"), nav === "operators" && /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export", "↓ Export")), nav === "operators" && /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(filteredQcOp, "qc_operator_productivity")
-  }, "↓ Export"), nav === "delays" && /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export", "↓ Export")), nav === "delays" && /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(delays, "delay_details")
-  }, "↓ Export"), nav === "berthplan" && /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export", "↓ Export")), nav === "berthplan" && /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(berthPlanStats.dayRows, "berth_planning_peak_days")
-  }, "↓ Export"), nav === "forecast" && /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export", "↓ Export")), nav === "forecast" && /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(cargoForecastStats.monthly, "cargo_forecast_monthly")
-  }, "↓ Export"), nav === "config" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export", "↓ Export")), nav === "config" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     className: "btn bg",
     onClick: () => exportToCSV(vessels, "system_logs")
-  }, "↓ Export Logs"), /*#__PURE__*/React.createElement("button", {
+  }, t("btn_export_logs", "↓ Export Logs")), /*#__PURE__*/React.createElement("button", {
     className: "btn bp"
-  }, "⚡ Process TDR Files"))), /*#__PURE__*/React.createElement("div", {
+  }, t("btn_process", "⚡ Process TDR Files")))), /*#__PURE__*/React.createElement("div", {
     className: "hdr-act",
     style: {
       position: "relative",
@@ -4527,6 +4594,17 @@ function App() {
       fontSize: 11
     }
   }, "No alerts — all vessels meeting KPI"))), /*#__PURE__*/React.createElement("button", {
+    className: "ic-btn",
+    onClick: () => setLang(lang === 'en' ? 'vi' : 'en'),
+    title: lang === 'en' ? 'Chuyển sang Tiếng Việt' : 'Switch to English',
+    style: {
+      fontFamily: "inherit",
+      outline: "none",
+      fontSize: 9.5,
+      fontWeight: 700,
+      letterSpacing: 0.5
+    }
+  }, lang === 'en' ? 'VI' : 'EN'), /*#__PURE__*/React.createElement("button", {
     className: "ic-btn",
     onClick: () => setTheme(t => t === "dark" ? "light" : "dark"),
     title: theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme",
@@ -6705,6 +6783,6 @@ function App() {
     open: feed,
     onToggle: () => setFeed(o => !o),
     initLines: feedLines
-  }))));
+  })))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
