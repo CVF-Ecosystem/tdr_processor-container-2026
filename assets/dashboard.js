@@ -1011,6 +1011,32 @@ function SystemFeed({
     className: "fl-m"
   }, l.m)))));
 }
+function LoadBar({
+  value = 0,
+  max = 1,
+  color = C.blue,
+  height = 4
+}) {
+  const pct = Math.max(0, Math.min(100, max ? value / max * 100 : 0));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 50,
+      height,
+      background: "var(--bg4)",
+      borderRadius: 999,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${pct}%`,
+      height: "100%",
+      background: color,
+      borderRadius: 999,
+      transition: "width .15s ease"
+    }
+  }));
+}
 function OpBarChart({
   data,
   kt = 45,
