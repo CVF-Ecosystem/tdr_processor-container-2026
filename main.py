@@ -1,5 +1,6 @@
 # main.py
 import tkinter as tk
+from typing import Optional
 from tkinter import filedialog, messagebox, scrolledtext
 import logging
 from pathlib import Path
@@ -133,7 +134,7 @@ class TextHandler(logging.Handler):
         self.text_queue.put(msg)
 
 
-class App(ttkb.Window):
+class App(ttkb.Window):  # type: ignore[misc]
     def __init__(self):
         super().__init__(themename="litera")
         # S4-10: Load tkdnd Tcl extension thủ công vào interpreter hiện tại
@@ -141,8 +142,8 @@ class App(ttkb.Window):
         if _TKDND_AVAILABLE:
             try:
                 self.tk.call("package", "require", "tkdnd")
-                self.drop_target_register(DND_FILES)
-                self.dnd_bind("<<Drop>>", self._on_files_dropped)
+                self.drop_target_register(DND_FILES)  # type: ignore[attr-defined]
+                self.dnd_bind("<<Drop>>", self._on_files_dropped)  # type: ignore[attr-defined]
                 self._dnd_active = True
             except Exception as e:
                 logging.debug(f"[DnD] tkdnd Tcl extension không khả dụng: {e}")
@@ -154,12 +155,12 @@ class App(ttkb.Window):
         )  # Sửa lỗi: Gọi đến hàm on_closing đã được định nghĩa
 
         self.output_dir = Path.cwd()
-        self.log_queue = queue.Queue()
-        self.processor_thread = None
-        self.watcher = None
-        self.watcher_queue = queue.Queue()
-        self.scheduler = None
-        self.settings_window = None
+        self.log_queue: queue.Queue = queue.Queue()
+        self.processor_thread: Optional[threading.Thread] = None
+        self.watcher: Optional[Watcher] = None
+        self.watcher_queue: queue.Queue = queue.Queue()
+        self.scheduler: Optional[TaskScheduler] = None
+        self.settings_window: Optional[tk.Toplevel] = None
 
         if not setup_project_directories(Path.cwd(), REQUIRED_DIRS):
             self.destroy()
@@ -404,8 +405,8 @@ class App(ttkb.Window):
             self.drop_zone_label.grid(row=2, column=0, sticky="ew", pady=(0, 4), padx=5)
             if self._dnd_active:
                 try:
-                    self.drop_zone_label.drop_target_register(DND_FILES)
-                    self.drop_zone_label.dnd_bind("<<Drop>>", self._on_files_dropped)
+                    self.drop_zone_label.drop_target_register(DND_FILES)  # type: ignore[attr-defined]
+                    self.drop_zone_label.dnd_bind("<<Drop>>", self._on_files_dropped)  # type: ignore[attr-defined]
                 except Exception as e:
                     logging.debug(f"[DnD] Không thể đăng ký drop zone: {e}")
 
@@ -421,7 +422,7 @@ class App(ttkb.Window):
         self.log_text_widget.config(state=tk.DISABLED)
         self.log_frame.grid_remove()
 
-        footer_frame = ttkb.Frame(main_frame, bootstyle=LIGHT)
+        footer_frame = ttkb.Frame(main_frame, bootstyle=LIGHT)  # type: ignore[call-arg]
         footer_frame.grid(row=4, column=0, sticky="ew", pady=(10, 0), padx=5)
         footer_frame.columnconfigure(0, weight=1)
 
@@ -474,18 +475,18 @@ class App(ttkb.Window):
         self.after(2000, self.check_watcher_queue)
 
     def open_powerbi_report(self):
-        template_path = Path("templates/tdr_dashboard_template.pbit")
+        template_path = Path("tdr_dashboard.pbix")
         output_dir = Path("outputs")
 
         if not template_path.exists():
             messagebox.showerror(
                 "Lỗi",
-                f"Không tìm thấy file template Power BI tại:\n{template_path.resolve()}",
+                f"Không tìm thấy file Power BI tại:\n{template_path.resolve()}",
             )
             return
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_name = f"TDR_Dashboard_{timestamp}.pbit"
+        report_name = f"TDR_Dashboard_{timestamp}.pbix"
         new_report_path = output_dir / report_name
 
         try:
@@ -494,8 +495,9 @@ class App(ttkb.Window):
             messagebox.showinfo(
                 "Mở Power BI",
                 "Một file báo cáo Power BI mới đã được tạo.\n\n"
-                "Khi Power BI mở ra, nó sẽ hỏi bạn đường dẫn đến các file CSV. "
-                f"Vui lòng trỏ đến thư mục:\n\n{Path('outputs/data_csv').resolve()}",
+                "Nếu Power BI hỏi hoặc cần refresh dữ liệu, "
+                "vui lòng trỏ nguồn đến thư mục CSV sau:\n\n"
+                f"{Path('outputs/data_csv').resolve()}",
                 parent=self,
             )
             # Cross-platform file opening
@@ -584,7 +586,7 @@ class App(ttkb.Window):
             self.settings_window.lift()
             return
 
-        self.settings_window = ttkb.Toplevel(master=self, title="Settings")
+        self.settings_window = ttkb.Toplevel(master=self, title="Settings")  # type: ignore[attr-defined]
         self.settings_window.geometry("450x500")
 
         schedule_frame = ttkb.LabelFrame(self.settings_window, text="⏰ Daily Schedule")
@@ -713,7 +715,7 @@ class App(ttkb.Window):
             smtp_port = int(self.smtp_port_var.get())
         except ValueError:
             messagebox.showerror(
-                "Error", "Invalid SMTP port", parent=self.settings_window
+                "Error", "Invalid SMTP port", parent=self.settings_window or self
             )
             return
 
@@ -721,7 +723,7 @@ class App(ttkb.Window):
             messagebox.showwarning(
                 "Warning",
                 "Please fill in SMTP User, Password and Server",
-                parent=self.settings_window,
+                parent=self.settings_window or self,
             )
             return
 
@@ -729,10 +731,10 @@ class App(ttkb.Window):
             smtp_server, smtp_port, smtp_user, smtp_pass
         )
         if success:
-            messagebox.showinfo("Success", message, parent=self.settings_window)
+            messagebox.showinfo("Success", message, parent=self.settings_window or self)
         else:
             messagebox.showerror(
-                "Connection Failed", message, parent=self.settings_window
+                "Connection Failed", message, parent=self.settings_window or self
             )
 
     def _save_smtp_credentials(self):
@@ -744,7 +746,7 @@ class App(ttkb.Window):
             messagebox.showwarning(
                 "Warning",
                 "Please enter both SMTP User and Password",
-                parent=self.settings_window,
+                parent=self.settings_window or self,
             )
             return
 
@@ -752,11 +754,11 @@ class App(ttkb.Window):
             self._credentials_configured = True
             self.cred_status_var.set(f"Status: {get_credential_storage_info()}")
             messagebox.showinfo(
-                "Success", "Credentials saved securely!", parent=self.settings_window
+                "Success", "Credentials saved securely!", parent=self.settings_window or self
             )
         else:
             messagebox.showerror(
-                "Error", "Failed to save credentials", parent=self.settings_window
+                "Error", "Failed to save credentials", parent=self.settings_window or self
             )
 
     def _clear_smtp_credentials(self):
@@ -764,7 +766,7 @@ class App(ttkb.Window):
         if messagebox.askyesno(
             "Confirm",
             "Are you sure you want to clear stored credentials?",
-            parent=self.settings_window,
+            parent=self.settings_window or self,
         ):
             delete_smtp_credentials()
             self.smtp_user_var.set("")
@@ -772,7 +774,7 @@ class App(ttkb.Window):
             self._credentials_configured = False
             self.cred_status_var.set("Status: Not Configured")
             messagebox.showinfo(
-                "Success", "Credentials cleared", parent=self.settings_window
+                "Success", "Credentials cleared", parent=self.settings_window or self
             )
 
     def apply_settings(self):
@@ -812,7 +814,7 @@ class App(ttkb.Window):
 
         except ValueError as e:
             messagebox.showerror(
-                "Validation Error", str(e), parent=self.settings_window
+                "Validation Error", str(e), parent=self.settings_window or self
             )
             return
 
@@ -820,24 +822,27 @@ class App(ttkb.Window):
 
         if self.schedule_enabled_var.get():
             time_str = self.schedule_time_var.get()
-            self.scheduler.set_schedule(time_str)
-            if not self.scheduler.is_running():
-                self.scheduler.start()
+            if self.scheduler is not None:
+                self.scheduler.set_schedule(time_str)
+                if not self.scheduler.is_running():
+                    self.scheduler.start()
             logging.info(
                 f"[Scheduler] Đã áp dụng lịch chạy hàng ngày vào lúc {time_str}."
             )
         else:
-            if self.scheduler.is_running():
-                self.scheduler.stop()
-            self.scheduler.clear_schedule()
+            if self.scheduler is not None:
+                if self.scheduler.is_running():
+                    self.scheduler.stop()
+                self.scheduler.clear_schedule()
             logging.info("[Scheduler] Lịch chạy hàng ngày đã được tắt.")
 
         messagebox.showinfo(
             "Saved",
             "Settings have been saved and applied.",
-            parent=self.settings_window,
+            parent=self.settings_window or self,
         )
-        self.settings_window.destroy()
+        if self.settings_window is not None:
+            self.settings_window.destroy()
 
     def start_processing(self, input_files=None, from_scheduler=False):
         if self.processor_thread and self.processor_thread.is_alive():
@@ -1030,7 +1035,7 @@ class App(ttkb.Window):
             )
             messagebox.showwarning("Processing Result", final_message)
         else:
-            self.status_label.config(text="✅ Processing successful", bootstyle=SUCCESS)
+            self.status_label.config(text="✅ Processing successful", bootstyle=SUCCESS)  # type: ignore[call-arg]
             # S4-11: Toast notification khi xử lý xong
             _send_toast(
                 "TDR Processor ✅",
@@ -1064,7 +1069,7 @@ class App(ttkb.Window):
         self.open_folder_button.config(state=tk.NORMAL)
 
         if processing:
-            self.status_label.config(text="🔄 Processing...", bootstyle=INFO)
+            self.status_label.config(text="🔄 Processing...", bootstyle=INFO)  # type: ignore[call-arg]
             self.progress_bar["value"] = 0
             self.progress_label.config(text="0%")
         else:
