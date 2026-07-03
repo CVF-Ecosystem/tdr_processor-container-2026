@@ -796,9 +796,11 @@ function BerthMap({
   }, /*#__PURE__*/React.createElement("span", null, "◀ Sea Side / Quay Wall"), /*#__PURE__*/React.createElement("span", null, "Land Side ▶"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+      gridTemplateColumns: `repeat(${Math.max(berths.length, 1)}, minmax(170px, 1fr))`,
       gap: 14,
-      flex: 1
+      flex: 1,
+      overflowX: "auto",
+      minWidth: 0
     }
   }, berths.map(b => /*#__PURE__*/React.createElement("div", {
     key: b.id,
@@ -2815,22 +2817,17 @@ function BerthPlanPage({
     onClick: () => applyQuick(key)
   }, label));
   const renderRow = r => {
+    const loadPct = Math.max(0, Math.min(100, peakVessels ? Math.round(r.vesselCount / peakVessels * 100) : 0));
+    const loadColor = r.vesselCount >= 3 ? COLORS.red : COLORS.amber;
     const loadCell = h("td", null, h("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }
-    }, h(LoadBar, {
-      value: r.vesselCount,
-      max: peakVessels,
-      color: r.vesselCount >= 3 ? COLORS.red : COLORS.amber
-    }), h("span", {
-      style: {
-        fontSize: 10,
-        color: "var(--t3)"
-      }
-    }, `${Math.round(r.vesselCount / peakVessels * 100)}%`)));
+      style: { display: "flex", alignItems: "center", gap: 5 }
+    }, h("div", {
+      style: { width: 52, flexShrink: 0, height: 4, background: "var(--bg4)", borderRadius: 999, overflow: "hidden" }
+    }, h("div", {
+      style: { width: loadPct + "%", height: "100%", background: loadColor, borderRadius: 999, transition: "width .15s ease" }
+    })), h("span", {
+      style: { fontSize: 10, color: "var(--t3)", flexShrink: 0, width: 30, textAlign: "right" }
+    }, loadPct + "%")));
     return period === "month" ? h("tr", {
       key: r.period
     }, h("td", {
@@ -2979,23 +2976,30 @@ function BerthPlanPage({
       color
     }
   }, val))));
-  const tableView = h("div", {
-    className: "tw"
-  }, h("table", null, h("thead", null, h("tr", null, tableHeaders.map((label, i) => h("th", {
-    key: label,
-    onClick: i === 0 ? () => sortBy("period") : undefined,
-    style: {
-      cursor: i === 0 ? "pointer" : "default",
-      userSelect: "none",
-      ...i > 1 && (period === "month" ? i < 5 : i < 7) ? {
-        textAlign: "right"
-      } : {}
-    }
-  }, label + (i === 0 ? sortMark("period") : "")))), h("tbody", null, sortedRows.map(renderRow)))));
+  const colWidths = period === "month" ? ["18%", "18%", "14%", "20%", "18%", "12%"] : ["14%", "14%", "10%", "10%", "16%", "14%", "14%", "8%"];
+  const tableView = h("div", { className: "tw" }, 
+    h("table", { style: { tableLayout: "fixed", width: "100%", minWidth: 700 } }, 
+      h("colgroup", null, colWidths.map((w, i) => h("col", { key: i, style: { width: w } }))), 
+      h("thead", null, 
+        h("tr", null, tableHeaders.map((label, i) => h("th", {
+          key: label,
+          onClick: i === 0 ? () => sortBy("period") : undefined,
+          style: {
+            cursor: i === 0 ? "pointer" : "default",
+            userSelect: "none",
+            ...(i > 1 && (period === "month" ? i < 5 : i < 7) ? { textAlign: "right" } : {})
+          }
+        }, label + (i === 0 ? sortMark("period") : ""))))
+      ), 
+      h("tbody", null, sortedRows.map(renderRow))
+    )
+  );
   const tableCard = h("div", {
     className: "card",
     style: {
-      flex: 1
+      flex: 1,
+      overflow: "hidden",
+      minWidth: 0
     }
   }, h("div", {
     className: "ch"
